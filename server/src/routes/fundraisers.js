@@ -1,0 +1,17 @@
+import { Router } from 'express';
+import { getFundraisersList } from '../services/airtable.js';
+
+const router = Router();
+
+// GET /api/fundraisers/list — lightweight list for dropdowns and badges
+router.get('/list', async (req, res) => {
+  try {
+    const fundraisers = await getFundraisersList();
+    res.json(fundraisers);
+  } catch (err) {
+    console.error('Error fetching fundraisers:', err.message);
+    res.status(500).json({ error: 'Failed to fetch fundraisers' });
+  }
+});
+
+export default router;
