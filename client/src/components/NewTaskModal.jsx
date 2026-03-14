@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 
-export default function NewTaskModal({ onClose, onRefresh }) {
+export default function NewTaskModal({ onClose, onRefresh, initialStatus = 'To do' }) {
   const [form, setForm] = useState({
     name: '',
     description: '',
     deadline: '',
     action_url: '',
+    button_words: '',
     fundraiserIds: [],
+    status: initialStatus,
   });
   const [fundraisers, setFundraisers] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -31,7 +33,9 @@ export default function NewTaskModal({ onClose, onRefresh }) {
         description: form.description.trim() || undefined,
         deadline: form.deadline,
         action_url: form.action_url.trim() || undefined,
+        button_words: form.button_words.trim() || undefined,
         fundraiserIds: form.fundraiserIds.length > 0 ? form.fundraiserIds : undefined,
+        status: form.status,
       });
       onRefresh();
       onClose();
@@ -54,7 +58,7 @@ export default function NewTaskModal({ onClose, onRefresh }) {
               type="text"
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
               autoFocus
             />
           </div>
@@ -64,7 +68,7 @@ export default function NewTaskModal({ onClose, onRefresh }) {
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               rows={3}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
             />
           </div>
           <div>
@@ -73,7 +77,7 @@ export default function NewTaskModal({ onClose, onRefresh }) {
               type="date"
               value={form.deadline}
               onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
             />
           </div>
           <div>
@@ -81,7 +85,7 @@ export default function NewTaskModal({ onClose, onRefresh }) {
             <select
               value={form.fundraiserIds[0] || ''}
               onChange={e => setForm(f => ({ ...f, fundraiserIds: e.target.value ? [e.target.value] : [] }))}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
             >
               <option value="">None</option>
               {fundraisers.map(f => (
@@ -96,7 +100,17 @@ export default function NewTaskModal({ onClose, onRefresh }) {
               value={form.action_url}
               onChange={e => setForm(f => ({ ...f, action_url: e.target.value }))}
               placeholder="https://..."
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Action Button Label</label>
+            <input
+              type="text"
+              value={form.button_words}
+              onChange={e => setForm(f => ({ ...f, button_words: e.target.value }))}
+              placeholder="e.g. Send Email, Open Portal"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
             />
           </div>
 
@@ -107,7 +121,7 @@ export default function NewTaskModal({ onClose, onRefresh }) {
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+              className="px-4 py-2 text-sm bg-smash text-white rounded-lg hover:bg-smash-dark disabled:opacity-50"
             >
               {saving ? 'Creating...' : 'Create Task'}
             </button>

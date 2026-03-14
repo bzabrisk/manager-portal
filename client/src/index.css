@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+@theme {
+  --color-smash: #ff5000;
+  --color-smash-dark: #e04500;
+}

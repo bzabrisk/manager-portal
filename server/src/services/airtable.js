@@ -20,6 +20,7 @@ const TASK_FIELDS = {
   creation_method: 'fldtOO8JlwZu1Uhui',
   fundraisers: 'flddkpCSJb2MUIMLU',
   created_at: 'fldxWDRScYq2gkogl',
+  button_words: 'fldMypJRWWAdu9hzD',
 };
 
 // Rep field IDs
@@ -40,6 +41,8 @@ const FUNDRAISER_FIELDS = {
   status_rendered: 'fldnx3K4heNUqs96t',
   kickoff_date: 'fldbfZFcJj52SnB5C',
   end_date: 'fldEFQYQLPlh26i6O',
+  rep_photo: 'fldiVemmCDr4fKTTa',
+  asb_boosters: 'fldMCr5g20kATvA2s',
 };
 
 function headers() {
@@ -138,14 +141,26 @@ async function getFundraisersList() {
   const records = await airtableFetch('fundraisers', {
     filterByFormula: `NOT({status_rendered} = "Closed Out")`,
   });
-  const mapped = records.map(r => ({
-    id: r.id,
-    organization: r.fields[FUNDRAISER_FIELDS.organization] || '',
-    team: r.fields[FUNDRAISER_FIELDS.team] || '',
-    status: r.fields[FUNDRAISER_FIELDS.status_rendered] || '',
-    kickoff_date: r.fields[FUNDRAISER_FIELDS.kickoff_date] || null,
-    end_date: r.fields[FUNDRAISER_FIELDS.end_date] || null,
-  }));
+  const mapped = records.map(r => {
+    // Extract rep_photo URL (prefer large thumbnail)
+    const photoAttachments = r.fields[FUNDRAISER_FIELDS.rep_photo] || [];
+    let rep_photo = null;
+    if (photoAttachments.length > 0) {
+      const att = photoAttachments[0];
+      rep_photo = att.thumbnails?.large?.url || att.url || null;
+    }
+
+    return {
+      id: r.id,
+      organization: r.fields[FUNDRAISER_FIELDS.organization] || '',
+      team: r.fields[FUNDRAISER_FIELDS.team] || '',
+      status: r.fields[FUNDRAISER_FIELDS.status_rendered] || '',
+      kickoff_date: r.fields[FUNDRAISER_FIELDS.kickoff_date] || null,
+      end_date: r.fields[FUNDRAISER_FIELDS.end_date] || null,
+      asb_boosters: r.fields[FUNDRAISER_FIELDS.asb_boosters] || null,
+      rep_photo,
+    };
+  });
   fundraiserCache = { data: mapped, timestamp: Date.now() };
   return mapped;
 }

@@ -35,9 +35,12 @@ router.get('/', async (req, res) => {
     const tasks = records.map(r => {
       const f = r.fields;
       const linkedFundraisers = f[TASK_FIELDS.fundraisers] || [];
-      const fundraiserInfo = linkedFundraisers.length > 0
-        ? fundraiserMap[linkedFundraisers[0]] || null
-        : null;
+
+      // Resolve ALL linked fundraisers, not just the first
+      const resolvedFundraisers = linkedFundraisers
+        .map(id => fundraiserMap[id] || null)
+        .filter(Boolean);
+      const fundraiserInfo = resolvedFundraisers.length > 0 ? resolvedFundraisers[0] : null;
 
       const assigneeIds = f[TASK_FIELDS.assignee] || [];
       let assigneeName = assigneeIds.length > 0
@@ -57,9 +60,11 @@ router.get('/', async (req, res) => {
         deadline: f[TASK_FIELDS.deadline] || null,
         show_date: f[TASK_FIELDS.show_date] || f['show_date'] || null,
         action_url: f[TASK_FIELDS.action_url] || f['action_url'] || null,
+        button_words: f[TASK_FIELDS.button_words] || null,
         creation_method: f[TASK_FIELDS.creation_method] || '',
         created_at: f[TASK_FIELDS.created_at] || null,
         fundraiser: fundraiserInfo,
+        fundraisers: resolvedFundraisers,
         fundraiserIds: linkedFundraisers,
       };
     });
@@ -83,6 +88,7 @@ router.patch('/:recordId', async (req, res) => {
     if (updates.status !== undefined) fields[TASK_FIELDS.status] = updates.status;
     if (updates.deadline !== undefined) fields[TASK_FIELDS.deadline] = updates.deadline;
     if (updates.action_url !== undefined) fields[TASK_FIELDS.action_url] = updates.action_url;
+    if (updates.button_words !== undefined) fields[TASK_FIELDS.button_words] = updates.button_words;
     if (updates.fundraiserIds !== undefined) fields[TASK_FIELDS.fundraisers] = updates.fundraiserIds;
 
     const result = await airtableUpdate('tasks', recordId, fields);
@@ -96,7 +102,7 @@ router.patch('/:recordId', async (req, res) => {
 // POST /api/tasks — create a new task
 router.post('/', async (req, res) => {
   try {
-    const { name, description, deadline, fundraiserIds, action_url } = req.body;
+    const { name, description, deadline, fundraiserIds, action_url, button_words } = req.body;
 
     const officeManagerId = REP_IDS['Office Manager'];
 
@@ -111,6 +117,7 @@ router.post('/', async (req, res) => {
     if (description) fields[TASK_FIELDS.description] = description;
     if (fundraiserIds && fundraiserIds.length > 0) fields[TASK_FIELDS.fundraisers] = fundraiserIds;
     if (action_url) fields[TASK_FIELDS.action_url] = action_url;
+    if (button_words) fields[TASK_FIELDS.button_words] = button_words;
 
     const result = await airtableCreate('tasks', fields);
     res.json(result);

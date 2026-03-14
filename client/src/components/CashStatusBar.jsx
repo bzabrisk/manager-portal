@@ -1,6 +1,6 @@
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Plus } from 'lucide-react';
 
-export default function CashStatusBar({ tasks }) {
+export default function CashStatusBar({ tasks, onNewTask }) {
   const today = new Date().toISOString().split('T')[0];
 
   const cashTasks = tasks.filter(t => t.assignee === 'Cash');
@@ -10,7 +10,6 @@ export default function CashStatusBar({ tasks }) {
     .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
   const lastDone = cashDone[0];
 
-  let message = 'Cash has no tasks scheduled today.';
   const parts = [];
 
   if (cashTodayTodo.length > 0) {
@@ -29,12 +28,27 @@ export default function CashStatusBar({ tasks }) {
     parts.push(`Last completed: ${lastDone.name}${fundraiserLabel}${dateStr ? ` (${dateStr})` : ''}.`);
   }
 
-  message = parts.join(' ');
+  const message = parts.join(' ');
 
   return (
-    <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-2.5 flex items-center gap-2 text-sm text-blue-800">
-      <Sparkles size={16} className="text-blue-500 shrink-0" />
-      <span>{message}</span>
+    <div className="flex items-center gap-4">
+      {/* Slim status strip */}
+      <div className="flex-1 bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5 flex items-center gap-2 text-sm text-blue-800">
+        <Sparkles size={14} className="text-blue-500 shrink-0" />
+        <span>{message}</span>
+      </div>
+
+      {/* Prominent + Task button — outside the status bar */}
+      <button
+        onClick={onNewTask}
+        className="inline-flex items-center gap-2 text-base font-bold text-white px-6 py-3 rounded-lg transition-colors shrink-0 shadow-md hover:shadow-lg"
+        style={{ backgroundColor: '#ff5000' }}
+        onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
+        onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ff5000'}
+      >
+        <Plus size={20} strokeWidth={3} />
+        Task
+      </button>
     </div>
   );
 }

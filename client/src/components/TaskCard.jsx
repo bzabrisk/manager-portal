@@ -1,6 +1,38 @@
 import { useState, useEffect } from 'react';
-import { ExternalLink, Pencil, Calendar } from 'lucide-react';
+import { Pencil, Calendar, User, ExternalLink } from 'lucide-react';
 import { api } from '../api/client';
+
+const TAG_COLORS = [
+  'bg-rose-100 text-rose-700 border-rose-200',
+  'bg-sky-100 text-sky-700 border-sky-200',
+  'bg-violet-100 text-violet-700 border-violet-200',
+  'bg-teal-100 text-teal-700 border-teal-200',
+  'bg-orange-100 text-orange-700 border-orange-200',
+  'bg-emerald-100 text-emerald-700 border-emerald-200',
+  'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200',
+  'bg-cyan-100 text-cyan-700 border-cyan-200',
+  'bg-amber-100 text-amber-700 border-amber-200',
+  'bg-lime-100 text-lime-700 border-lime-200',
+];
+
+const ASB_COLORS = {
+  'WA State ASB': 'bg-blue-100 text-blue-700',
+  'School - other than WA State ASB': 'bg-green-100 text-green-700',
+  'Booster Club': 'bg-purple-100 text-purple-700',
+};
+
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+export function getFundraiserColor(name) {
+  return TAG_COLORS[hashString(name) % TAG_COLORS.length];
+}
 
 function deadlineColor(deadline) {
   if (!deadline) return 'text-slate-400';
@@ -8,174 +40,135 @@ function deadlineColor(deadline) {
   today.setHours(0, 0, 0, 0);
   const dl = new Date(deadline + 'T00:00:00');
   const diff = Math.ceil((dl - today) / (1000 * 60 * 60 * 24));
-  if (diff <= 0) return 'text-red-600 bg-red-50 px-2 py-0.5 rounded';
-  if (diff === 1) return 'text-amber-600 bg-amber-50 px-2 py-0.5 rounded';
-  return 'text-slate-500';
+  if (diff <= 0) return 'text-[#ff5000] font-semibold';
+  if (diff === 1) return 'text-orange-400';
+  return 'text-gray-400';
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return '—';
+export function formatDate(dateStr) {
+  if (!dateStr) return '';
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
   });
 }
 
-const STATUS_OPTIONS = ['To do', 'Doing', 'Done'];
-
-export default function TaskCard({ task, onRefresh, readOnly = false, deadlineOnly = false, muted = false }) {
-  const [updating, setUpdating] = useState(false);
+export default function TaskCard({ task, onRefresh, saving = false }) {
   const [editing, setEditing] = useState(false);
-  const [editingDeadline, setEditingDeadline] = useState(false);
 
-  const handleStatusChange = async (newStatus) => {
-    if (updating) return;
-    setUpdating(true);
-    try {
-      await api.tasks.update(task.id, { status: newStatus });
-      onRefresh();
-    } catch (err) {
-      console.error('Failed to update status:', err);
-    } finally {
-      setUpdating(false);
-    }
-  };
+  const fundraiserLabel = task.fundraiser
+    ? `${task.fundraiser.organization} — ${task.fundraiser.team}`
+    : null;
+
+  const hasActionButton = task.button_words && task.action_url;
 
   return (
     <>
-      <div className={`bg-white rounded-lg border border-slate-200 p-4 ${muted ? 'opacity-60' : ''}`}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-slate-800 text-sm">{task.name}</h3>
-            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              {task.fundraiser && (
-                <span className="inline-flex items-center text-xs font-medium bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full cursor-pointer hover:bg-indigo-100">
-                  {task.fundraiser.organization} {task.fundraiser.team}
+      <div className={`bg-white rounded-lg border border-slate-200 p-3 shadow-sm group relative transition-opacity ${saving ? 'opacity-60' : ''}`}>
+        {/* Edit button - top right, visible on hover */}
+        <button
+          onClick={() => setEditing(true)}
+          className="absolute top-2 right-2 p-1 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+          title="Edit task"
+        >
+          <Pencil size={13} />
+        </button>
+
+        {/* Row 1: Task name */}
+        <h4 className="font-semibold text-slate-800 text-sm leading-snug pr-6">{task.name}</h4>
+
+        {/* Row 2: Fundraiser tag */}
+        {fundraiserLabel && (
+          <div className="mt-1.5">
+            <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded border ${getFundraiserColor(fundraiserLabel)}`}>
+              {fundraiserLabel}
+            </span>
+          </div>
+        )}
+
+        {/* Row 3: Description */}
+        {task.description && (
+          <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">{task.description}</p>
+        )}
+
+        {/* Row 4: Info row */}
+        <div className="flex items-center mt-2.5">
+          {/* Left side: deadline */}
+          {task.deadline && (
+            <span className={`inline-flex items-center gap-1 text-xs ${deadlineColor(task.deadline)}`}>
+              <Calendar size={11} />
+              {formatDate(task.deadline)}
+            </span>
+          )}
+
+          <div className="flex-1" />
+
+          {/* Right side: rep photo + ASB tag (only if fundraiser linked) */}
+          {task.fundraiser && (
+            <div className="flex items-center gap-1.5">
+              {task.fundraiser.rep_photo ? (
+                <img
+                  src={task.fundraiser.rep_photo}
+                  alt="Rep"
+                  className="w-6 h-6 rounded-full object-cover border border-slate-200"
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+                  <User size={12} className="text-slate-400" />
+                </div>
+              )}
+              {task.fundraiser.asb_boosters && ASB_COLORS[task.fundraiser.asb_boosters] && (
+                <span className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded ${ASB_COLORS[task.fundraiser.asb_boosters]}`}>
+                  {task.fundraiser.asb_boosters === 'WA State ASB' ? 'ASB' :
+                   task.fundraiser.asb_boosters === 'Booster Club' ? 'Boosters' : 'School'}
                 </span>
               )}
-              <span className={`inline-flex items-center gap-1 text-xs font-medium ${deadlineColor(task.deadline)}`}>
-                <Calendar size={12} />
-                {formatDate(task.deadline)}
-              </span>
             </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Status toggle or read-only chip */}
-            {readOnly ? (
-              <StatusChip status={task.status} />
-            ) : task.status !== 'Done' ? (
-              <select
-                value={task.status}
-                onChange={(e) => handleStatusChange(e.target.value)}
-                disabled={updating}
-                className="text-xs border border-slate-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                {STATUS_OPTIONS.map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            ) : (
-              <StatusChip status="Done" />
-            )}
-
-            {task.action_url && (
-              <a
-                href={task.action_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded transition-colors"
-                title="Open action"
-              >
-                <ExternalLink size={14} />
-              </a>
-            )}
-
-            {deadlineOnly ? (
-              <button
-                onClick={() => setEditingDeadline(true)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
-                title="Edit deadline"
-              >
-                <Pencil size={14} />
-              </button>
-            ) : (
-              <button
-                onClick={() => setEditing(true)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
-                title="Edit task"
-              >
-                <Pencil size={14} />
-              </button>
-            )}
-          </div>
+          )}
         </div>
+
+        {/* Divider + Action button */}
+        {hasActionButton && (
+          <div className="border-t border-gray-100 mt-2.5 pt-2">
+            <a
+              href={task.action_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-medium text-smash hover:text-smash-dark transition-colors"
+              onClick={e => e.stopPropagation()}
+            >
+              {task.button_words}
+              <ExternalLink size={10} />
+            </a>
+          </div>
+        )}
+
+        {/* Saving indicator */}
+        {saving && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/50 rounded-lg">
+            <div className="w-4 h-4 border-2 border-smash border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
       </div>
 
       {editing && (
         <EditTaskModal task={task} onClose={() => setEditing(false)} onRefresh={onRefresh} />
       )}
-      {editingDeadline && (
-        <EditDeadlineModal task={task} onClose={() => setEditingDeadline(false)} onRefresh={onRefresh} />
-      )}
     </>
   );
 }
 
-function StatusChip({ status }) {
+export function StatusChip({ status }) {
   const colors = {
     'On deck': 'bg-slate-100 text-slate-600',
-    'To do': 'bg-blue-50 text-blue-700',
-    'Doing': 'bg-amber-50 text-amber-700',
+    'To do': 'bg-amber-50 text-amber-700',
+    'Doing': 'bg-blue-50 text-blue-700',
     'Done': 'bg-green-50 text-green-700',
   };
   return (
-    <span className={`text-xs font-medium px-2 py-1 rounded-full ${colors[status] || 'bg-slate-100 text-slate-600'}`}>
+    <span className={`text-xs font-medium px-2 py-0.5 rounded ${colors[status] || 'bg-slate-100 text-slate-600'}`}>
       {status}
     </span>
-  );
-}
-
-function EditDeadlineModal({ task, onClose, onRefresh }) {
-  const [deadline, setDeadline] = useState(task.deadline || '');
-  const [saving, setSaving] = useState(false);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await api.tasks.update(task.id, { deadline });
-      onRefresh();
-      onClose();
-    } catch (err) {
-      console.error('Failed to update deadline:', err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-        <h3 className="font-semibold text-slate-800 mb-4">Edit Deadline</h3>
-        <p className="text-sm text-slate-600 mb-3">{task.name}</p>
-        <input
-          type="date"
-          value={deadline}
-          onChange={e => setDeadline(e.target.value)}
-          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <div className="flex justify-end gap-2 mt-4">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -185,6 +178,7 @@ function EditTaskModal({ task, onClose, onRefresh }) {
     description: task.description || '',
     deadline: task.deadline || '',
     action_url: task.action_url || '',
+    button_words: task.button_words || '',
     status: task.status,
     fundraiserIds: task.fundraiserIds || [],
   });
@@ -220,7 +214,7 @@ function EditTaskModal({ task, onClose, onRefresh }) {
               type="text"
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
             />
           </div>
           <div>
@@ -229,7 +223,7 @@ function EditTaskModal({ task, onClose, onRefresh }) {
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               rows={3}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
             />
           </div>
           <div>
@@ -238,7 +232,7 @@ function EditTaskModal({ task, onClose, onRefresh }) {
               type="date"
               value={form.deadline}
               onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
             />
           </div>
           <div>
@@ -246,7 +240,7 @@ function EditTaskModal({ task, onClose, onRefresh }) {
             <select
               value={form.fundraiserIds[0] || ''}
               onChange={e => setForm(f => ({ ...f, fundraiserIds: e.target.value ? [e.target.value] : [] }))}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
             >
               <option value="">None</option>
               {fundraisers.map(f => (
@@ -260,7 +254,17 @@ function EditTaskModal({ task, onClose, onRefresh }) {
               type="url"
               value={form.action_url}
               onChange={e => setForm(f => ({ ...f, action_url: e.target.value }))}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Action Button Label</label>
+            <input
+              type="text"
+              value={form.button_words}
+              onChange={e => setForm(f => ({ ...f, button_words: e.target.value }))}
+              placeholder="e.g. Send Email, Open Portal"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
             />
           </div>
           <div>
@@ -268,7 +272,7 @@ function EditTaskModal({ task, onClose, onRefresh }) {
             <select
               value={form.status}
               onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
             >
               {['On deck', 'To do', 'Doing', 'Done'].map(s => (
                 <option key={s} value={s}>{s}</option>
@@ -282,7 +286,7 @@ function EditTaskModal({ task, onClose, onRefresh }) {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+            className="px-4 py-2 text-sm bg-smash text-white rounded-lg hover:bg-smash-dark disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save'}
           </button>

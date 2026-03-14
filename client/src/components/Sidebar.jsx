@@ -30,17 +30,17 @@ export default function Sidebar({ activeTaskCount, onLogout }) {
               to={to}
               end={to === '/'}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-5 py-2.5 text-sm font-medium transition-colors ${
+                `flex items-center gap-3 px-5 py-2.5 text-sm font-medium transition-colors border-l-[3px] ${
                   isActive
-                    ? 'bg-slate-700 text-white'
-                    : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                    ? 'border-smash bg-slate-700 text-white'
+                    : 'border-transparent text-slate-300 hover:bg-slate-700/50 hover:text-white'
                 }`
               }
             >
               <Icon size={18} />
               <span className="flex-1">{label}</span>
               {badge !== null && badge > 0 && (
-                <span className="bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                <span className="bg-smash text-white text-xs font-bold px-2 py-0.5 rounded">
                   {badge}
                 </span>
               )}
