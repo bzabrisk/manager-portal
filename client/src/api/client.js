@@ -49,6 +49,8 @@ export const api = {
     upcomingCount: () => request('/fundraisers/upcoming/count'),
     active: () => request('/fundraisers/active'),
     activeCount: () => request('/fundraisers/active/count'),
+    ended: () => request('/fundraisers/ended'),
+    endedCount: () => request('/fundraisers/ended/count'),
     getDetail: (recordId) => request(`/fundraisers/${recordId}`),
     update: (recordId, data) => request(`/fundraisers/${recordId}`, {
       method: 'PATCH',

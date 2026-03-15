@@ -107,6 +107,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
         md_payout_received: result.md_payout_received,
         check_invoice_sent: result.check_invoice_sent,
         rep_paid: result.rep_paid,
+        invoice_payment_received: result.invoice_payment_received,
         admin_notes: result.admin_notes,
       });
       setError('');
@@ -125,6 +126,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
     edits.md_payout_received !== data.md_payout_received ||
     edits.check_invoice_sent !== data.check_invoice_sent ||
     edits.rep_paid !== data.rep_paid ||
+    edits.invoice_payment_received !== data.invoice_payment_received ||
     edits.admin_notes !== data.admin_notes
   );
 
@@ -135,6 +137,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       if (edits.md_payout_received !== data.md_payout_received) payload.md_payout_received = edits.md_payout_received;
       if (edits.check_invoice_sent !== data.check_invoice_sent) payload.check_invoice_sent = edits.check_invoice_sent;
       if (edits.rep_paid !== data.rep_paid) payload.rep_paid = edits.rep_paid;
+      if (edits.invoice_payment_received !== data.invoice_payment_received) payload.invoice_payment_received = edits.invoice_payment_received;
       if (edits.admin_notes !== data.admin_notes) payload.admin_notes = edits.admin_notes;
 
       await api.fundraisers.update(recordId, payload);
@@ -154,6 +157,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
         md_payout_received: data.md_payout_received,
         check_invoice_sent: data.check_invoice_sent,
         rep_paid: data.rep_paid,
+        invoice_payment_received: data.invoice_payment_received,
         admin_notes: data.admin_notes,
       });
     }
@@ -198,6 +202,10 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
 
   const isTraditional = data.product_primary_string?.toLowerCase().includes('traditional');
   const showCloseout = ['Campaign Ended', 'Ready to Close', 'Closed Out'].includes(data.status);
+  const hasMdProduct = data.product_primary_string?.toLowerCase().includes('md');
+  const requiresInvoice = data.asb_boosters === 'WA State ASB'
+    || data.product_primary_string?.toLowerCase().includes('traditional no-risk')
+    || data.product_primary_string?.toLowerCase().includes('traditional upfront');
   const showDailyPayouts = data.asb_boosters === 'WA State ASB';
 
   // Financials
@@ -438,9 +446,10 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                 <SectionHeader>Closeout</SectionHeader>
                 <div className="space-y-2">
                   {[
-                    { key: 'md_payout_received', label: 'MD Payout received' },
+                    ...(hasMdProduct ? [{ key: 'md_payout_received', label: 'MD Payout received' }] : []),
                     { key: 'check_invoice_sent', label: 'Check/Invoice sent' },
                     { key: 'rep_paid', label: 'Rep paid' },
+                    ...(requiresInvoice ? [{ key: 'invoice_payment_received', label: 'Invoice payment received' }] : []),
                   ].map(item => (
                     <div key={item.key} className="flex items-center gap-2.5">
                       {editMode ? (
@@ -484,9 +493,10 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                             href={file.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 text-sm text-[#ff5000] hover:underline"
+                            className="flex items-center gap-1.5 text-sm text-[#ff5000] hover:underline min-w-0"
                           >
-                            <FileText size={14} /> {file.filename}
+                            <FileText size={14} className="shrink-0" />
+                            <span className="break-all">{file.filename}</span>
                           </a>
                         ))}
                       </div>
@@ -574,7 +584,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                       {sortedPayouts.map(p => (
                         <>
                           <tr key={p.id} className="border-b border-slate-50">
-                            <td className="py-2 pr-3 text-slate-700">{formatDate(p.run_date)}</td>
+                            <td className="py-2 pr-3 text-slate-700">{p.run_date ? new Date(p.run_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}</td>
                             <td className="py-2 pr-3 text-slate-700">{formatCurrency(p.gross_sales_today) || '—'}</td>
                             <td className={`py-2 pr-3 ${p.payout_amount === 0 ? 'text-slate-300' : 'text-slate-700'}`}>
                               {formatCurrency(p.payout_amount) || '—'}

@@ -38,6 +38,7 @@ function AuthenticatedApp({ onLogout }) {
   const { data: tasks, loading, error, refresh } = usePolling(() => api.tasks.list());
   const { data: upcomingData } = usePolling(() => api.fundraisers.upcomingCount());
   const { data: activeData } = usePolling(() => api.fundraisers.activeCount());
+  const { data: endedData } = usePolling(() => api.fundraisers.endedCount());
   const { data: payoutSummary } = usePolling(() => api.payouts.todaySummary());
 
   const activeTasks = (tasks || []).filter(t =>
@@ -46,6 +47,7 @@ function AuthenticatedApp({ onLogout }) {
 
   const upcomingCount = upcomingData?.needsAttention ?? 0;
   const activeCount = activeData?.total ?? 0;
+  const endedCount = endedData?.needsAction ?? 0;
   const failedPayouts = payoutSummary?.failed ?? 0;
 
   return (
@@ -54,6 +56,7 @@ function AuthenticatedApp({ onLogout }) {
         activeTaskCount={activeTasks.length}
         upcomingCount={upcomingCount}
         activeCount={activeCount}
+        endedCount={endedCount}
         failedPayouts={failedPayouts}
         onLogout={onLogout}
       />

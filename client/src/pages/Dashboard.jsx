@@ -194,13 +194,13 @@ export default function Dashboard({ tasks, loading, error, refresh }) {
                 </div>
 
                 {/* Droppable task area */}
-                <div className={`flex-1 px-2 pb-2 ${isDoneColumn ? 'opacity-75' : ''}`}>
+                <div className={`flex-1 flex flex-col px-2 pb-2 ${isDoneColumn ? 'opacity-75' : ''}`}>
                   <Droppable droppableId={`krista-${col.id}`}>
                     {(provided, snapshot) => (
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className={`min-h-[40px] rounded-lg p-1 transition-colors ${snapshot.isDraggingOver ? 'bg-orange-50 ring-2 ring-orange-200' : ''}`}
+                        className={`flex-1 min-h-[40px] rounded-lg p-1 transition-colors ${snapshot.isDraggingOver ? 'bg-orange-50 ring-2 ring-orange-200' : ''}`}
                       >
                         {kristaColTasks.length === 0 && !snapshot.isDraggingOver && (
                           <div className="text-xs text-slate-400 text-center py-3">No tasks</div>

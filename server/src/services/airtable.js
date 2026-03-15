@@ -64,6 +64,7 @@ const FUNDRAISER_FIELDS = {
   smash_profit: 'fld2ZsDnr8ZIKzsL5',
   md_payout: 'fldjYCVPq9QFAbAOt',
   md_payout_received: 'fldKflCSEtVXCkj9I',
+  invoice_payment_received: 'fld1cS6i7BrZfqxuf',
   check_invoice_sent: 'fld6HUrMft9MsDfIL',
   rep_paid: 'fld11dZXfenyqzQbe',
   organization_name_needs_follow_up: 'fldRT8zcP6WrSacBM',

@@ -404,6 +404,200 @@ router.get('/active/count', async (req, res) => {
   }
 });
 
+// Shared logic for ended fundraisers with full data resolution
+async function getEndedFundraisers() {
+  const records = await airtableFetch('fundraisers', {
+    filterByFormula: `OR({${FUNDRAISER_FIELDS.status_rendered}} = "Campaign Ended", {${FUNDRAISER_FIELDS.status_rendered}} = "Ready to Close")`,
+    sort: [{ field: FUNDRAISER_FIELDS.end_date, direction: 'asc' }],
+  });
+
+  // Collect linked record IDs
+  const repIds = new Set();
+  const accountingIds = new Set();
+  const taskIds = new Set();
+  const productIds = new Set();
+
+  for (const r of records) {
+    const f = r.fields;
+    (f[FUNDRAISER_FIELDS.rep] || []).forEach(id => repIds.add(id));
+    (f[FUNDRAISER_FIELDS.accounting_contact] || []).forEach(id => accountingIds.add(id));
+    (f[FUNDRAISER_FIELDS.tasks] || []).forEach(id => taskIds.add(id));
+    (f[FUNDRAISER_FIELDS.product_primary] || []).forEach(id => productIds.add(id));
+    (f[FUNDRAISER_FIELDS.product_secondary] || []).forEach(id => productIds.add(id));
+    (f[FUNDRAISER_FIELDS.tp_mddonations] || []).forEach(id => productIds.add(id));
+  }
+
+  // Batch fetch linked records in parallel
+  const [repRecords, accountingRecords, taskRecords, productRecords, repIdMap] = await Promise.all([
+    airtableFetchByIds('reps', [...repIds]),
+    airtableFetchByIds('accounting_contact', [...accountingIds]),
+    airtableFetchByIds('tasks', [...taskIds]),
+    airtableFetchByIds('products', [...productIds]),
+    getRepIds(),
+  ]);
+
+  // Build lookup maps
+  const repMap = {};
+  for (const r of repRecords) {
+    repMap[r.id] = r.fields[REP_FIELDS.name] || '';
+  }
+
+  const accountingMap = {};
+  for (const r of accountingRecords) {
+    accountingMap[r.id] = r.fields[ACCOUNTING_CONTACT_FIELDS.name] || '';
+  }
+
+  const repIdToName = {};
+  for (const [name, id] of Object.entries(repIdMap)) {
+    repIdToName[id] = name;
+  }
+
+  const productMap = {};
+  for (const r of productRecords) {
+    productMap[r.id] = r.fields[PRODUCT_FIELDS.name] || '';
+  }
+
+  const taskMap = {};
+  for (const r of taskRecords) {
+    const assigneeIds = r.fields[TASK_FIELDS.assignee] || [];
+    let assigneeName = assigneeIds.length > 0 ? (repIdToName[assigneeIds[0]] || 'Unknown') : 'Unknown';
+    if (assigneeName.toLowerCase().includes('cash')) assigneeName = 'Cash';
+
+    taskMap[r.id] = {
+      id: r.id,
+      name: r.fields[TASK_FIELDS.name] || '',
+      status: r.fields[TASK_FIELDS.status] || '',
+      description: r.fields[TASK_FIELDS.description] || '',
+      deadline: r.fields[TASK_FIELDS.deadline] || null,
+      show_date: r.fields[TASK_FIELDS.show_date] || null,
+      action_url: r.fields[TASK_FIELDS.action_url] || null,
+      button_words: r.fields[TASK_FIELDS.button_words] || null,
+      completed_at: r.fields[TASK_FIELDS.completed_at] || null,
+      assignee: assigneeName,
+      fundraiserIds: r.fields[TASK_FIELDS.fundraisers] || [],
+    };
+  }
+
+  // Helper to build products array
+  function buildProducts(fields) {
+    const products = [];
+    const primaryIds = fields[FUNDRAISER_FIELDS.product_primary] || [];
+    if (primaryIds.length > 0 && productMap[primaryIds[0]]) {
+      products.push({ type: 'primary', name: productMap[primaryIds[0]] });
+    }
+    const secondaryIds = fields[FUNDRAISER_FIELDS.product_secondary] || [];
+    if (secondaryIds.length > 0 && productMap[secondaryIds[0]]) {
+      products.push({ type: 'secondary', name: productMap[secondaryIds[0]] });
+    }
+    const donationIds = fields[FUNDRAISER_FIELDS.tp_mddonations] || [];
+    if (donationIds.length > 0 && productMap[donationIds[0]]) {
+      products.push({ type: 'donations', name: productMap[donationIds[0]] });
+    }
+    return products;
+  }
+
+  // Build response
+  return records.map(r => {
+    const f = r.fields;
+
+    const repLinked = f[FUNDRAISER_FIELDS.rep] || [];
+    const rep_name = repLinked.length > 0 ? repMap[repLinked[0]] || '' : '';
+
+    const accountingLinked = f[FUNDRAISER_FIELDS.accounting_contact] || [];
+    const accounting_contact_name = accountingLinked.length > 0 ? accountingMap[accountingLinked[0]] || '' : '';
+
+    const photoAttachments = f[FUNDRAISER_FIELDS.rep_photo] || [];
+    let rep_photo = null;
+    if (photoAttachments.length > 0) {
+      const att = photoAttachments[0];
+      rep_photo = att.thumbnails?.large?.url || att.url || null;
+    }
+
+    const productRaw = f[FUNDRAISER_FIELDS.product_primary_string];
+    const product_primary_string = Array.isArray(productRaw) ? productRaw[0] || '' : productRaw || '';
+    const asb_boosters = f[FUNDRAISER_FIELDS.asb_boosters] || '';
+
+    const linkedTaskIds = f[FUNDRAISER_FIELDS.tasks] || [];
+    const linkedTasks = linkedTaskIds.map(id => taskMap[id]).filter(Boolean);
+    const open_tasks = linkedTasks.filter(t => t.status !== 'Done');
+
+    // Closeout flags
+    const md_payout_received = f[FUNDRAISER_FIELDS.md_payout_received] || false;
+    const check_invoice_sent = f[FUNDRAISER_FIELDS.check_invoice_sent] || false;
+    const rep_paid = f[FUNDRAISER_FIELDS.rep_paid] || false;
+    const invoice_payment_received = f[FUNDRAISER_FIELDS.invoice_payment_received] || false;
+
+    // MD payout only applies to MD products
+    const has_md_product = product_primary_string.toLowerCase().includes('md');
+    // Invoice required for WA State ASB, Traditional No-Risk, or Traditional Upfront
+    const requires_invoice = asb_boosters === 'WA State ASB'
+      || product_primary_string.toLowerCase().includes('traditional no-risk')
+      || product_primary_string.toLowerCase().includes('traditional upfront');
+
+    // Waiting badge logic
+    const waiting_on_md_payout = !md_payout_received && has_md_product;
+    const waiting_on_invoice_payment = !invoice_payment_received && requires_invoice;
+    const needs_accounting_contact = accountingLinked.length === 0;
+    const org_name_needs_follow_up = f[FUNDRAISER_FIELDS.organization_name_needs_follow_up] || false;
+    const needs_card_count = product_primary_string === 'Team Cards - Traditional No-Risk'
+      && (f[FUNDRAISER_FIELDS.cards_sold_manual] == null || f[FUNDRAISER_FIELDS.cards_sold_manual] === '');
+
+    return {
+      id: r.id,
+      organization: f[FUNDRAISER_FIELDS.organization] || '',
+      team: f[FUNDRAISER_FIELDS.team] || '',
+      status: f[FUNDRAISER_FIELDS.status_rendered] || '',
+      end_date: f[FUNDRAISER_FIELDS.end_date] || null,
+      gross_sales_md: f[FUNDRAISER_FIELDS.gross_sales_md] || null,
+      md_payout: f[FUNDRAISER_FIELDS.md_payout] || null,
+      rep_name,
+      rep_photo,
+      asb_boosters,
+      product_primary_string,
+      products: buildProducts(f),
+      open_manager_tasks_count: f[FUNDRAISER_FIELDS.open_manager_tasks_count] || 0,
+      open_tasks,
+      accounting_contact_name,
+      closeout: {
+        md_payout_received,
+        check_invoice_sent,
+        rep_paid,
+        invoice_payment_received,
+      },
+      waiting: {
+        waiting_on_md_payout,
+        waiting_on_invoice_payment,
+        needs_accounting_contact,
+        org_name_needs_follow_up,
+        needs_card_count,
+      },
+    };
+  });
+}
+
+// GET /api/fundraisers/ended — full data for ended page
+router.get('/ended', async (req, res) => {
+  try {
+    const fundraisers = await getEndedFundraisers();
+    res.json(fundraisers);
+  } catch (err) {
+    console.error('Error fetching ended fundraisers:', err.message);
+    res.status(500).json({ error: 'Failed to fetch ended fundraisers' });
+  }
+});
+
+// GET /api/fundraisers/ended/count — lightweight count for sidebar badge
+router.get('/ended/count', async (req, res) => {
+  try {
+    const fundraisers = await getEndedFundraisers();
+    const needsAction = fundraisers.filter(f => f.open_manager_tasks_count > 0).length;
+    res.json({ total: fundraisers.length, needsAction });
+  } catch (err) {
+    console.error('Error fetching ended count:', err.message);
+    res.status(500).json({ error: 'Failed to fetch ended count' });
+  }
+});
+
 // GET /api/fundraisers/:recordId — full detail with all resolved linked records
 router.get('/:recordId', async (req, res) => {
   try {
@@ -606,6 +800,7 @@ router.get('/:recordId', async (req, res) => {
       md_payout_received: f[FUNDRAISER_FIELDS.md_payout_received] || false,
       check_invoice_sent: f[FUNDRAISER_FIELDS.check_invoice_sent] || false,
       rep_paid: f[FUNDRAISER_FIELDS.rep_paid] || false,
+      invoice_payment_received: f[FUNDRAISER_FIELDS.invoice_payment_received] || false,
       // Documents
       fundraiser_agreement: extractAttachment(FUNDRAISER_FIELDS.fundraiser_agreement),
       fundraiser_profit_report: extractAttachment(FUNDRAISER_FIELDS.fundraiser_profit_report),
@@ -636,6 +831,8 @@ router.patch('/:recordId', async (req, res) => {
     if (updates.check_invoice_sent !== undefined) fields[FUNDRAISER_FIELDS.check_invoice_sent] = updates.check_invoice_sent;
     if (updates.rep_paid !== undefined) fields[FUNDRAISER_FIELDS.rep_paid] = updates.rep_paid;
     if (updates.admin_notes !== undefined) fields[FUNDRAISER_FIELDS.admin_notes] = updates.admin_notes;
+    if (updates.manual_status_override !== undefined) fields[FUNDRAISER_FIELDS.manual_status_override] = updates.manual_status_override;
+    if (updates.invoice_payment_received !== undefined) fields[FUNDRAISER_FIELDS.invoice_payment_received] = updates.invoice_payment_received;
 
     if (Object.keys(fields).length === 0) {
       return res.status(400).json({ error: 'No valid fields to update' });

@@ -9,7 +9,7 @@ const navItems = [
   { to: '/ended', label: 'Ended', icon: Flag, badgeKey: 'ended' },
 ];
 
-export default function Sidebar({ activeTaskCount, upcomingCount, activeCount, failedPayouts, onLogout }) {
+export default function Sidebar({ activeTaskCount, upcomingCount, activeCount, endedCount, failedPayouts, onLogout }) {
   const handleLogout = async () => {
     await api.auth.logout();
     onLogout();
@@ -26,6 +26,7 @@ export default function Sidebar({ activeTaskCount, upcomingCount, activeCount, f
           const badge = badgeKey === 'dashboard' ? activeTaskCount
             : badgeKey === 'upcoming' ? upcomingCount
             : badgeKey === 'active' ? activeCount
+            : badgeKey === 'ended' ? endedCount
             : null;
           const showRedDot = badgeKey === 'active' && failedPayouts > 0;
           return (
