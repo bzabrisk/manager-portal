@@ -6,6 +6,7 @@ import {
 import { api } from '../api/client';
 import TaskDetailModal from './TaskDetailModal';
 import NewTaskModal from './NewTaskModal';
+import { formatAsbType, getAsbColor } from '../utils/asb';
 
 const STATUS_COLORS = {
   'Upcoming': 'bg-blue-100 text-blue-700',
@@ -17,17 +18,24 @@ const STATUS_COLORS = {
   'Awaiting PO/Rep': 'bg-gray-100 text-gray-600',
 };
 
-const ASB_COLORS = {
-  'WA State ASB': 'bg-blue-100 text-blue-700',
-  'School - other than WA State ASB': 'bg-green-100 text-green-700',
-  'Booster Club': 'bg-purple-100 text-purple-700',
+const PRODUCT_BADGE_COLORS = {
+  primary: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  secondary: 'bg-violet-50 text-violet-700 border-violet-200',
+  donations: 'bg-emerald-50 text-emerald-700 border-emerald-200',
 };
 
-const ASB_LABELS = {
-  'WA State ASB': 'WA State ASB',
-  'School - other than WA State ASB': 'School',
-  'Booster Club': 'Booster Club',
-};
+function ProductBadges({ products }) {
+  if (!products || products.length === 0) return <span className="text-slate-400">{'\u2014'}</span>;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {products.map(p => (
+        <span key={p.type} className={`text-xs font-medium px-2 py-0.5 rounded border ${PRODUCT_BADGE_COLORS[p.type] || 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+          {p.name}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 const PAYOUT_STATUS_COLORS = {
   awaiting_data: 'bg-blue-100 text-blue-700',
@@ -351,21 +359,15 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
             <section>
               <SectionHeader>Setup</SectionHeader>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm">
-                <div>
-                  <span className="text-slate-400">Product:</span>{' '}
-                  <span className="font-medium text-slate-700">{data.product_primary_string || '—'}</span>
+                <div className="col-span-2 md:col-span-3">
+                  <span className="text-slate-400">Products:</span>{' '}
+                  <span className="inline-block align-middle ml-1"><ProductBadges products={data.products} /></span>
                 </div>
-                {data.product_secondary_name && (
-                  <div>
-                    <span className="text-slate-400">Secondary:</span>{' '}
-                    <span className="font-medium text-slate-700">{data.product_secondary_name}</span>
-                  </div>
-                )}
                 <div>
                   <span className="text-slate-400">Type:</span>{' '}
-                  {data.asb_boosters && ASB_COLORS[data.asb_boosters] ? (
-                    <span className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded ${ASB_COLORS[data.asb_boosters]}`}>
-                      {ASB_LABELS[data.asb_boosters] || data.asb_boosters}
+                  {data.asb_boosters && getAsbColor(data.asb_boosters) ? (
+                    <span className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded ${getAsbColor(data.asb_boosters)}`}>
+                      {formatAsbType(data.asb_boosters)}
                     </span>
                   ) : (
                     <span className="font-medium text-slate-700">{data.asb_boosters || '—'}</span>

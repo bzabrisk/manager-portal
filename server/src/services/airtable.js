@@ -75,6 +75,7 @@ const FUNDRAISER_FIELDS = {
   admin_notes: 'fldyB1gmXNXtM2ymV',
   rep_notes: 'fldbcDRWd7AHtdkh9',
   product_secondary: 'fldtIIUJvUtMyXusQ',
+  tp_mddonations: 'fldzPQE0hWEdtTQoM',
   manual_status_override: 'fldFHxyf9DHd1qscd',
   fundraiser_agreement: 'fld3EdTDzU7YDRK4T',
   fundraiser_profit_report: 'fldDX1jRdrNc1zepO',
@@ -104,12 +105,18 @@ const ACCOUNTING_CONTACT_FIELDS = {
 // Daily payout field IDs
 const DAILY_PAYOUT_FIELDS = {
   payout_id: 'fldWDuLeQbiscnP0J',
+  fundraiser: 'fldrpEVdAfBhpSB32',
+  accounting_contact: 'fldGM5JgFiXU7rFMb',
+  accounting_contact_name: 'fldwjOR1VrcFaPcTL',
   run_date: 'fld1sArgKrWLemvTx',
   gross_sales_today: 'fldSUT1FxxucUb65Q',
   payout_amount: 'fld6EieozqJRIcjeu',
   status: 'fldSFFGZe6WsyGluk',
   reference_number: 'fldOsL9CZyodprYzK',
   error_message: 'fldQgdZBqUonHMFMO',
+  organization: 'fldCeq63Ak9faXCdo',
+  team: 'fldPl4uWY8ugNeAqf',
+  check_number: 'fldOjxdPJc10D57lW',
 };
 
 // Product field IDs

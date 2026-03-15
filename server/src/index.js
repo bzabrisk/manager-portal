@@ -10,6 +10,7 @@ import cors from 'cors';
 import authRoutes from './routes/auth.js';
 import taskRoutes from './routes/tasks.js';
 import fundraiserRoutes from './routes/fundraisers.js';
+import payoutsRoutes from './routes/payouts.js';
 import { authMiddleware } from './middleware/auth.js';
 
 const app = express();
@@ -34,6 +35,7 @@ app.use(session({
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', authMiddleware, taskRoutes);
 app.use('/api/fundraisers', authMiddleware, fundraiserRoutes);
+app.use('/api/payouts', authMiddleware, payoutsRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

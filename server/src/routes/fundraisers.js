@@ -44,6 +44,7 @@ async function getUpcomingFundraisers() {
   const contactIds = new Set();
   const accountingIds = new Set();
   const taskIds = new Set();
+  const productIds = new Set();
 
   for (const r of records) {
     const f = r.fields;
@@ -51,14 +52,18 @@ async function getUpcomingFundraisers() {
     (f[FUNDRAISER_FIELDS.primary_contact] || []).forEach(id => contactIds.add(id));
     (f[FUNDRAISER_FIELDS.accounting_contact] || []).forEach(id => accountingIds.add(id));
     (f[FUNDRAISER_FIELDS.tasks] || []).forEach(id => taskIds.add(id));
+    (f[FUNDRAISER_FIELDS.product_primary] || []).forEach(id => productIds.add(id));
+    (f[FUNDRAISER_FIELDS.product_secondary] || []).forEach(id => productIds.add(id));
+    (f[FUNDRAISER_FIELDS.tp_mddonations] || []).forEach(id => productIds.add(id));
   }
 
   // 3. Batch fetch linked records in parallel
-  const [repRecords, contactRecords, accountingRecords, taskRecords, repIdMap] = await Promise.all([
+  const [repRecords, contactRecords, accountingRecords, taskRecords, productRecords, repIdMap] = await Promise.all([
     airtableFetchByIds('reps', [...repIds]),
     airtableFetchByIds('client_book', [...contactIds]),
     airtableFetchByIds('accounting_contact', [...accountingIds]),
     airtableFetchByIds('tasks', [...taskIds]),
+    airtableFetchByIds('products', [...productIds]),
     getRepIds(),
   ]);
 
@@ -84,6 +89,11 @@ async function getUpcomingFundraisers() {
     repIdToName[id] = name;
   }
 
+  const productMap = {};
+  for (const r of productRecords) {
+    productMap[r.id] = r.fields[PRODUCT_FIELDS.name] || '';
+  }
+
   const taskMap = {};
   for (const r of taskRecords) {
     const assigneeIds = r.fields[TASK_FIELDS.assignee] || [];
@@ -103,6 +113,24 @@ async function getUpcomingFundraisers() {
       assignee: assigneeName,
       fundraiserIds: r.fields[TASK_FIELDS.fundraisers] || [],
     };
+  }
+
+  // Helper to build products array from linked IDs
+  function buildProducts(fields) {
+    const products = [];
+    const primaryIds = fields[FUNDRAISER_FIELDS.product_primary] || [];
+    if (primaryIds.length > 0 && productMap[primaryIds[0]]) {
+      products.push({ type: 'primary', name: productMap[primaryIds[0]] });
+    }
+    const secondaryIds = fields[FUNDRAISER_FIELDS.product_secondary] || [];
+    if (secondaryIds.length > 0 && productMap[secondaryIds[0]]) {
+      products.push({ type: 'secondary', name: productMap[secondaryIds[0]] });
+    }
+    const donationIds = fields[FUNDRAISER_FIELDS.tp_mddonations] || [];
+    if (donationIds.length > 0 && productMap[donationIds[0]]) {
+      products.push({ type: 'donations', name: productMap[donationIds[0]] });
+    }
+    return products;
   }
 
   // 5. Build response
@@ -166,6 +194,7 @@ async function getUpcomingFundraisers() {
       rep_name,
       rep_photo,
       product_primary_string,
+      products: buildProducts(f),
       asb_boosters,
       primary_contact_name,
       accounting_contact_name,
@@ -206,6 +235,175 @@ router.get('/upcoming', async (req, res) => {
   }
 });
 
+// Shared logic for active (In Progress) fundraisers with full data resolution
+async function getActiveFundraisers() {
+  const records = await airtableFetch('fundraisers', {
+    filterByFormula: `{${FUNDRAISER_FIELDS.status_rendered}} = "In Progress"`,
+    sort: [{ field: FUNDRAISER_FIELDS.end_date, direction: 'asc' }],
+  });
+
+  // Collect linked record IDs
+  const repIds = new Set();
+  const contactIds = new Set();
+  const accountingIds = new Set();
+  const taskIds = new Set();
+  const productIds = new Set();
+
+  for (const r of records) {
+    const f = r.fields;
+    (f[FUNDRAISER_FIELDS.rep] || []).forEach(id => repIds.add(id));
+    (f[FUNDRAISER_FIELDS.primary_contact] || []).forEach(id => contactIds.add(id));
+    (f[FUNDRAISER_FIELDS.accounting_contact] || []).forEach(id => accountingIds.add(id));
+    (f[FUNDRAISER_FIELDS.tasks] || []).forEach(id => taskIds.add(id));
+    (f[FUNDRAISER_FIELDS.product_primary] || []).forEach(id => productIds.add(id));
+    (f[FUNDRAISER_FIELDS.product_secondary] || []).forEach(id => productIds.add(id));
+    (f[FUNDRAISER_FIELDS.tp_mddonations] || []).forEach(id => productIds.add(id));
+  }
+
+  // Batch fetch linked records in parallel
+  const [repRecords, contactRecords, accountingRecords, taskRecords, productRecords, repIdMap] = await Promise.all([
+    airtableFetchByIds('reps', [...repIds]),
+    airtableFetchByIds('client_book', [...contactIds]),
+    airtableFetchByIds('accounting_contact', [...accountingIds]),
+    airtableFetchByIds('tasks', [...taskIds]),
+    airtableFetchByIds('products', [...productIds]),
+    getRepIds(),
+  ]);
+
+  // Build lookup maps
+  const repMap = {};
+  for (const r of repRecords) {
+    repMap[r.id] = r.fields[REP_FIELDS.name] || '';
+  }
+
+  const contactMap = {};
+  for (const r of contactRecords) {
+    contactMap[r.id] = r.fields[CLIENT_BOOK_FIELDS.name] || '';
+  }
+
+  const accountingMap = {};
+  for (const r of accountingRecords) {
+    accountingMap[r.id] = r.fields[ACCOUNTING_CONTACT_FIELDS.name] || '';
+  }
+
+  const repIdToName = {};
+  for (const [name, id] of Object.entries(repIdMap)) {
+    repIdToName[id] = name;
+  }
+
+  const productMap = {};
+  for (const r of productRecords) {
+    productMap[r.id] = r.fields[PRODUCT_FIELDS.name] || '';
+  }
+
+  const taskMap = {};
+  for (const r of taskRecords) {
+    const assigneeIds = r.fields[TASK_FIELDS.assignee] || [];
+    let assigneeName = assigneeIds.length > 0 ? (repIdToName[assigneeIds[0]] || 'Unknown') : 'Unknown';
+    if (assigneeName.toLowerCase().includes('cash')) assigneeName = 'Cash';
+
+    taskMap[r.id] = {
+      id: r.id,
+      name: r.fields[TASK_FIELDS.name] || '',
+      status: r.fields[TASK_FIELDS.status] || '',
+      description: r.fields[TASK_FIELDS.description] || '',
+      deadline: r.fields[TASK_FIELDS.deadline] || null,
+      show_date: r.fields[TASK_FIELDS.show_date] || null,
+      action_url: r.fields[TASK_FIELDS.action_url] || null,
+      button_words: r.fields[TASK_FIELDS.button_words] || null,
+      completed_at: r.fields[TASK_FIELDS.completed_at] || null,
+      assignee: assigneeName,
+      fundraiserIds: r.fields[TASK_FIELDS.fundraisers] || [],
+    };
+  }
+
+  // Helper to build products array from linked IDs
+  function buildProducts(fields) {
+    const products = [];
+    const primaryIds = fields[FUNDRAISER_FIELDS.product_primary] || [];
+    if (primaryIds.length > 0 && productMap[primaryIds[0]]) {
+      products.push({ type: 'primary', name: productMap[primaryIds[0]] });
+    }
+    const secondaryIds = fields[FUNDRAISER_FIELDS.product_secondary] || [];
+    if (secondaryIds.length > 0 && productMap[secondaryIds[0]]) {
+      products.push({ type: 'secondary', name: productMap[secondaryIds[0]] });
+    }
+    const donationIds = fields[FUNDRAISER_FIELDS.tp_mddonations] || [];
+    if (donationIds.length > 0 && productMap[donationIds[0]]) {
+      products.push({ type: 'donations', name: productMap[donationIds[0]] });
+    }
+    return products;
+  }
+
+  // Build response
+  return records.map(r => {
+    const f = r.fields;
+
+    const repLinked = f[FUNDRAISER_FIELDS.rep] || [];
+    const rep_name = repLinked.length > 0 ? repMap[repLinked[0]] || '' : '';
+
+    const contactLinked = f[FUNDRAISER_FIELDS.primary_contact] || [];
+    const primary_contact_name = contactLinked.length > 0 ? contactMap[contactLinked[0]] || '' : '';
+
+    const accountingLinked = f[FUNDRAISER_FIELDS.accounting_contact] || [];
+    const accounting_contact_name = accountingLinked.length > 0 ? accountingMap[accountingLinked[0]] || '' : '';
+
+    const photoAttachments = f[FUNDRAISER_FIELDS.rep_photo] || [];
+    let rep_photo = null;
+    if (photoAttachments.length > 0) {
+      const att = photoAttachments[0];
+      rep_photo = att.thumbnails?.large?.url || att.url || null;
+    }
+
+    const productRaw = f[FUNDRAISER_FIELDS.product_primary_string];
+    const product_primary_string = Array.isArray(productRaw) ? productRaw[0] || '' : productRaw || '';
+
+    const linkedTaskIds = f[FUNDRAISER_FIELDS.tasks] || [];
+    const linkedTasks = linkedTaskIds.map(id => taskMap[id]).filter(Boolean);
+    const open_tasks = linkedTasks.filter(t => t.status !== 'Done');
+
+    return {
+      id: r.id,
+      organization: f[FUNDRAISER_FIELDS.organization] || '',
+      team: f[FUNDRAISER_FIELDS.team] || '',
+      kickoff_date: f[FUNDRAISER_FIELDS.kickoff_date] || null,
+      end_date: f[FUNDRAISER_FIELDS.end_date] || null,
+      gross_sales_md: f[FUNDRAISER_FIELDS.gross_sales_md] || null,
+      rep_name,
+      rep_photo,
+      asb_boosters: f[FUNDRAISER_FIELDS.asb_boosters] || '',
+      product_primary_string,
+      products: buildProducts(f),
+      primary_contact_name,
+      accounting_contact_name,
+      open_manager_tasks_count: f[FUNDRAISER_FIELDS.open_manager_tasks_count] || 0,
+      open_tasks,
+    };
+  });
+}
+
+// GET /api/fundraisers/active — full data for active page
+router.get('/active', async (req, res) => {
+  try {
+    const fundraisers = await getActiveFundraisers();
+    res.json(fundraisers);
+  } catch (err) {
+    console.error('Error fetching active fundraisers:', err.message);
+    res.status(500).json({ error: 'Failed to fetch active fundraisers' });
+  }
+});
+
+// GET /api/fundraisers/active/count — lightweight count for sidebar badge
+router.get('/active/count', async (req, res) => {
+  try {
+    const fundraisers = await getActiveFundraisers();
+    res.json({ total: fundraisers.length });
+  } catch (err) {
+    console.error('Error fetching active count:', err.message);
+    res.status(500).json({ error: 'Failed to fetch active count' });
+  }
+});
+
 // GET /api/fundraisers/:recordId — full detail with all resolved linked records
 router.get('/:recordId', async (req, res) => {
   try {
@@ -221,7 +419,12 @@ router.get('/:recordId', async (req, res) => {
     const accountingLinkedIds = f[FUNDRAISER_FIELDS.accounting_contact] || [];
     const taskLinkedIds = f[FUNDRAISER_FIELDS.tasks] || [];
     const dailyPayoutLinkedIds = f[FUNDRAISER_FIELDS.daily_payouts] || [];
-    const productSecondaryLinkedIds = f[FUNDRAISER_FIELDS.product_secondary] || [];
+
+    // Collect all product IDs from all three product fields
+    const allProductIds = new Set();
+    (f[FUNDRAISER_FIELDS.product_primary] || []).forEach(id => allProductIds.add(id));
+    (f[FUNDRAISER_FIELDS.product_secondary] || []).forEach(id => allProductIds.add(id));
+    (f[FUNDRAISER_FIELDS.tp_mddonations] || []).forEach(id => allProductIds.add(id));
 
     // 3. Batch fetch all linked records in parallel
     const [repRecords, contactRecords, accountingRecords, taskRecords, dailyPayoutRecords, productRecords, repIdMap] = await Promise.all([
@@ -230,7 +433,7 @@ router.get('/:recordId', async (req, res) => {
       airtableFetchByIds('accounting_contact', accountingLinkedIds),
       airtableFetchByIds('tasks', taskLinkedIds),
       airtableFetchByIds('daily_payouts', dailyPayoutLinkedIds),
-      airtableFetchByIds('products', productSecondaryLinkedIds),
+      airtableFetchByIds('products', [...allProductIds]),
       getRepIds(),
     ]);
 
@@ -284,9 +487,29 @@ router.get('/:recordId', async (req, res) => {
     const productRaw = f[FUNDRAISER_FIELDS.product_primary_string];
     const product_primary_string = Array.isArray(productRaw) ? productRaw[0] || '' : productRaw || '';
 
+    const detailProductMap = {};
+    for (const r of productRecords) {
+      detailProductMap[r.id] = r.fields[PRODUCT_FIELDS.name] || '';
+    }
+
     let product_secondary_name = '';
-    if (productRecords.length > 0) {
-      product_secondary_name = productRecords[0].fields[PRODUCT_FIELDS.name] || '';
+    const secondaryIds = f[FUNDRAISER_FIELDS.product_secondary] || [];
+    if (secondaryIds.length > 0 && detailProductMap[secondaryIds[0]]) {
+      product_secondary_name = detailProductMap[secondaryIds[0]];
+    }
+
+    // Build products array
+    const products = [];
+    const primaryIds = f[FUNDRAISER_FIELDS.product_primary] || [];
+    if (primaryIds.length > 0 && detailProductMap[primaryIds[0]]) {
+      products.push({ type: 'primary', name: detailProductMap[primaryIds[0]] });
+    }
+    if (product_secondary_name) {
+      products.push({ type: 'secondary', name: product_secondary_name });
+    }
+    const donationIds = f[FUNDRAISER_FIELDS.tp_mddonations] || [];
+    if (donationIds.length > 0 && detailProductMap[donationIds[0]]) {
+      products.push({ type: 'donations', name: detailProductMap[donationIds[0]] });
     }
 
     // 8. Resolve tasks
@@ -363,6 +586,7 @@ router.get('/:recordId', async (req, res) => {
       md_portal_url: f[FUNDRAISER_FIELDS.md_portal_url] || '',
       product_primary_string,
       product_secondary_name,
+      products,
       team_size: f[FUNDRAISER_FIELDS.team_size] || null,
       cards_ordered: f[FUNDRAISER_FIELDS.cards_ordered] || null,
       cards_sold: f[FUNDRAISER_FIELDS.cards_sold] || null,

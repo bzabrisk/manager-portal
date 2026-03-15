@@ -4,18 +4,7 @@ import { api } from '../api/client';
 import { usePolling } from '../hooks/usePolling';
 import TaskDetailModal from '../components/TaskDetailModal';
 import FundraiserDetailModal from '../components/FundraiserDetailModal';
-
-const ASB_COLORS = {
-  'WA State ASB': 'bg-blue-100 text-blue-700',
-  'School - other than WA State ASB': 'bg-green-100 text-green-700',
-  'Booster Club': 'bg-purple-100 text-purple-700',
-};
-
-const ASB_LABELS = {
-  'WA State ASB': 'WA State ASB',
-  'School - other than WA State ASB': 'School',
-  'Booster Club': 'Booster Club',
-};
+import { formatAsbType, getAsbColor } from '../utils/asb';
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
@@ -37,6 +26,25 @@ function countdownClasses(days) {
   if (days >= 7) return 'bg-green-50 text-green-700 border-green-200';
   if (days >= 3) return 'bg-amber-50 text-amber-700 border-amber-200';
   return 'bg-red-50 text-red-700 border-red-200';
+}
+
+const PRODUCT_BADGE_COLORS = {
+  primary: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  secondary: 'bg-violet-50 text-violet-700 border-violet-200',
+  donations: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+};
+
+function ProductBadges({ products }) {
+  if (!products || products.length === 0) return <span className="text-slate-400">{'\u2014'}</span>;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {products.map(p => (
+        <span key={p.type} className={`text-xs font-medium px-2 py-0.5 rounded border ${PRODUCT_BADGE_COLORS[p.type] || 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+          {p.name}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 function isReady(fundraiser) {
@@ -123,14 +131,13 @@ function FundraiserCard({ fundraiser, ready, onTaskClick, onFundraiserClick }) {
           )}
         </div>
         <div>
-          <span className="text-slate-400">Product: </span>
-          <span className="font-medium text-slate-700">{fundraiser.product_primary_string || '\u2014'}</span>
+          <ProductBadges products={fundraiser.products} />
         </div>
-        {fundraiser.asb_boosters && ASB_COLORS[fundraiser.asb_boosters] && (
+        {fundraiser.asb_boosters && getAsbColor(fundraiser.asb_boosters) && (
           <div>
             <span className="text-slate-400">ASB: </span>
-            <span className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded ${ASB_COLORS[fundraiser.asb_boosters]}`}>
-              {ASB_LABELS[fundraiser.asb_boosters]}
+            <span className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded ${getAsbColor(fundraiser.asb_boosters)}`}>
+              {formatAsbType(fundraiser.asb_boosters)}
             </span>
           </div>
         )}

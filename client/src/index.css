@@ -4,3 +4,8 @@
   --color-smash: #ff5000;
   --color-smash-dark: #e04500;
 }
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

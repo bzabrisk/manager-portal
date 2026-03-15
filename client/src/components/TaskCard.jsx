@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Pencil, Calendar, User } from 'lucide-react';
 import { api } from '../api/client';
 import TaskDetailModal from './TaskDetailModal';
+import { formatAsbType, getAsbColor } from '../utils/asb';
 
 const TAG_COLORS = [
   'bg-rose-100 text-rose-700 border-rose-200',
@@ -16,12 +17,6 @@ const TAG_COLORS = [
   'bg-amber-100 text-amber-700 border-amber-200',
   'bg-lime-100 text-lime-700 border-lime-200',
 ];
-
-const ASB_COLORS = {
-  'WA State ASB': 'bg-blue-100 text-blue-700',
-  'School - other than WA State ASB': 'bg-green-100 text-green-700',
-  'Booster Club': 'bg-purple-100 text-purple-700',
-};
 
 function hashString(str) {
   let hash = 0;
@@ -122,10 +117,9 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
           {/* Right side: ASB tag + rep photo (only if fundraiser linked) */}
           {task.fundraiser && (
             <div className="flex items-center gap-1.5">
-              {task.fundraiser.asb_boosters && ASB_COLORS[task.fundraiser.asb_boosters] && (
-                <span className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded ${ASB_COLORS[task.fundraiser.asb_boosters]}`}>
-                  {task.fundraiser.asb_boosters === 'WA State ASB' ? 'ASB' :
-                   task.fundraiser.asb_boosters === 'Booster Club' ? 'Boosters' : 'School'}
+              {task.fundraiser.asb_boosters && getAsbColor(task.fundraiser.asb_boosters) && (
+                <span className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded ${getAsbColor(task.fundraiser.asb_boosters)}`}>
+                  {formatAsbType(task.fundraiser.asb_boosters)}
                 </span>
               )}
               {task.fundraiser.rep_photo ? (

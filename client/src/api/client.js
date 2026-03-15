@@ -47,8 +47,18 @@ export const api = {
     list: () => request('/fundraisers/list'),
     upcoming: () => request('/fundraisers/upcoming'),
     upcomingCount: () => request('/fundraisers/upcoming/count'),
+    active: () => request('/fundraisers/active'),
+    activeCount: () => request('/fundraisers/active/count'),
     getDetail: (recordId) => request(`/fundraisers/${recordId}`),
     update: (recordId, data) => request(`/fundraisers/${recordId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  },
+  payouts: {
+    today: () => request('/payouts/today'),
+    todaySummary: () => request('/payouts/today/summary'),
+    update: (recordId, data) => request(`/payouts/${recordId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),

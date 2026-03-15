@@ -37,16 +37,26 @@ export default function App() {
 function AuthenticatedApp({ onLogout }) {
   const { data: tasks, loading, error, refresh } = usePolling(() => api.tasks.list());
   const { data: upcomingData } = usePolling(() => api.fundraisers.upcomingCount());
+  const { data: activeData } = usePolling(() => api.fundraisers.activeCount());
+  const { data: payoutSummary } = usePolling(() => api.payouts.todaySummary());
 
   const activeTasks = (tasks || []).filter(t =>
     t.assignee === 'Office Manager' && (t.status === 'To do' || t.status === 'Doing')
   );
 
   const upcomingCount = upcomingData?.needsAttention ?? 0;
+  const activeCount = activeData?.total ?? 0;
+  const failedPayouts = payoutSummary?.failed ?? 0;
 
   return (
     <div className="flex h-screen bg-slate-50">
-      <Sidebar activeTaskCount={activeTasks.length} upcomingCount={upcomingCount} onLogout={onLogout} />
+      <Sidebar
+        activeTaskCount={activeTasks.length}
+        upcomingCount={upcomingCount}
+        activeCount={activeCount}
+        failedPayouts={failedPayouts}
+        onLogout={onLogout}
+      />
       <main className="flex-1 overflow-y-auto">
         <Routes>
           <Route path="/" element={

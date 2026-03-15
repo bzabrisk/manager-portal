@@ -2,18 +2,7 @@ import { useState } from 'react';
 import { X, Pencil, Calendar, User, CheckCircle } from 'lucide-react';
 import { StatusChip, getFundraiserColor, formatDate } from './TaskCard';
 import { api } from '../api/client';
-
-const ASB_COLORS = {
-  'WA State ASB': 'bg-blue-100 text-blue-700',
-  'School - other than WA State ASB': 'bg-green-100 text-green-700',
-  'Booster Club': 'bg-purple-100 text-purple-700',
-};
-
-function asbLabel(val) {
-  if (val === 'WA State ASB') return 'ASB';
-  if (val === 'Booster Club') return 'Boosters';
-  return 'School';
-}
+import { formatAsbType, getAsbColor } from '../utils/asb';
 
 function stripHtml(str) {
   if (!str) return '';
@@ -92,9 +81,9 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
                     <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded border ${getFundraiserColor(label)}`}>
                       {label}
                     </span>
-                    {fr.asb_boosters && ASB_COLORS[fr.asb_boosters] && (
-                      <span className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded ${ASB_COLORS[fr.asb_boosters]}`}>
-                        {asbLabel(fr.asb_boosters)}
+                    {fr.asb_boosters && getAsbColor(fr.asb_boosters) && (
+                      <span className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded ${getAsbColor(fr.asb_boosters)}`}>
+                        {formatAsbType(fr.asb_boosters)}
                       </span>
                     )}
                   </div>
