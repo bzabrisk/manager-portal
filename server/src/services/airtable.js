@@ -264,6 +264,18 @@ async function getRepIds() {
   return map;
 }
 
+async function airtableDelete(tableName, recordIds) {
+  const tableId = TABLES[tableName] || tableName;
+  const params = recordIds.map(id => `records[]=${id}`).join('&');
+  const url = `${API_URL}/${tableId}?${params}`;
+  const res = await fetch(url, { method: 'DELETE', headers: headers() });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Airtable API error (${res.status}): ${err}`);
+  }
+  return res.json();
+}
+
 export {
   TABLES,
   TASK_FIELDS,
@@ -279,6 +291,7 @@ export {
   airtableGet,
   airtableUpdate,
   airtableCreate,
+  airtableDelete,
   getFundraisersList,
   getRepIds,
 };

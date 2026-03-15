@@ -65,4 +65,11 @@ export const api = {
       body: JSON.stringify(data),
     }),
   },
+  chat: {
+    send: (messages) => request('/chat', {
+      method: 'POST',
+      body: JSON.stringify({ messages }),
+    }),
+    weeklySummary: () => request('/chat/weekly-summary'),
+  },
 };

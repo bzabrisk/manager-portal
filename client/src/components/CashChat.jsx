@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Send } from 'lucide-react';
+import { api } from '../api/client';
 
 const WELCOME_MESSAGE = {
   id: 'welcome',
@@ -9,38 +10,237 @@ const WELCOME_MESSAGE = {
 
 const QUICK_ACTIONS = ['Show overdue tasks', 'Fundraiser summary', "Today's payouts"];
 
-const FIRST_REPLY =
-  "I'm still getting set up! My AI brain will be connected soon. For now, Tahni is working on teaching me everything about SMASH. Check back soon! 🦍";
-const REPEAT_REPLY =
-  "I heard you! But I can't process that just yet. Soon though!";
+const MAX_HISTORY = 20;
+const PROACTIVE_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+// --- Pacific time helpers ---
+
+function getPacificNow() {
+  const now = new Date();
+  const pacificStr = now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+  return new Date(pacificStr);
+}
+
+function getPacificDay() {
+  return new Date().toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', weekday: 'long' });
+}
+
+function getPacificDate() {
+  const d = getPacificNow();
+  return { month: d.getMonth() + 1, day: d.getDate() };
+}
+
+function getPacificHour() {
+  return getPacificNow().getHours();
+}
+
+// --- Markdown formatting ---
+
+function FormatMessage({ text }) {
+  const lines = text.split('\n');
+  const elements = [];
+  let listItems = [];
+  let listType = null;
+
+  function flushList() {
+    if (listItems.length > 0) {
+      const Tag = listType === 'ol' ? 'ol' : 'ul';
+      const className = listType === 'ol' ? 'list-decimal ml-4 space-y-0.5' : 'list-disc ml-4 space-y-0.5';
+      elements.push(
+        <Tag key={`list-${elements.length}`} className={className}>
+          {listItems.map((item, i) => (
+            <li key={i}>{formatInline(item)}</li>
+          ))}
+        </Tag>
+      );
+      listItems = [];
+      listType = null;
+    }
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (/^[-*•]\s+/.test(line)) {
+      if (listType !== 'ul') flushList();
+      listType = 'ul';
+      listItems.push(line.replace(/^[-*•]\s+/, ''));
+      continue;
+    }
+
+    if (/^\d+[.)]\s+/.test(line)) {
+      if (listType !== 'ol') flushList();
+      listType = 'ol';
+      listItems.push(line.replace(/^\d+[.)]\s+/, ''));
+      continue;
+    }
+
+    flushList();
+
+    if (line.trim() === '') {
+      elements.push(<br key={`br-${i}`} />);
+      continue;
+    }
+
+    elements.push(<p key={`p-${i}`} className="mb-1 last:mb-0">{formatInline(line)}</p>);
+  }
+
+  flushList();
+  return <>{elements}</>;
+}
+
+function formatInline(text) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
+// --- Main Component ---
 
 export default function CashChat() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([WELCOME_MESSAGE]);
   const [input, setInput] = useState('');
-  const [hasReplied, setHasReplied] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [proactiveBadge, setProactiveBadge] = useState(false);
+  const [pendingProactive, setPendingProactive] = useState(null);
   const messagesEndRef = useRef(null);
+  const proactiveShownRef = useRef(new Set());
+
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, isLoading]);
 
-  const sendMessage = (text) => {
+  // --- Proactive message logic ---
+
+  const queueProactive = useCallback((type, text) => {
+    if (proactiveShownRef.current.has(type)) return;
+    proactiveShownRef.current.add(type);
+    setPendingProactive({ type, text });
+    setProactiveBadge(true);
+  }, []);
+
+  const checkProactiveMessages = useCallback(async () => {
+    const day = getPacificDay();
+    const hour = getPacificHour();
+    const { month, day: dateDay } = getPacificDate();
+
+    // Birthday — November 18
+    if (month === 11 && dateDay === 18 && !proactiveShownRef.current.has('birthday')) {
+      queueProactive(
+        'birthday',
+        "🎂 HAPPY BIRTHDAY KRISTA!! 🎉🦍 The fundraisers can wait 5 minutes while I say this: you are the absolute BEST office manager a gorilla could ever ask for. Tahni wanted me to tell you that, but honestly I was already going to say it myself. Have the most amazing day! 🎂❤️"
+      );
+      return;
+    }
+
+    // SMASH Anniversary / Cash's Birthday — October 10
+    if (month === 10 && dateDay === 10 && !proactiveShownRef.current.has('anniversary')) {
+      queueProactive(
+        'anniversary',
+        "🎉 IT'S MY BIRTHDAY!! 🦍🎂 Well, technically it's SMASH's anniversary — October 10, 2024 is when it all started. But I consider it MY birthday too since I wouldn't exist without SMASH. Anyway, Krista, I am hereby giving you full authority to take the SMASH credit card and take the whole company out to celebrate. Would you like me to help draft the invite? 🍽️🎉"
+      );
+      return;
+    }
+
+    // Monday morning — 7am-12pm PT
+    if (day === 'Monday' && hour >= 7 && hour < 12 && !proactiveShownRef.current.has('monday')) {
+      try {
+        const stats = await api.chat.weeklySummary();
+        queueProactive(
+          'monday',
+          `Good morning, Krista! Happy Monday 🦍 Here's your week at a glance:\n• ${stats.dashboard_task_count} tasks on your dashboard\n• ${stats.active_fundraiser_count} fundraisers currently active\n• ${stats.ending_this_week} fundraisers ending this week\n• ${stats.ended_needs_action} ended fundraisers waiting on closeout\n\nLet's have a great week! What would you like to tackle first?`
+        );
+      } catch (err) {
+        console.error('Failed to fetch Monday summary:', err);
+      }
+      return;
+    }
+
+    // Friday afternoon — 2pm-6pm PT
+    if (day === 'Friday' && hour >= 14 && hour < 18 && !proactiveShownRef.current.has('friday')) {
+      try {
+        const stats = await api.chat.weeklySummary();
+        queueProactive(
+          'friday',
+          `Hey Krista — it's Friday! 🎉 Here's your week in review:\n• ${stats.tasks_completed_this_week} tasks completed this week\n• ${stats.ending_this_week} fundraisers ending this week\n• ${stats.active_fundraiser_count} fundraisers still active\n\nYou earned this weekend. Now go enjoy it! 🍌`
+        );
+      } catch (err) {
+        console.error('Failed to fetch Friday summary:', err);
+      }
+      return;
+    }
+
+  }, [queueProactive]);
+
+  // Run proactive check on mount + interval
+  useEffect(() => {
+    checkProactiveMessages();
+    const interval = setInterval(checkProactiveMessages, PROACTIVE_CHECK_INTERVAL);
+    return () => clearInterval(interval);
+  }, [checkProactiveMessages]);
+
+  // When chat opens, deliver pending proactive message
+  useEffect(() => {
+    if (open && pendingProactive) {
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now(), role: 'cash', text: pendingProactive.text },
+      ]);
+      setPendingProactive(null);
+      setProactiveBadge(false);
+    }
+  }, [open, pendingProactive]);
+
+  // --- Chat logic ---
+
+  function buildHistory(msgs) {
+    const history = msgs
+      .filter(m => m.id !== 'welcome')
+      .map(m => ({
+        role: m.role === 'cash' ? 'assistant' : 'user',
+        content: m.text,
+      }));
+
+    if (history.length > MAX_HISTORY) {
+      return history.slice(-MAX_HISTORY);
+    }
+    return history;
+  }
+
+  const sendMessage = async (text) => {
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed || isLoading) return;
 
     const userMsg = { id: Date.now(), role: 'user', text: trimmed };
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages(prev => [...prev, userMsg]);
     setInput('');
+    setIsLoading(true);
 
-    setTimeout(() => {
-      const replyText = !hasReplied ? FIRST_REPLY : REPEAT_REPLY;
-      setHasReplied(true);
-      setMessages((prev) => [
+    try {
+      const allMsgs = [...messages, userMsg];
+      const history = buildHistory(allMsgs);
+
+      const data = await api.chat.send(history);
+
+      setMessages(prev => [
         ...prev,
-        { id: Date.now() + 1, role: 'cash', text: replyText },
+        { id: Date.now() + 1, role: 'cash', text: data.response },
       ]);
-    }, 1000);
+    } catch (err) {
+      console.error('Chat error:', err);
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now() + 1, role: 'cash', text: "Oops, I hit a snag. Try asking again! 🍌" },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -103,18 +303,38 @@ export default function CashChat() {
                     : 'bg-slate-100 text-slate-700 rounded-bl-sm'
                 }`}
               >
-                {msg.text}
+                {msg.role === 'cash' && msg.id !== 'welcome' ? (
+                  <FormatMessage text={msg.text} />
+                ) : (
+                  msg.text
+                )}
               </div>
             </div>
           ))}
 
+          {/* Typing indicator */}
+          {isLoading && (
+            <div className="flex gap-2 justify-start">
+              <img
+                src="/cash-avatar.png"
+                alt="Cash"
+                className="w-7 h-7 rounded-full object-cover shrink-0 mt-1"
+              />
+              <div className="bg-slate-100 rounded-xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
+                <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:0ms]" />
+                <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:150ms]" />
+                <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:300ms]" />
+              </div>
+            </div>
+          )}
+
           {/* Quick action chips — show only when just the welcome message exists */}
-          {messages.length === 1 && messages[0].id === 'welcome' && (
+          {messages.length === 1 && messages[0].id === 'welcome' && !isLoading && (
             <div className="flex flex-wrap gap-2 pl-9">
               {QUICK_ACTIONS.map((action) => (
                 <button
                   key={action}
-                  onClick={() => setInput(action)}
+                  onClick={() => sendMessage(action)}
                   className="px-3 py-1.5 text-xs font-medium rounded-full border border-[#ff5000] text-[#ff5000] hover:bg-[#ff5000] hover:text-white transition-colors"
                 >
                   {action}
@@ -133,12 +353,13 @@ export default function CashChat() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask Cash anything..."
+              placeholder={isLoading ? 'Cash is thinking...' : 'Ask Cash anything...'}
               className="flex-1 bg-transparent text-sm text-slate-700 placeholder-slate-400 outline-none"
+              disabled={isLoading}
             />
             <button
               onClick={() => sendMessage(input)}
-              disabled={!input.trim()}
+              disabled={!input.trim() || isLoading}
               className="p-1.5 rounded-md bg-[#ff5000] text-white disabled:opacity-40 hover:bg-[#e64800] transition-colors"
             >
               <Send size={16} />
@@ -159,11 +380,18 @@ export default function CashChat() {
         {open ? (
           <X size={26} className="text-white" />
         ) : (
-          <img
-            src="/cash-avatar.png"
-            alt="Cash"
-            className="w-full h-full rounded-full object-cover"
-          />
+          <>
+            <img
+              src="/cash-avatar.png"
+              alt="Cash"
+              className="w-full h-full rounded-full object-cover"
+            />
+            {proactiveBadge && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                1
+              </span>
+            )}
+          </>
         )}
       </button>
     </>
