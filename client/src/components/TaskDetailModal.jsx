@@ -34,15 +34,18 @@ function deadlineColor(deadline, status) {
 
 export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
   const [marking, setMarking] = useState(false);
+  const [markError, setMarkError] = useState('');
 
   const handleMarkDone = async () => {
     setMarking(true);
+    setMarkError('');
     try {
       await api.tasks.update(task.id, { status: 'Done' });
       if (onRefresh) onRefresh();
       onClose();
     } catch (err) {
       console.error('Failed to mark task as done:', err);
+      setMarkError(err.message || 'Failed to mark task as done');
       setMarking(false);
     }
   };
@@ -50,9 +53,9 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
   const fundraisers = task.fundraisers || (task.fundraiser ? [task.fundraiser] : []);
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[55] opacity-100" onClick={onClose}>
       <div
-        className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto relative"
+        className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto relative opacity-100"
         onClick={e => e.stopPropagation()}
       >
         {/* Edit button - top right */}
@@ -165,6 +168,9 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
                 </>
               )}
             </button>
+          )}
+          {markError && (
+            <p className="text-sm text-red-500 mt-2">{markError}</p>
           )}
         </div>
       </div>

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { Clock, User, CheckCircle, CheckCircle2, AlertTriangle, Calendar } from 'lucide-react';
 import { api } from '../api/client';
 import { usePolling } from '../hooks/usePolling';
 import TaskDetailModal from '../components/TaskDetailModal';
+import FundraiserDetailModal from '../components/FundraiserDetailModal';
 
 const ASB_COLORS = {
   'WA State ASB': 'bg-blue-100 text-blue-700',
@@ -75,7 +75,7 @@ function TaskBadge({ task, onClick }) {
   );
 }
 
-function FundraiserCard({ fundraiser, ready, onTaskClick }) {
+function FundraiserCard({ fundraiser, ready, onTaskClick, onFundraiserClick }) {
   const days = getDaysUntil(fundraiser.kickoff_date);
   const openTasks = fundraiser.open_tasks || [];
 
@@ -84,12 +84,12 @@ function FundraiserCard({ fundraiser, ready, onTaskClick }) {
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <Link
-            to={`/fundraiser/${fundraiser.id}`}
-            className="text-lg font-bold text-slate-800 hover:text-[#ff5000] transition-colors"
+          <button
+            onClick={() => onFundraiserClick(fundraiser.id)}
+            className="text-lg font-bold text-slate-800 hover:text-[#ff5000] transition-colors text-left"
           >
             {fundraiser.organization} — {fundraiser.team}
-          </Link>
+          </button>
           <p className="text-sm text-slate-400 mt-0.5">
             Starts {formatDate(fundraiser.kickoff_date)} – Ends {formatDate(fundraiser.end_date)}
           </p>
@@ -185,6 +185,7 @@ export default function Upcoming() {
   const { data: fundraisers, loading, error, refresh } = usePolling(() => api.fundraisers.upcoming());
   const [selectedTask, setSelectedTask] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
+  const [detailFundraiserId, setDetailFundraiserId] = useState(null);
 
   const handleTaskClick = (task, fundraiser) => {
     // Enrich task with fundraiser info for the modal
@@ -269,7 +270,7 @@ export default function Upcoming() {
           <p className="text-sm text-slate-400 mb-4 ml-7">These fundraisers have unresolved items before kickoff</p>
           <div className="space-y-4">
             {needsAttention.map(f => (
-              <FundraiserCard key={f.id} fundraiser={f} ready={false} onTaskClick={handleTaskClick} />
+              <FundraiserCard key={f.id} fundraiser={f} ready={false} onTaskClick={handleTaskClick} onFundraiserClick={setDetailFundraiserId} />
             ))}
           </div>
         </div>
@@ -291,7 +292,7 @@ export default function Upcoming() {
           <p className="text-sm text-slate-400 mb-4 ml-7">All pre-flight checks passed</p>
           <div className="space-y-4">
             {readyToLaunch.map(f => (
-              <FundraiserCard key={f.id} fundraiser={f} ready={true} onTaskClick={handleTaskClick} />
+              <FundraiserCard key={f.id} fundraiser={f} ready={true} onTaskClick={handleTaskClick} onFundraiserClick={setDetailFundraiserId} />
             ))}
           </div>
         </div>
@@ -313,6 +314,15 @@ export default function Upcoming() {
           task={editingTask}
           onClose={() => setEditingTask(null)}
           onSave={handleEditSave}
+        />
+      )}
+
+      {/* Fundraiser Detail Modal */}
+      {detailFundraiserId && (
+        <FundraiserDetailModal
+          recordId={detailFundraiserId}
+          onClose={() => setDetailFundraiserId(null)}
+          onRefresh={refresh}
         />
       )}
     </div>

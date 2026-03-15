@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Pencil, Calendar, User } from 'lucide-react';
 import { api } from '../api/client';
 import TaskDetailModal from './TaskDetailModal';
@@ -165,17 +166,19 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
         )}
       </div>
 
-      {showDetail && (
+      {showDetail && createPortal(
         <TaskDetailModal
           task={task}
           onClose={() => setShowDetail(false)}
           onEdit={() => setEditing(true)}
           onRefresh={onRefresh}
-        />
+        />,
+        document.body
       )}
 
-      {editing && (
-        <EditTaskModal task={task} onClose={() => setEditing(false)} onRefresh={onRefresh} />
+      {editing && createPortal(
+        <EditTaskModal task={task} onClose={() => setEditing(false)} onRefresh={onRefresh} />,
+        document.body
       )}
     </>
   );

@@ -30,6 +30,8 @@ const TASK_FIELDS = {
 // Rep field IDs
 const REP_FIELDS = {
   name: 'fldwSbzcCBtvI4Rdp',
+  email: 'fldxoGbTwhQmMfIWj',
+  photo: 'fldSqcSDTP1FcggK6',
 };
 
 // Known rep record IDs
@@ -55,16 +57,64 @@ const FUNDRAISER_FIELDS = {
   open_manager_tasks_count: 'fld2mjwRGGCKSRPBI',
   tasks: 'fldKhDyGO2IHj7Ru8',
   rep: 'fldKVtinL60lTrFzl',
+  gross_sales_md: 'fldBUUIBsDws9RgLV',
+  final_team_profit: 'fldWu3s6so1xByWwr',
+  final_invoice_amount: 'fldD1KsRcsfc0lbcZ',
+  rep_commission: 'fldLSmaj4JksmsNUh',
+  smash_profit: 'fld2ZsDnr8ZIKzsL5',
+  md_payout: 'fldjYCVPq9QFAbAOt',
+  md_payout_received: 'fldKflCSEtVXCkj9I',
+  check_invoice_sent: 'fld6HUrMft9MsDfIL',
+  rep_paid: 'fld11dZXfenyqzQbe',
+  organization_name_needs_follow_up: 'fldRT8zcP6WrSacBM',
+  cards_ordered: 'fldzkXsedFeBVLAfK',
+  cards_sold_manual: 'fldqhwtTuxnNHfsCp',
+  cards_sold: 'fldfqPmHKccZr6QEb',
+  cards_lost: 'fldWpLdiGIKxPQwCa',
+  team_size: 'fldbQKlx5bpBBHCiL',
+  admin_notes: 'fldyB1gmXNXtM2ymV',
+  rep_notes: 'fldbcDRWd7AHtdkh9',
+  product_secondary: 'fldtIIUJvUtMyXusQ',
+  manual_status_override: 'fldFHxyf9DHd1qscd',
+  fundraiser_agreement: 'fld3EdTDzU7YDRK4T',
+  fundraiser_profit_report: 'fldDX1jRdrNc1zepO',
+  rep_commission_report: 'fld4hTL0dMQTCnoPG',
+  invoice_attachment: 'fldX31hTUnVFuafhN',
+  md_payout_report: 'fldYcxmoXJ16uuAE6',
+  daily_payouts: 'fldZOe15DJT4G61Bh',
+  primary_contact_email: 'fldpNuvbEbmZrYuGb',
+  accounting_contact_email: 'fldH17UIgXDn67jc1',
 };
 
 // Client book (primary contact) field IDs
 const CLIENT_BOOK_FIELDS = {
   name: 'fld6KdKRJIcsZkkFw',
+  email: 'fldg85yD1LlFetaCr',
+  phone: 'fldUheyvb402LFIW1',
 };
 
 // Accounting contact field IDs
 const ACCOUNTING_CONTACT_FIELDS = {
   name: 'fld1R6r9N9ZujMo3i',
+  email: 'fldhRKFgMo43Dlu6p',
+  payment_method: 'fldY6ZQ7Vj7mPvCGN',
+  status: 'fldEfiwZg7hZW57BP',
+};
+
+// Daily payout field IDs
+const DAILY_PAYOUT_FIELDS = {
+  payout_id: 'fldWDuLeQbiscnP0J',
+  run_date: 'fld1sArgKrWLemvTx',
+  gross_sales_today: 'fldSUT1FxxucUb65Q',
+  payout_amount: 'fld6EieozqJRIcjeu',
+  status: 'fldSFFGZe6WsyGluk',
+  reference_number: 'fldOsL9CZyodprYzK',
+  error_message: 'fldQgdZBqUonHMFMO',
+};
+
+// Product field IDs
+const PRODUCT_FIELDS = {
+  name: 'fldUgmP61xsxj5tie',
 };
 
 function headers() {
@@ -214,6 +264,8 @@ export {
   REP_IDS,
   CLIENT_BOOK_FIELDS,
   ACCOUNTING_CONTACT_FIELDS,
+  DAILY_PAYOUT_FIELDS,
+  PRODUCT_FIELDS,
   airtableFetch,
   airtableFetchByIds,
   airtableGet,

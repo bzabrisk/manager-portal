@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 
-export default function NewTaskModal({ onClose, onRefresh, initialStatus = 'To do' }) {
+export default function NewTaskModal({ onClose, onRefresh, initialStatus = 'To do', initialFundraiserId }) {
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -9,7 +9,7 @@ export default function NewTaskModal({ onClose, onRefresh, initialStatus = 'To d
     show_date: '',
     action_url: '',
     button_words: '',
-    fundraiserIds: [],
+    fundraiserIds: initialFundraiserId ? [initialFundraiserId] : [],
     status: initialStatus,
   });
   const [fundraisers, setFundraisers] = useState([]);

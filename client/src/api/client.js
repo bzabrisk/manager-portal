@@ -47,5 +47,10 @@ export const api = {
     list: () => request('/fundraisers/list'),
     upcoming: () => request('/fundraisers/upcoming'),
     upcomingCount: () => request('/fundraisers/upcoming/count'),
+    getDetail: (recordId) => request(`/fundraisers/${recordId}`),
+    update: (recordId, data) => request(`/fundraisers/${recordId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
   },
 };
