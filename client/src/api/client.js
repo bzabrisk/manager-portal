@@ -45,5 +45,7 @@ export const api = {
   },
   fundraisers: {
     list: () => request('/fundraisers/list'),
+    upcoming: () => request('/fundraisers/upcoming'),
+    upcomingCount: () => request('/fundraisers/upcoming/count'),
   },
 };

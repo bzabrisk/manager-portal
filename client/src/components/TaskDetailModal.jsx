@@ -1,5 +1,7 @@
-import { X, Pencil, Calendar, User } from 'lucide-react';
+import { useState } from 'react';
+import { X, Pencil, Calendar, User, CheckCircle } from 'lucide-react';
 import { StatusChip, getFundraiserColor, formatDate } from './TaskCard';
+import { api } from '../api/client';
 
 const ASB_COLORS = {
   'WA State ASB': 'bg-blue-100 text-blue-700',
@@ -30,7 +32,20 @@ function deadlineColor(deadline, status) {
   return 'text-gray-400';
 }
 
-export default function TaskDetailModal({ task, onClose, onEdit }) {
+export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
+  const [marking, setMarking] = useState(false);
+
+  const handleMarkDone = async () => {
+    setMarking(true);
+    try {
+      await api.tasks.update(task.id, { status: 'Done' });
+      if (onRefresh) onRefresh();
+      onClose();
+    } catch (err) {
+      console.error('Failed to mark task as done:', err);
+      setMarking(false);
+    }
+  };
   const hasActionButton = task.button_words && task.action_url;
   const fundraisers = task.fundraisers || (task.fundraiser ? [task.fundraiser] : []);
 
@@ -126,6 +141,30 @@ export default function TaskDetailModal({ task, onClose, onEdit }) {
           )}
           {task.created_at && (
             <span className="text-xs text-slate-400">Created: {formatDate(task.created_at)}</span>
+          )}
+        </div>
+
+        {/* Mark as Done / Completed badge */}
+        <div className="mt-4">
+          {task.status === 'Done' ? (
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-600 bg-green-50 px-3 py-1.5 rounded-lg">
+              ✓ Completed
+            </span>
+          ) : (
+            <button
+              onClick={handleMarkDone}
+              disabled={marking}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-green-500 hover:bg-green-600 disabled:opacity-60 px-4 py-2 rounded-lg transition-colors"
+            >
+              {marking ? (
+                'Marking...'
+              ) : (
+                <>
+                  <CheckCircle size={16} />
+                  Mark as Done
+                </>
+              )}
+            </button>
           )}
         </div>
       </div>

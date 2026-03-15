@@ -6,6 +6,9 @@ const TABLES = {
   fundraisers: 'tbl7aH2mtkAGC9jk9',
   reps: 'tbljkTGJ7y1WmkXw0',
   daily_payouts: 'tblxoqfVPg322jNqA',
+  client_book: 'tblq3raxwvAZlh4Im',
+  accounting_contact: 'tblw4wHSfztIJDBj8',
+  products: 'tblkppUiIEMjxIjmB',
 };
 
 // Task field IDs
@@ -44,6 +47,24 @@ const FUNDRAISER_FIELDS = {
   end_date: 'fldEFQYQLPlh26i6O',
   rep_photo: 'fldiVemmCDr4fKTTa',
   asb_boosters: 'fldMCr5g20kATvA2s',
+  primary_contact: 'fldU9j8KNl0prGM0t',
+  accounting_contact: 'fld6tNYzxnpV9EPX3',
+  product_primary: 'fldwq9D0y9YCU2dX4',
+  product_primary_string: 'fldnUTGmOMplUQYEm',
+  md_portal_url: 'fldrZzkK8XNNDqqOQ',
+  open_manager_tasks_count: 'fld2mjwRGGCKSRPBI',
+  tasks: 'fldKhDyGO2IHj7Ru8',
+  rep: 'fldKVtinL60lTrFzl',
+};
+
+// Client book (primary contact) field IDs
+const CLIENT_BOOK_FIELDS = {
+  name: 'fld6KdKRJIcsZkkFw',
+};
+
+// Accounting contact field IDs
+const ACCOUNTING_CONTACT_FIELDS = {
+  name: 'fld1R6r9N9ZujMo3i',
 };
 
 function headers() {
@@ -130,6 +151,13 @@ async function airtableCreate(tableName, fields) {
   return res.json();
 }
 
+async function airtableFetchByIds(tableName, recordIds) {
+  if (recordIds.length === 0) return [];
+  const conditions = recordIds.map(id => `RECORD_ID()='${id}'`);
+  const formula = conditions.length === 1 ? conditions[0] : `OR(${conditions.join(',')})`;
+  return airtableFetch(tableName, { filterByFormula: formula });
+}
+
 // Cache for fundraisers list and rep IDs
 let fundraiserCache = { data: null, timestamp: 0 };
 let repCache = { data: null, timestamp: 0 };
@@ -184,7 +212,10 @@ export {
   FUNDRAISER_FIELDS,
   REP_FIELDS,
   REP_IDS,
+  CLIENT_BOOK_FIELDS,
+  ACCOUNTING_CONTACT_FIELDS,
   airtableFetch,
+  airtableFetchByIds,
   airtableGet,
   airtableUpdate,
   airtableCreate,

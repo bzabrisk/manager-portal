@@ -9,7 +9,7 @@ const navItems = [
   { to: '/ended', label: 'Ended', icon: Flag, badgeKey: 'ended' },
 ];
 
-export default function Sidebar({ activeTaskCount, onLogout }) {
+export default function Sidebar({ activeTaskCount, upcomingCount, onLogout }) {
   const handleLogout = async () => {
     await api.auth.logout();
     onLogout();
@@ -23,7 +23,9 @@ export default function Sidebar({ activeTaskCount, onLogout }) {
 
       <nav className="flex-1 py-3">
         {navItems.map(({ to, label, icon: Icon, badgeKey }) => {
-          const badge = badgeKey === 'dashboard' ? activeTaskCount : null;
+          const badge = badgeKey === 'dashboard' ? activeTaskCount
+            : badgeKey === 'upcoming' ? upcomingCount
+            : null;
           return (
             <NavLink
               key={to}
@@ -39,8 +41,13 @@ export default function Sidebar({ activeTaskCount, onLogout }) {
             >
               <Icon size={18} />
               <span className="flex-1">{label}</span>
-              {badge !== null && badge > 0 && (
-                <span className="bg-smash text-white text-xs font-bold px-2 py-0.5 rounded">
+              {badge !== null && badge > 0 && badgeKey === 'dashboard' && (
+                <span className="bg-[#ff5000] text-white text-sm font-bold px-2 py-0.5 rounded">
+                  {badge}
+                </span>
+              )}
+              {badge !== null && badge > 0 && badgeKey !== 'dashboard' && (
+                <span className="bg-slate-600 text-slate-300 text-sm font-bold px-2 py-0.5 rounded">
                   {badge}
                 </span>
               )}

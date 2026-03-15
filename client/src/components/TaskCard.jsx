@@ -170,6 +170,7 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
           task={task}
           onClose={() => setShowDetail(false)}
           onEdit={() => setEditing(true)}
+          onRefresh={onRefresh}
         />
       )}
 
