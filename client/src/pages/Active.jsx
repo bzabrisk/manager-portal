@@ -431,21 +431,27 @@ export default function Active() {
       {/* Divider */}
       <div className="border-t border-gray-200 my-8" />
 
-      {/* Payouts — hide on weekends (Pacific time) */}
+      {/* Payouts — show weekend message on weekends (Pacific time) */}
       {(() => {
         const pacificDay = new Date().toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', weekday: 'long' });
         const isWeekend = pacificDay === 'Saturday' || pacificDay === 'Sunday';
         if (isWeekend) {
           return (
-            <div className="bg-amber-50 border border-amber-100 rounded-xl p-6 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center shrink-0">
-                <Coffee size={20} className="text-amber-700" />
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <DollarSign size={20} className="text-slate-600" />
+                <h2 className="text-lg font-semibold text-slate-800">Daily E-checks</h2>
               </div>
-              <p className="text-slate-700 text-sm">
-                <span className="font-semibold">No e-checks on the weekend.</span>{' '}
-                <span className="italic">In fact, quit working and go play!</span> <span className="not-italic">{'\u2615'}</span>
-                <span className="text-slate-400 ml-1">{'\u2014'}Cash</span>
-              </p>
+              <div className="bg-amber-50 border border-amber-100 rounded-xl p-6 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center shrink-0">
+                  <Coffee size={20} className="text-amber-700" />
+                </div>
+                <p className="text-slate-700 text-sm">
+                  <span className="font-semibold">No e-checks on the weekend.</span>{' '}
+                  <span className="italic">In fact, quit working and go play!</span> <span className="not-italic">{'\u2615'}</span>
+                  <span className="text-slate-400 ml-1">{'\u2014'}Cash</span>
+                </p>
+              </div>
             </div>
           );
         }
