@@ -58,13 +58,33 @@ export default function Dashboard({ tasks, loading, error, refresh }) {
   today.setHours(0, 0, 0, 0);
   const todayStr = today.toISOString().split('T')[0];
 
-  // Krista's tasks: Assignee = "Office Manager", exclude On Deck
+  const oneMonthFromNow = new Date(today);
+  oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
+  const oneMonthStr = oneMonthFromNow.toISOString().split('T')[0];
+
+  const twoDaysAgo = new Date(today);
+  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+  const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
+
+  // Krista's tasks: Assignee = "Office Manager"
   const kristaTasks = localTasks.filter(t => {
     if (t.assignee !== 'Office Manager') return false;
     if (t.status === 'On deck') return false;
-    if (t.status === 'Done') return true;
-    if (t.show_date && t.show_date > todayStr) return false;
-    return true;
+
+    // Done tasks: only show if completed within last 2 days
+    if (t.status === 'Done') {
+      if (!t.completed_at) return false;
+      return t.completed_at >= twoDaysAgoStr;
+    }
+
+    // Non-done tasks: check visibility based on show_date or deadline
+    if (t.show_date) {
+      return t.show_date <= todayStr;
+    }
+
+    // No show_date: show if deadline is within 1 month from now, or in the past, or empty
+    if (!t.deadline) return true;
+    return t.deadline <= oneMonthStr;
   });
 
   // Cash's tasks for the separate section below
@@ -145,7 +165,7 @@ export default function Dashboard({ tasks, loading, error, refresh }) {
 
       {/* Kanban Board */}
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 w-full pb-4" style={{ height: 'calc(100vh - 200px)' }}>
+        <div className="flex gap-4 w-full pb-4">
           {COLUMNS.map(col => {
             const kristaColTasks = getKristaColumnTasks(col.id);
             const isDoneColumn = col.id === 'Done';
@@ -174,7 +194,7 @@ export default function Dashboard({ tasks, loading, error, refresh }) {
                 </div>
 
                 {/* Droppable task area */}
-                <div className={`flex-1 overflow-y-auto px-2 pb-2 ${isDoneColumn ? 'opacity-75' : ''}`}>
+                <div className={`flex-1 px-2 pb-2 ${isDoneColumn ? 'opacity-75' : ''}`}>
                   <Droppable droppableId={`krista-${col.id}`}>
                     {(provided, snapshot) => (
                       <div

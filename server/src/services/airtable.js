@@ -15,8 +15,9 @@ const TASK_FIELDS = {
   status: 'fldibO3tFh4ms0it7',
   assignee: 'fldJpqDYWaWtQdDXu',
   deadline: 'fldMXHF3x37QyGdRV',
-  show_date: 'show_date',        // newly created — use name as fallback
-  action_url: 'action_url',      // newly created — use name as fallback
+  show_date: 'fld9aBg9X1jcTcnOW',
+  action_url: 'fldn2QY5fufxJ03my',
+  completed_at: 'fldOo5oTh4pXsgZfs',
   creation_method: 'fldtOO8JlwZu1Uhui',
   fundraisers: 'flddkpCSJb2MUIMLU',
   created_at: 'fldxWDRScYq2gkogl',
@@ -138,9 +139,7 @@ async function getFundraisersList() {
   if (fundraiserCache.data && Date.now() - fundraiserCache.timestamp < CACHE_TTL) {
     return fundraiserCache.data;
   }
-  const records = await airtableFetch('fundraisers', {
-    filterByFormula: `NOT({status_rendered} = "Closed Out")`,
-  });
+  const records = await airtableFetch('fundraisers');
   const mapped = records.map(r => {
     // Extract rep_photo URL (prefer large thumbnail)
     const photoAttachments = r.fields[FUNDRAISER_FIELDS.rep_photo] || [];

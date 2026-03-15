@@ -6,6 +6,7 @@ export default function NewTaskModal({ onClose, onRefresh, initialStatus = 'To d
     name: '',
     description: '',
     deadline: '',
+    show_date: '',
     action_url: '',
     button_words: '',
     fundraiserIds: [],
@@ -32,7 +33,10 @@ export default function NewTaskModal({ onClose, onRefresh, initialStatus = 'To d
         name: form.name.trim(),
         description: form.description.trim() || undefined,
         deadline: form.deadline,
-        action_url: form.action_url.trim() || undefined,
+        show_date: form.show_date || undefined,
+        action_url: form.action_url.trim()
+          ? (form.action_url.trim().startsWith('http://') || form.action_url.trim().startsWith('https://') ? form.action_url.trim() : 'https://' + form.action_url.trim())
+          : undefined,
         button_words: form.button_words.trim() || undefined,
         fundraiserIds: form.fundraiserIds.length > 0 ? form.fundraiserIds : undefined,
         status: form.status,
@@ -81,6 +85,16 @@ export default function NewTaskModal({ onClose, onRefresh, initialStatus = 'To d
             />
           </div>
           <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Show Date</label>
+            <input
+              type="date"
+              value={form.show_date}
+              onChange={e => setForm(f => ({ ...f, show_date: e.target.value }))}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
+            />
+            <p className="text-xs text-slate-400 mt-0.5">When this task becomes visible on the board. If empty, this task will show 1 month before deadline.</p>
+          </div>
+          <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Fundraiser</label>
             <select
               value={form.fundraiserIds[0] || ''}
@@ -96,7 +110,7 @@ export default function NewTaskModal({ onClose, onRefresh, initialStatus = 'To d
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Action URL</label>
             <input
-              type="url"
+              type="text"
               value={form.action_url}
               onChange={e => setForm(f => ({ ...f, action_url: e.target.value }))}
               placeholder="https://..."
@@ -112,6 +126,19 @@ export default function NewTaskModal({ onClose, onRefresh, initialStatus = 'To d
               placeholder="e.g. Send Email, Open Portal"
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Status</label>
+            <select
+              value={form.status}
+              onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
+            >
+              {['On deck', 'To do', 'Doing', 'Done'].map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}

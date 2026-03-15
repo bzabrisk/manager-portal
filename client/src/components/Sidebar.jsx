@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { CheckSquare, Calendar, Play, Flag, MessageCircle, LogOut } from 'lucide-react';
+import { CheckSquare, Calendar, Play, Flag, LogOut } from 'lucide-react';
 import { api } from '../api/client';
 
 const navItems = [
@@ -52,11 +52,7 @@ export default function Sidebar({ activeTaskCount, onLogout }) {
         })}
       </nav>
 
-      <div className="border-t border-slate-700 p-3 space-y-1">
-        <button className="flex items-center gap-3 px-3 py-2.5 w-full text-sm font-medium text-slate-300 hover:bg-slate-700/50 hover:text-white rounded-lg transition-colors">
-          <MessageCircle size={18} />
-          <span>Cash</span>
-        </button>
+      <div className="border-t border-slate-700 p-3">
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2.5 w-full text-sm font-medium text-slate-400 hover:bg-slate-700/50 hover:text-white rounded-lg transition-colors"

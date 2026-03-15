@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import { api } from './api/client';
 import AuthGate from './components/AuthGate';
 import Sidebar from './components/Sidebar';
+import CashChat from './components/CashChat';
 import Dashboard from './pages/Dashboard';
 import Upcoming from './pages/Upcoming';
 import Active from './pages/Active';
@@ -53,6 +54,7 @@ function AuthenticatedApp({ onLogout }) {
           <Route path="/ended" element={<Ended />} />
         </Routes>
       </main>
+      <CashChat />
     </div>
   );
 }

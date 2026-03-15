@@ -41,7 +41,7 @@ export default function CashStatusBar({ tasks, onNewTask }) {
       {/* Prominent + Task button — outside the status bar */}
       <button
         onClick={onNewTask}
-        className="inline-flex items-center gap-2 text-base font-bold text-white px-6 py-3 rounded-lg transition-colors shrink-0 shadow-md hover:shadow-lg"
+        className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-1.5 rounded-lg transition-colors shrink-0 shadow-md hover:shadow-lg"
         style={{ backgroundColor: '#ff5000' }}
         onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
         onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ff5000'}

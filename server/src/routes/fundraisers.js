@@ -7,7 +7,9 @@ const router = Router();
 router.get('/list', async (req, res) => {
   try {
     const fundraisers = await getFundraisersList();
-    res.json(fundraisers);
+    // Filter out Closed Out and Cancelled for dropdown use
+    const filtered = fundraisers.filter(f => f.status !== 'Closed Out' && f.status !== 'Cancelled');
+    res.json(filtered);
   } catch (err) {
     console.error('Error fetching fundraisers:', err.message);
     res.status(500).json({ error: 'Failed to fetch fundraisers' });

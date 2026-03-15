@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Pencil, Calendar, User, ExternalLink } from 'lucide-react';
+import { Pencil, Calendar, User } from 'lucide-react';
 import { api } from '../api/client';
+import TaskDetailModal from './TaskDetailModal';
 
 const TAG_COLORS = [
   'bg-rose-100 text-rose-700 border-rose-200',
@@ -34,7 +35,8 @@ export function getFundraiserColor(name) {
   return TAG_COLORS[hashString(name) % TAG_COLORS.length];
 }
 
-function deadlineColor(deadline) {
+function deadlineColor(deadline, status) {
+  if (status === 'Done') return 'text-green-500';
   if (!deadline) return 'text-slate-400';
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -53,8 +55,14 @@ export function formatDate(dateStr) {
   });
 }
 
+function stripHtml(str) {
+  if (!str) return '';
+  return str.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 export default function TaskCard({ task, onRefresh, saving = false }) {
   const [editing, setEditing] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
 
   const fundraiserLabel = task.fundraiser
     ? `${task.fundraiser.organization} — ${task.fundraiser.team}`
@@ -62,12 +70,19 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
 
   const hasActionButton = task.button_words && task.action_url;
 
+  const handleCardClick = () => {
+    setShowDetail(true);
+  };
+
   return (
     <>
-      <div className={`bg-white rounded-lg border border-slate-200 p-3 shadow-sm group relative transition-opacity ${saving ? 'opacity-60' : ''}`}>
+      <div
+        className={`bg-white rounded-lg border border-slate-200 p-3 shadow-sm group relative transition-opacity cursor-pointer ${saving ? 'opacity-60' : ''}`}
+        onClick={handleCardClick}
+      >
         {/* Edit button - top right, visible on hover */}
         <button
-          onClick={() => setEditing(true)}
+          onClick={(e) => { e.stopPropagation(); setEditing(true); }}
           className="absolute top-2 right-2 p-1 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded opacity-0 group-hover:opacity-100 transition-opacity"
           title="Edit task"
         >
@@ -88,14 +103,14 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
 
         {/* Row 3: Description */}
         {task.description && (
-          <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">{task.description}</p>
+          <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">{stripHtml(task.description)}</p>
         )}
 
         {/* Row 4: Info row */}
         <div className="flex items-center mt-2.5">
           {/* Left side: deadline */}
           {task.deadline && (
-            <span className={`inline-flex items-center gap-1 text-xs ${deadlineColor(task.deadline)}`}>
+            <span className={`inline-flex items-center gap-1 text-xs ${deadlineColor(task.deadline, task.status)}`}>
               <Calendar size={11} />
               {formatDate(task.deadline)}
             </span>
@@ -103,9 +118,15 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
 
           <div className="flex-1" />
 
-          {/* Right side: rep photo + ASB tag (only if fundraiser linked) */}
+          {/* Right side: ASB tag + rep photo (only if fundraiser linked) */}
           {task.fundraiser && (
             <div className="flex items-center gap-1.5">
+              {task.fundraiser.asb_boosters && ASB_COLORS[task.fundraiser.asb_boosters] && (
+                <span className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded ${ASB_COLORS[task.fundraiser.asb_boosters]}`}>
+                  {task.fundraiser.asb_boosters === 'WA State ASB' ? 'ASB' :
+                   task.fundraiser.asb_boosters === 'Booster Club' ? 'Boosters' : 'School'}
+                </span>
+              )}
               {task.fundraiser.rep_photo ? (
                 <img
                   src={task.fundraiser.rep_photo}
@@ -117,29 +138,22 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
                   <User size={12} className="text-slate-400" />
                 </div>
               )}
-              {task.fundraiser.asb_boosters && ASB_COLORS[task.fundraiser.asb_boosters] && (
-                <span className={`inline-flex items-center text-xs font-medium px-1.5 py-0.5 rounded ${ASB_COLORS[task.fundraiser.asb_boosters]}`}>
-                  {task.fundraiser.asb_boosters === 'WA State ASB' ? 'ASB' :
-                   task.fundraiser.asb_boosters === 'Booster Club' ? 'Boosters' : 'School'}
-                </span>
-              )}
             </div>
           )}
         </div>
 
         {/* Divider + Action button */}
         {hasActionButton && (
-          <div className="border-t border-gray-100 mt-2.5 pt-2">
-            <a
-              href={task.action_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-medium text-smash hover:text-smash-dark transition-colors"
-              onClick={e => e.stopPropagation()}
+          <div className="border-t border-gray-100 mt-2.5 pt-2 flex justify-end">
+            <button
+              onClick={(e) => { e.stopPropagation(); window.open(task.action_url, '_blank', 'noopener,noreferrer'); }}
+              className="inline-flex items-center text-xs font-bold text-white px-3 py-1.5 rounded-lg transition-colors shadow-md hover:shadow-lg"
+              style={{ backgroundColor: '#ff5000' }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ff5000'}
             >
               {task.button_words}
-              <ExternalLink size={10} />
-            </a>
+            </button>
           </div>
         )}
 
@@ -150,6 +164,14 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
           </div>
         )}
       </div>
+
+      {showDetail && (
+        <TaskDetailModal
+          task={task}
+          onClose={() => setShowDetail(false)}
+          onEdit={() => setEditing(true)}
+        />
+      )}
 
       {editing && (
         <EditTaskModal task={task} onClose={() => setEditing(false)} onRefresh={onRefresh} />
@@ -177,6 +199,7 @@ function EditTaskModal({ task, onClose, onRefresh }) {
     name: task.name,
     description: task.description || '',
     deadline: task.deadline || '',
+    show_date: task.show_date || '',
     action_url: task.action_url || '',
     button_words: task.button_words || '',
     status: task.status,
@@ -192,7 +215,12 @@ function EditTaskModal({ task, onClose, onRefresh }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.tasks.update(task.id, form);
+      const payload = { ...form };
+      if (payload.action_url && payload.action_url.trim()) {
+        const url = payload.action_url.trim();
+        payload.action_url = url.startsWith('http://') || url.startsWith('https://') ? url : 'https://' + url;
+      }
+      await api.tasks.update(task.id, payload);
       onRefresh();
       onClose();
     } catch (err) {
@@ -236,6 +264,16 @@ function EditTaskModal({ task, onClose, onRefresh }) {
             />
           </div>
           <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Show Date</label>
+            <input
+              type="date"
+              value={form.show_date}
+              onChange={e => setForm(f => ({ ...f, show_date: e.target.value }))}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
+            />
+            <p className="text-xs text-slate-400 mt-0.5">When this task becomes visible on the board. If empty, this task will show 1 month before deadline.</p>
+          </div>
+          <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Fundraiser</label>
             <select
               value={form.fundraiserIds[0] || ''}
@@ -251,7 +289,7 @@ function EditTaskModal({ task, onClose, onRefresh }) {
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Action URL</label>
             <input
-              type="url"
+              type="text"
               value={form.action_url}
               onChange={e => setForm(f => ({ ...f, action_url: e.target.value }))}
               className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
