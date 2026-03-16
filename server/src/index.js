@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+import dns from 'node:dns';
+dns.setDefaultResultOrder('ipv4first');
 import { fileURLToPath } from 'url';
 import { dirname, resolve, join } from 'path';
 

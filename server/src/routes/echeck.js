@@ -115,7 +115,7 @@ router.post('/send', async (req, res) => {
       return res.status(400).json({ error: 'Amount must be greater than 0' });
     }
 
-    const idempotencyKey = `echeck-${taskId}-${Date.now()}`;
+    const idempotencyKey = `echeck-${taskId}`;
 
     const response = await fetch(`${getCheckbookBaseUrl()}/check/digital`, {
       method: 'POST',
