@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import nodemailer from 'nodemailer';
 import {
   airtableGet,
   airtableFetchByIds,
@@ -152,27 +151,28 @@ router.post('/send', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields: to, subject, body' });
     }
 
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      family: 4,
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD,
-      },
-    });
+    // Build the full HTML body with signature
+    const fullHtml = body + KRISTA_SIGNATURE;
 
-    let attachments = [];
+    // Build Resend payload
+    const resendPayload = {
+      from: 'Krista — SMASH Fundraising <krista@send.smashfundraising.com>',
+      to: [to],
+      subject: subject,
+      html: fullHtml,
+    };
+
+    // Handle attachment if present
     if (agreementUrl) {
       try {
         const fileResponse = await fetch(agreementUrl);
         if (fileResponse.ok) {
           const buffer = Buffer.from(await fileResponse.arrayBuffer());
-          attachments.push({
+          const base64Content = buffer.toString('base64');
+          resendPayload.attachments = [{
             filename: agreementFilename || 'Fundraiser-Agreement.pdf',
-            content: buffer,
-          });
+            content: base64Content,
+          }];
         } else {
           console.warn('Could not download agreement file:', fileResponse.status);
         }
@@ -181,13 +181,20 @@ router.post('/send', async (req, res) => {
       }
     }
 
-    await transporter.sendMail({
-      from: `"Krista — SMASH Fundraising" <${process.env.GMAIL_USER}>`,
-      to,
-      subject,
-      html: body + KRISTA_SIGNATURE,
-      attachments,
+    // Send via Resend API
+    const resendResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(resendPayload),
     });
+
+    if (!resendResponse.ok) {
+      const resendError = await resendResponse.json().catch(() => ({}));
+      throw new Error(resendError.message || `Resend API error: ${resendResponse.status}`);
+    }
 
     if (taskId) {
       await airtableUpdate('tasks', taskId, {
