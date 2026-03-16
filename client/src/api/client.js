@@ -79,4 +79,11 @@ export const api = {
       body: JSON.stringify(data),
     }),
   },
+  echeck: {
+    preview: (taskId) => request(`/echeck/preview/${taskId}`),
+    send: (data) => request('/echeck/send', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  },
 };

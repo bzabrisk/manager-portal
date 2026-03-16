@@ -4,6 +4,7 @@ import { Pencil, Calendar, User } from 'lucide-react';
 import { api } from '../api/client';
 import TaskDetailModal from './TaskDetailModal';
 import EmailPreviewModal from './EmailPreviewModal';
+import ECheckPreviewModal from './ECheckPreviewModal';
 import { formatAsbType, getAsbColor } from '../utils/asb';
 
 const TAG_COLORS = [
@@ -61,12 +62,14 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
   const [editing, setEditing] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
+  const [showECheck, setShowECheck] = useState(false);
 
   const fundraiserLabel = task.fundraiser
     ? `${task.fundraiser.organization} — ${task.fundraiser.team}`
     : null;
 
   const isEmailTask = task.action_url && task.action_url.startsWith('email:');
+  const isECheckTask = task.action_url && task.action_url.startsWith('echeck:');
   const hasActionButton = task.button_words && task.action_url;
 
   const handleCardClick = () => {
@@ -144,7 +147,7 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
         {hasActionButton && (
           <div className="border-t border-gray-100 mt-2.5 pt-2 flex justify-end">
             <button
-              onClick={(e) => { e.stopPropagation(); if (isEmailTask) { setShowEmail(true); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
+              onClick={(e) => { e.stopPropagation(); if (isEmailTask) { setShowEmail(true); } else if (isECheckTask) { setShowECheck(true); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
               className="inline-flex items-center text-xs font-bold text-white px-3 py-1.5 rounded-lg transition-colors shadow-md hover:shadow-lg"
               style={{ backgroundColor: '#ff5000' }}
               onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
@@ -182,6 +185,15 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
         <EmailPreviewModal
           task={task}
           onClose={() => setShowEmail(false)}
+          onRefresh={onRefresh}
+        />,
+        document.body
+      )}
+
+      {showECheck && createPortal(
+        <ECheckPreviewModal
+          task={task}
+          onClose={() => setShowECheck(false)}
           onRefresh={onRefresh}
         />,
         document.body
@@ -228,7 +240,7 @@ function EditTaskModal({ task, onClose, onRefresh }) {
       const payload = { ...form };
       if (payload.action_url && payload.action_url.trim()) {
         const url = payload.action_url.trim();
-        if (!url.startsWith('email:')) {
+        if (!url.startsWith('email:') && !url.startsWith('echeck:')) {
           payload.action_url = url.startsWith('http://') || url.startsWith('https://') ? url : 'https://' + url;
         }
       }

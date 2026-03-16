@@ -6,6 +6,7 @@ const TABLES = {
   fundraisers: 'tbl7aH2mtkAGC9jk9',
   reps: 'tbljkTGJ7y1WmkXw0',
   daily_payouts: 'tblxoqfVPg322jNqA',
+  fundraiser_payouts: 'tbl2o1R97fQNWcqaj',
   client_book: 'tblq3raxwvAZlh4Im',
   accounting_contact: 'tblw4wHSfztIJDBj8',
   products: 'tblkppUiIEMjxIjmB',
@@ -118,6 +119,24 @@ const DAILY_PAYOUT_FIELDS = {
   organization: 'fldCeq63Ak9faXCdo',
   team: 'fldPl4uWY8ugNeAqf',
   check_number: 'fldOjxdPJc10D57lW',
+};
+
+// Fundraiser payout field IDs
+const FUNDRAISER_PAYOUT_FIELDS = {
+  payout_id: 'fldrD5ns8a5d6gsKs',
+  payout_purpose: 'fldILnAsKxqmETucM',
+  fundraiser: 'fldWpfxrSeo2jLeNL',
+  organization: 'fld7e1IhSjW04QfX7',
+  team: 'fldklF6ag7h1H7daY',
+  payout_amount: 'fldBETQCRpwCC5WYd',
+  memo: 'fldS42L5aYr2bOMlP',
+  status: 'fldnFgidw5JdszYe3',
+  reference_number: 'fldjsmLQhxbYjkBjt',
+  check_number: 'fldjj8P31bOLxYK5F',
+  notes: 'fldjE641kk95xHRly',
+  error_message: 'fldlgOBPITb8BFiwx',
+  idempotency_key: 'fldN5A157xSdOYy2X',
+  sent_at: 'fldq0EltjtNvpqBME',
 };
 
 // Product field IDs
@@ -285,6 +304,7 @@ export {
   CLIENT_BOOK_FIELDS,
   ACCOUNTING_CONTACT_FIELDS,
   DAILY_PAYOUT_FIELDS,
+  FUNDRAISER_PAYOUT_FIELDS,
   PRODUCT_FIELDS,
   airtableFetch,
   airtableFetchByIds,
