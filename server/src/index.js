@@ -26,6 +26,7 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 app.use(express.json());
+app.set('trust proxy', 1);
 app.use(session({
   secret: process.env.SESSION_SECRET || process.env.PORTAL_PASSWORD || 'fallback-secret',
   resave: false,
