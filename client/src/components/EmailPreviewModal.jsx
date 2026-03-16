@@ -1,29 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Mail, Send, X, AlertTriangle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Mail, Send, X, AlertTriangle, Paperclip } from 'lucide-react';
 import { api } from '../api/client';
-
-function htmlToPlainText(html) {
-  if (!html) return '';
-  return html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>\s*<p>/gi, '\n\n')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .trim();
-}
-
-function plainTextToHtml(text) {
-  if (!text) return '';
-  return text
-    .split(/\n\n+/)
-    .map(para => `<p>${para.replace(/\n/g, '<br/>')}</p>`)
-    .join('\n');
-}
 
 export default function EmailPreviewModal({ task, onClose, onRefresh }) {
   const [loading, setLoading] = useState(true);
@@ -34,13 +11,22 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [sendError, setSendError] = useState('');
+  const [agreementUrl, setAgreementUrl] = useState(null);
+  const [agreementFilename, setAgreementFilename] = useState(null);
+  const [hasAgreement, setHasAgreement] = useState(false);
+  const [signature, setSignature] = useState('');
+  const bodyRef = useRef(null);
 
   useEffect(() => {
     api.email.preview(task.id)
       .then(data => {
         setTo(data.to || '');
         setSubject(data.subject || '');
-        setBody(htmlToPlainText(data.body));
+        setBody(data.body || '');
+        setAgreementUrl(data.agreementUrl || null);
+        setAgreementFilename(data.agreementFilename || null);
+        setHasAgreement(!!data.hasAgreement);
+        setSignature(data.signature || '');
       })
       .catch(err => setError(err.message || 'Failed to load email preview'))
       .finally(() => setLoading(false));
@@ -50,8 +36,8 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
     setSending(true);
     setSendError('');
     try {
-      const htmlBody = plainTextToHtml(body);
-      await api.email.send({ to, subject, body: htmlBody, taskId: task.id });
+      const currentBody = bodyRef.current ? bodyRef.current.innerHTML : body;
+      await api.email.send({ to, subject, body: currentBody, taskId: task.id, agreementUrl, agreementFilename });
       setSent(true);
       setTimeout(() => {
         onClose();
@@ -126,13 +112,37 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
             {/* Body field */}
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Body</label>
-              <textarea
-                value={body}
-                onChange={e => setBody(e.target.value)}
-                rows={14}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
-                style={{ minHeight: '300px' }}
+              <style>{`.email-body-editor p { margin-bottom: 12px; } .email-body-editor strong { font-weight: 700; } .email-body-editor em { font-style: italic; }`}</style>
+              <div
+                ref={bodyRef}
+                contentEditable
+                suppressContentEditableWarning={true}
+                className="email-body-editor w-full border border-slate-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000] min-h-[300px] overflow-y-auto"
+                style={{ lineHeight: '1.6' }}
+                dangerouslySetInnerHTML={{ __html: body }}
+                onBlur={(e) => setBody(e.currentTarget.innerHTML)}
               />
+              <div className="mt-3">
+                <p className="text-xs font-medium text-slate-400 mb-2">Signature</p>
+                <div className="text-sm text-slate-500 pointer-events-none px-4" dangerouslySetInnerHTML={{ __html: signature }} />
+              </div>
+            </div>
+
+            {/* Attachment section — always visible */}
+            <div className="mt-3">
+              <label className="block text-xs font-medium text-slate-600 mb-1">Attachment</label>
+              {hasAgreement ? (
+                <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                  <Paperclip size={14} className="text-slate-400" />
+                  <span>{agreementFilename || 'Fundraiser-Agreement.pdf'}</span>
+                  <span className="text-xs text-green-600 font-medium ml-auto">✓ Will be attached</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
+                  <span className="text-amber-700">Fundraiser Agreement not uploaded in Airtable — email will send without attachment</span>
+                </div>
+              )}
             </div>
 
             {/* Send error */}

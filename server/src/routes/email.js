@@ -13,18 +13,48 @@ import {
 
 const router = Router();
 
+const KRISTA_SIGNATURE = `
+<table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px; padding-top: 15px;">
+  <tr>
+    <td style="padding-right: 15px; vertical-align: middle;">
+      <img src="https://images.squarespace-cdn.com/content/v1/654db8b24e5e08109904da97/6df12bb7-98af-47dc-93f7-34e6a25eeaf2/blacklogo_1%403x.png" alt="SMASH" width="80" style="display: block;" />
+    </td>
+    <td style="padding-left: 15px; vertical-align: middle; font-family: Arial, sans-serif;">
+      <strong style="font-size: 14px; color: #333;">Krista McGaughy</strong> <span style="font-size: 14px; color: #333;">• <em>Business Manager</em></span><br/>
+      <a href="mailto:krista@smashfundraising.com" style="font-size: 13px; color: #1a73e8; text-decoration: none;">krista@smashfundraising.com</a><br/>
+      <span style="font-size: 12px; color: #777;">A Washington School Fundraising Partner</span>
+    </td>
+  </tr>
+</table>`;
+
+const getFirstName = (fullName) => (fullName || '').split(' ')[0];
+
 const EMAIL_TEMPLATES = {
   'asb-onboarding': {
-    subject: (data) => `SMASH Fundraising — ASB Onboarding for ${data.organization} ${data.team}`,
-    body: (data) => `<p>Hi ${data.accounting_contact_name},</p>
+    subject: (data) => `${data.team} fundraiser: ASB Compliant Onboarding with SMASH Fundraising`,
+    body: (data) => {
+      const kickoffFormatted = data.kickoff_date
+        ? new Date(data.kickoff_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+        : '[date TBD]';
 
-<p>My name is Krista and I'm the billing coordinator at SMASH Fundraising. I'll be your point of contact for the upcoming <strong>${data.organization} ${data.team}</strong> fundraiser${data.kickoff_date ? ` kicking off on <strong>${new Date(data.kickoff_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</strong>` : ''}.</p>
+      return `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.6;">
+<p>Hello ${getFirstName(data.accounting_contact_name)},</p>
 
-<p>[PLACEHOLDER — Write the actual ASB onboarding email content here. This should explain the daily e-check process, what the accounting contact needs to know, and any setup steps required.]</p>
+<p>I'm Krista, Business Manager at SMASH Fundraising. ${data.organization} ${data.team} has a fundraiser scheduled to start on ${kickoffFormatted} with our rep, ${data.rep_name}. I understand that this fundraiser will be run through ASB, and therefore will require our fully ASB-compliant program.</p>
 
-<p>Please don't hesitate to reach out if you have any questions!</p>
+<p>If this is our first time working together, please confirm receipt of this email before fundraiser kickoff for security purposes.</p>
 
-<p>Best,<br/>Krista<br/>SMASH Fundraising<br/>krista@smashfundraising.com</p>`,
+<p>If you're new to this, or just need a refresher, here's how it works:</p>
+
+<p style="margin-left: 20px;">1. At the end of each weekday the fundraiser is active, we will send an e-check to this email, totaling the gross funds raised for that day. These checks can be printed and deposited just like a normal check. <strong>These funds are intact, meaning that no fees, charges, or costs are taken out.</strong></p>
+
+<p style="margin-left: 20px;">2. At the fundraiser close, you hold the gross total funds raised. We will then send you an itemized invoice for all fundraiser costs.</p>
+
+<p><em>Optional:</em> Some districts require a signed contract in place before each fundraiser. For your convenience, I attached a pre-filled and pre-signed ASB-compliant Fundraiser Agreement to this email. If your district prefers/requires district-wide vendor approval, we do that too. Just put us in touch with the right person and we'll take it from there.</p>
+
+<p>If you have any questions or if your district has additional needs, I would love to chat. You can respond to me here, or text/call (360) 482-3341. We love simplifying the work of our ASB/financial advisors.</p>
+</div>`;
+    },
   },
 };
 
@@ -88,6 +118,11 @@ router.get('/preview/:taskId', async (req, res) => {
 
     const template = EMAIL_TEMPLATES[templateId];
 
+    const agreementAttachments = fr[FUNDRAISER_FIELDS.fundraiser_agreement] || [];
+    const hasAgreement = agreementAttachments.length > 0;
+    const agreementUrl = hasAgreement ? agreementAttachments[0].url : null;
+    const agreementFilename = hasAgreement ? agreementAttachments[0].filename : null;
+
     res.json({
       to: acEmail,
       toName: acName,
@@ -97,6 +132,10 @@ router.get('/preview/:taskId', async (req, res) => {
       fundraiserId: fundraiserIds[0],
       taskId,
       mergeData,
+      hasAgreement,
+      agreementUrl,
+      agreementFilename,
+      signature: KRISTA_SIGNATURE,
     });
   } catch (err) {
     console.error('Email preview error:', err);
@@ -107,7 +146,7 @@ router.get('/preview/:taskId', async (req, res) => {
 // POST /api/email/send
 router.post('/send', async (req, res) => {
   try {
-    const { to, subject, body, taskId } = req.body;
+    const { to, subject, body, taskId, agreementUrl, agreementFilename } = req.body;
 
     if (!to || !subject || !body) {
       return res.status(400).json({ error: 'Missing required fields: to, subject, body' });
@@ -121,11 +160,30 @@ router.post('/send', async (req, res) => {
       },
     });
 
+    let attachments = [];
+    if (agreementUrl) {
+      try {
+        const fileResponse = await fetch(agreementUrl);
+        if (fileResponse.ok) {
+          const buffer = Buffer.from(await fileResponse.arrayBuffer());
+          attachments.push({
+            filename: agreementFilename || 'Fundraiser-Agreement.pdf',
+            content: buffer,
+          });
+        } else {
+          console.warn('Could not download agreement file:', fileResponse.status);
+        }
+      } catch (err) {
+        console.warn('Error downloading agreement for attachment:', err.message);
+      }
+    }
+
     await transporter.sendMail({
       from: `"Krista — SMASH Fundraising" <${process.env.GMAIL_USER}>`,
       to,
       subject,
-      html: body,
+      html: body + KRISTA_SIGNATURE,
+      attachments,
     });
 
     if (taskId) {
