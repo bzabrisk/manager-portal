@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Pencil, Calendar, User, CheckCircle } from 'lucide-react';
 import { StatusChip, getFundraiserColor, formatDate } from './TaskCard';
 import { api } from '../api/client';
 import { formatAsbType, getAsbColor } from '../utils/asb';
+import EmailPreviewModal from './EmailPreviewModal';
 
 function stripHtml(str) {
   if (!str) return '';
@@ -24,6 +26,7 @@ function deadlineColor(deadline, status) {
 export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
   const [marking, setMarking] = useState(false);
   const [markError, setMarkError] = useState('');
+  const [showEmail, setShowEmail] = useState(false);
 
   const handleMarkDone = async () => {
     setMarking(true);
@@ -38,6 +41,7 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
       setMarking(false);
     }
   };
+  const isEmailTask = task.action_url && task.action_url.startsWith('email:');
   const hasActionButton = task.button_words && task.action_url;
   const fundraisers = task.fundraisers || (task.fundraiser ? [task.fundraiser] : []);
 
@@ -115,7 +119,7 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
         {hasActionButton && (
           <div className="mt-4">
             <button
-              onClick={() => window.open(task.action_url, '_blank', 'noopener,noreferrer')}
+              onClick={() => { if (isEmailTask) { setShowEmail(true); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
               className="inline-flex items-center text-sm font-bold text-white px-4 py-1.5 rounded-lg transition-colors shadow-md hover:shadow-lg"
               style={{ backgroundColor: '#ff5000' }}
               onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
@@ -163,6 +167,15 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
           )}
         </div>
       </div>
+
+      {showEmail && createPortal(
+        <EmailPreviewModal
+          task={task}
+          onClose={() => setShowEmail(false)}
+          onRefresh={onRefresh}
+        />,
+        document.body
+      )}
     </div>
   );
 }

@@ -72,4 +72,11 @@ export const api = {
     }),
     weeklySummary: () => request('/chat/weekly-summary'),
   },
+  email: {
+    preview: (taskId) => request(`/email/preview/${taskId}`),
+    send: (data) => request('/email/send', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  },
 };

@@ -12,6 +12,7 @@ import taskRoutes from './routes/tasks.js';
 import fundraiserRoutes from './routes/fundraisers.js';
 import payoutsRoutes from './routes/payouts.js';
 import chatRoutes from './routes/chat.js';
+import emailRoutes from './routes/email.js';
 import { authMiddleware } from './middleware/auth.js';
 
 const app = express();
@@ -38,6 +39,7 @@ app.use('/api/tasks', authMiddleware, taskRoutes);
 app.use('/api/fundraisers', authMiddleware, fundraiserRoutes);
 app.use('/api/payouts', authMiddleware, payoutsRoutes);
 app.use('/api/chat', authMiddleware, chatRoutes);
+app.use('/api/email', authMiddleware, emailRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
