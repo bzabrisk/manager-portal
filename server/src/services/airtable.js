@@ -87,6 +87,7 @@ const FUNDRAISER_FIELDS = {
   daily_payouts: 'fldZOe15DJT4G61Bh',
   primary_contact_email: 'fldpNuvbEbmZrYuGb',
   accounting_contact_email: 'fldH17UIgXDn67jc1',
+  include_md_donations: 'fldZ7EFPBXeADzc6T',
 };
 
 // Client book (primary contact) field IDs

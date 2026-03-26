@@ -56,6 +56,10 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
+    lookupReps: () => request('/fundraisers/lookup/reps'),
+    lookupContacts: () => request('/fundraisers/lookup/contacts'),
+    lookupAccountingContacts: () => request('/fundraisers/lookup/accounting-contacts'),
+    lookupProducts: () => request('/fundraisers/lookup/products'),
   },
   payouts: {
     today: () => request('/payouts/today'),

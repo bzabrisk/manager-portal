@@ -598,6 +598,72 @@ router.get('/ended/count', async (req, res) => {
   }
 });
 
+// GET /api/fundraisers/lookup/reps — dropdown options for reps
+router.get('/lookup/reps', async (req, res) => {
+  try {
+    const records = await airtableFetch('reps', {});
+    const result = records
+      .map(r => ({
+        id: r.id,
+        name: r.fields[REP_FIELDS.name] || '',
+        email: r.fields[REP_FIELDS.email] || '',
+      }))
+      .filter(r => r.name !== 'Office Manager' && r.name !== 'Cash');
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching rep lookup:', err.message);
+    res.status(500).json({ error: 'Failed to fetch reps' });
+  }
+});
+
+// GET /api/fundraisers/lookup/contacts — dropdown options for primary contacts
+router.get('/lookup/contacts', async (req, res) => {
+  try {
+    const records = await airtableFetch('client_book', {});
+    const result = records.map(r => ({
+      id: r.id,
+      name: r.fields[CLIENT_BOOK_FIELDS.name] || '',
+      email: r.fields[CLIENT_BOOK_FIELDS.email] || '',
+    }));
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching contact lookup:', err.message);
+    res.status(500).json({ error: 'Failed to fetch contacts' });
+  }
+});
+
+// GET /api/fundraisers/lookup/accounting-contacts — dropdown options for accounting contacts
+router.get('/lookup/accounting-contacts', async (req, res) => {
+  try {
+    const records = await airtableFetch('accounting_contact', {});
+    const result = records.map(r => ({
+      id: r.id,
+      name: r.fields[ACCOUNTING_CONTACT_FIELDS.name] || '',
+      email: r.fields[ACCOUNTING_CONTACT_FIELDS.email] || '',
+      status: r.fields[ACCOUNTING_CONTACT_FIELDS.status] || '',
+    }));
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching accounting contact lookup:', err.message);
+    res.status(500).json({ error: 'Failed to fetch accounting contacts' });
+  }
+});
+
+// GET /api/fundraisers/lookup/products — dropdown options for products
+router.get('/lookup/products', async (req, res) => {
+  try {
+    const records = await airtableFetch('products', {});
+    const result = records.map(r => ({
+      id: r.id,
+      name: r.fields[PRODUCT_FIELDS.name] || '',
+    }));
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching product lookup:', err.message);
+    res.status(500).json({ error: 'Failed to fetch products' });
+  }
+});
+
 // GET /api/fundraisers/:recordId — full detail with all resolved linked records
 router.get('/:recordId', async (req, res) => {
   try {
@@ -813,6 +879,16 @@ router.get('/:recordId', async (req, res) => {
       // Linked records
       tasks,
       daily_payouts,
+      // Raw linked record IDs for edit mode dropdowns
+      rep_id: repLinkedIds[0] || null,
+      primary_contact_id: contactLinkedIds[0] || null,
+      accounting_contact_id: accountingLinkedIds[0] || null,
+      product_primary_id: (f[FUNDRAISER_FIELDS.product_primary] || [])[0] || null,
+      product_secondary_id: (f[FUNDRAISER_FIELDS.product_secondary] || [])[0] || null,
+      // Additional editable fields
+      manual_status_override: f[FUNDRAISER_FIELDS.manual_status_override] || null,
+      include_md_donations: f[FUNDRAISER_FIELDS.include_md_donations] || false,
+      cards_sold_manual: f[FUNDRAISER_FIELDS.cards_sold_manual] || null,
     });
   } catch (err) {
     console.error('Error fetching fundraiser detail:', err.message);
@@ -827,12 +903,40 @@ router.patch('/:recordId', async (req, res) => {
     const updates = req.body;
     const fields = {};
 
+    // Closeout checkboxes
     if (updates.md_payout_received !== undefined) fields[FUNDRAISER_FIELDS.md_payout_received] = updates.md_payout_received;
     if (updates.check_invoice_sent !== undefined) fields[FUNDRAISER_FIELDS.check_invoice_sent] = updates.check_invoice_sent;
     if (updates.rep_paid !== undefined) fields[FUNDRAISER_FIELDS.rep_paid] = updates.rep_paid;
-    if (updates.admin_notes !== undefined) fields[FUNDRAISER_FIELDS.admin_notes] = updates.admin_notes;
-    if (updates.manual_status_override !== undefined) fields[FUNDRAISER_FIELDS.manual_status_override] = updates.manual_status_override;
     if (updates.invoice_payment_received !== undefined) fields[FUNDRAISER_FIELDS.invoice_payment_received] = updates.invoice_payment_received;
+    // Notes
+    if (updates.admin_notes !== undefined) fields[FUNDRAISER_FIELDS.admin_notes] = updates.admin_notes;
+    // Status override
+    if (updates.manual_status_override !== undefined) fields[FUNDRAISER_FIELDS.manual_status_override] = updates.manual_status_override;
+    // Text fields
+    if (updates.organization !== undefined) fields[FUNDRAISER_FIELDS.organization] = updates.organization;
+    if (updates.team !== undefined) fields[FUNDRAISER_FIELDS.team] = updates.team;
+    if (updates.md_portal_url !== undefined) fields[FUNDRAISER_FIELDS.md_portal_url] = updates.md_portal_url;
+    // Date fields
+    if (updates.kickoff_date !== undefined) fields[FUNDRAISER_FIELDS.kickoff_date] = updates.kickoff_date || null;
+    if (updates.end_date !== undefined) fields[FUNDRAISER_FIELDS.end_date] = updates.end_date || null;
+    // Select field
+    if (updates.asb_boosters !== undefined) fields[FUNDRAISER_FIELDS.asb_boosters] = updates.asb_boosters || null;
+    // Number fields
+    if (updates.team_size !== undefined) fields[FUNDRAISER_FIELDS.team_size] = updates.team_size !== null && updates.team_size !== '' ? Number(updates.team_size) : null;
+    if (updates.cards_ordered !== undefined) fields[FUNDRAISER_FIELDS.cards_ordered] = updates.cards_ordered !== null && updates.cards_ordered !== '' ? Number(updates.cards_ordered) : null;
+    if (updates.cards_sold_manual !== undefined) fields[FUNDRAISER_FIELDS.cards_sold_manual] = updates.cards_sold_manual !== null && updates.cards_sold_manual !== '' ? Number(updates.cards_sold_manual) : null;
+    if (updates.cards_lost !== undefined) fields[FUNDRAISER_FIELDS.cards_lost] = updates.cards_lost !== null && updates.cards_lost !== '' ? Number(updates.cards_lost) : null;
+    // Currency fields
+    if (updates.gross_sales_md !== undefined) fields[FUNDRAISER_FIELDS.gross_sales_md] = updates.gross_sales_md !== null && updates.gross_sales_md !== '' ? Number(updates.gross_sales_md) : null;
+    if (updates.md_payout !== undefined) fields[FUNDRAISER_FIELDS.md_payout] = updates.md_payout !== null && updates.md_payout !== '' ? Number(updates.md_payout) : null;
+    // Linked record fields
+    if (updates.rep_id !== undefined) fields[FUNDRAISER_FIELDS.rep] = updates.rep_id ? [updates.rep_id] : [];
+    if (updates.primary_contact_id !== undefined) fields[FUNDRAISER_FIELDS.primary_contact] = updates.primary_contact_id ? [updates.primary_contact_id] : [];
+    if (updates.accounting_contact_id !== undefined) fields[FUNDRAISER_FIELDS.accounting_contact] = updates.accounting_contact_id ? [updates.accounting_contact_id] : [];
+    if (updates.product_primary_id !== undefined) fields[FUNDRAISER_FIELDS.product_primary] = updates.product_primary_id ? [updates.product_primary_id] : [];
+    if (updates.product_secondary_id !== undefined) fields[FUNDRAISER_FIELDS.product_secondary] = updates.product_secondary_id ? [updates.product_secondary_id] : [];
+    // Checkbox
+    if (updates.include_md_donations !== undefined) fields[FUNDRAISER_FIELDS.include_md_donations] = updates.include_md_donations;
 
     if (Object.keys(fields).length === 0) {
       return res.status(400).json({ error: 'No valid fields to update' });
