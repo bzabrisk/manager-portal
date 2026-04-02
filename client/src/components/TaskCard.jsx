@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Pencil, Calendar, User } from 'lucide-react';
+import { Pencil, Calendar, User, CheckCircle } from 'lucide-react';
 import { api } from '../api/client';
 import TaskDetailModal from './TaskDetailModal';
 import EmailPreviewModal from './EmailPreviewModal';
@@ -146,15 +146,22 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
         {/* Divider + Action button */}
         {hasActionButton && (
           <div className="border-t border-gray-100 mt-2.5 pt-2 flex justify-end">
-            <button
-              onClick={(e) => { e.stopPropagation(); if (isEmailTask) { setShowEmail(true); } else if (isECheckTask) { setShowECheck(true); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
-              className="inline-flex items-center text-xs font-bold text-white px-3 py-1.5 rounded-lg transition-colors shadow-md hover:shadow-lg"
-              style={{ backgroundColor: '#ff5000' }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ff5000'}
-            >
-              {task.button_words}
-            </button>
+            {isECheckTask && task.status === 'Done' ? (
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg cursor-not-allowed">
+                <CheckCircle size={13} />
+                Sent
+              </span>
+            ) : (
+              <button
+                onClick={(e) => { e.stopPropagation(); if (isEmailTask) { setShowEmail(true); } else if (isECheckTask) { setShowECheck(true); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
+                className="inline-flex items-center text-xs font-bold text-white px-3 py-1.5 rounded-lg transition-colors shadow-md hover:shadow-lg"
+                style={{ backgroundColor: '#ff5000' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ff5000'}
+              >
+                {task.button_words}
+              </button>
+            )}
           </div>
         )}
 

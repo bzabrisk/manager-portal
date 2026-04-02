@@ -18,6 +18,7 @@ import {
   getFundraisersList,
   getRepIds,
 } from '../services/airtable.js';
+import { searchFiles, readFileContent, getFileLink } from '../services/google-drive.js';
 
 const router = Router();
 
@@ -35,7 +36,7 @@ function getSystemPrompt() {
 SMASH Fundraising helps youth sports teams raise money through product sales (team cards, cookie dough, fun books, catalogs) and digital fundraising via MoneyDolly (MD), their platform partner. Sales reps work with schools and booster clubs to set up fundraisers. Krista is the office manager who handles billing, admin, and closeout.
 
 ## Your Capabilities
-You can search and query all SMASH data: fundraisers, tasks, daily payouts, and contacts. You can also CREATE tasks, UPDATE task fields (status, deadline, name, description, etc.), UPDATE fundraiser fields (checkboxes, notes, etc.), and DELETE tasks when asked.
+You can search and query all SMASH data: fundraisers, tasks, daily payouts, and contacts. You can also CREATE tasks, UPDATE task fields (status, deadline, name, description, etc.), UPDATE fundraiser fields (checkboxes, notes, etc.), and DELETE tasks when asked. You also have access to SMASH's Google Drive to search for files, read documents, and share links.
 
 Always confirm before making destructive changes (deleting tasks, changing statuses on multiple records). For single-field updates that the user explicitly asked for, just do it and confirm.
 
@@ -89,6 +90,8 @@ Plus: invoice_payment_received (only applies to WA State ASB, Traditional No-Ris
 - Sprinkle in gorilla personality but don't overdo it. Maybe 1 in 4 messages gets a gorilla touch.
 - End messages with a brief "Need anything else?" or similar only when it feels natural, not every time.
 - When you make changes (update/create/delete), always confirm what you did with specifics.
+- **Be concise with data.** When you look up fundraiser info, do NOT list every field you received. Only share the specific information Krista asked about. If she asks "when does Lakes HS end?" just give the end date — don't also list the rep, product, gross sales, contacts, and status. If she asks for a general overview, give a brief 3-4 line summary, not a full data dump. Krista can always ask follow-up questions if she wants more details.
+- When listing multiple fundraisers, use a compact format: name, the one or two most relevant details for the question, done. Not a full profile of each one.
 
 ## Important Notes
 - Today's date is provided by the system. Use it for date calculations.
@@ -124,6 +127,28 @@ Occasionally (not every time) respond with something heartfelt:
 
 **When Krista says "good morning" or "good night":**
 Respond warmly. In the morning, maybe mention what's on her plate today. At night, encourage her to log off.
+
+## Google Drive Access
+You can search and read files from SMASH's Google Drive, including shared drives. This is especially useful when Krista asks about company procedures, policies, or needs to find a specific document.
+
+**When to use Drive tools:**
+- Krista asks "how do we usually do X?" or "what's our process for X?" → Search for relevant procedures/manuals, read them, and summarize the answer
+- Krista asks "find the [document name]" → Search and share the link
+- Krista asks about company policies, agreements, or standard procedures → Search Drive first before saying you don't know
+- Krista needs a receipt or specific file → Search the Drive
+
+**How to use them effectively:**
+- Start with search_drive_files using short keywords (1-4 words)
+- If you find a relevant doc, use read_file_content to read it and answer Krista's question
+- When sharing file links, use the webViewLink from search results — don't make Krista ask for it separately
+- If a document is long, summarize the relevant parts rather than dumping everything
+- If you can't find what Krista's looking for, suggest different search terms or ask her to be more specific
+
+**What you CAN'T do with Drive:**
+- Upload or create files
+- Edit existing files
+- Delete files
+- Change sharing permissions
 
 Today's date: ${today}
 Current time (Pacific): ${time}
@@ -275,6 +300,56 @@ const TOOLS = [
         },
       },
       required: ['task_ids'],
+    },
+  },
+  {
+    name: 'search_drive_files',
+    description: "Search Google Drive for files by name or content. Use this when Krista asks to find a document, asks about company procedures, or needs a file. Returns file names, types, and links. Search with short keywords for best results.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: "Search keywords. Keep it short — 1-4 words work best. For example: 'rep agreement', 'receipts 2026', 'onboarding procedures'",
+        },
+        max_results: {
+          type: 'number',
+          description: 'Maximum number of results to return. Default 10.',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'read_file_content',
+    description: 'Read the text content of a Google Doc, Sheet, or text file. Use this after finding a file with search_drive_files when you need to look up specific information inside a document. Pass the file ID and mimeType from the search results.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        file_id: {
+          type: 'string',
+          description: 'The Google Drive file ID from search results',
+        },
+        mime_type: {
+          type: 'string',
+          description: "The mimeType of the file from search results (e.g. 'application/vnd.google-apps.document')",
+        },
+      },
+      required: ['file_id', 'mime_type'],
+    },
+  },
+  {
+    name: 'get_file_link',
+    description: 'Get a shareable Google Drive link for a file. Use this when Krista asks for a link to share with someone.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        file_id: {
+          type: 'string',
+          description: 'The Google Drive file ID',
+        },
+      },
+      required: ['file_id'],
     },
   },
 ];
@@ -816,6 +891,9 @@ async function executeToolCall(toolName, input) {
       case 'update_task': return await updateTask(input);
       case 'update_fundraiser': return await updateFundraiser(input);
       case 'delete_tasks': return await deleteTasks(input);
+      case 'search_drive_files': return await searchFiles(input.query, input.max_results);
+      case 'read_file_content': return await readFileContent(input.file_id, input.mime_type);
+      case 'get_file_link': return await getFileLink(input.file_id);
       default: return { error: `Unknown tool: ${toolName}` };
     }
   } catch (err) {

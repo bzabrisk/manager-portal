@@ -117,6 +117,11 @@ export default function Dashboard({ tasks, loading, error, refresh }) {
     return kristaTasks
       .filter(t => t.status === columnStatus)
       .sort((a, b) => {
+        if (columnStatus === 'Done') {
+          const dateA = a.completed_at || '0000-00-00';
+          const dateB = b.completed_at || '0000-00-00';
+          return dateB.localeCompare(dateA);
+        }
         const dateA = a.deadline || '9999-12-31';
         const dateB = b.deadline || '9999-12-31';
         return dateA.localeCompare(dateB);

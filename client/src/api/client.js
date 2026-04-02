@@ -89,5 +89,9 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+    sendReportEmail: (data) => request('/echeck/send-report-email', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   },
 };

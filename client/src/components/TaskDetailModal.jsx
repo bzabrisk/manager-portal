@@ -5,6 +5,7 @@ import { StatusChip, getFundraiserColor, formatDate } from './TaskCard';
 import { api } from '../api/client';
 import { formatAsbType, getAsbColor } from '../utils/asb';
 import EmailPreviewModal from './EmailPreviewModal';
+import ECheckPreviewModal from './ECheckPreviewModal';
 
 function stripHtml(str) {
   if (!str) return '';
@@ -27,6 +28,7 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
   const [marking, setMarking] = useState(false);
   const [markError, setMarkError] = useState('');
   const [showEmail, setShowEmail] = useState(false);
+  const [showECheck, setShowECheck] = useState(false);
 
   const handleMarkDone = async () => {
     setMarking(true);
@@ -42,6 +44,7 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
     }
   };
   const isEmailTask = task.action_url && task.action_url.startsWith('email:');
+  const isECheckTask = task.action_url && task.action_url.startsWith('echeck:');
   const hasActionButton = task.button_words && task.action_url;
   const fundraisers = task.fundraisers || (task.fundraiser ? [task.fundraiser] : []);
 
@@ -118,15 +121,22 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
         {/* Action button */}
         {hasActionButton && (
           <div className="mt-4">
-            <button
-              onClick={() => { if (isEmailTask) { setShowEmail(true); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
-              className="inline-flex items-center text-sm font-bold text-white px-4 py-1.5 rounded-lg transition-colors shadow-md hover:shadow-lg"
-              style={{ backgroundColor: '#ff5000' }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ff5000'}
-            >
-              {task.button_words}
-            </button>
+            {isECheckTask && task.status === 'Done' ? (
+              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-400 bg-slate-100 px-4 py-1.5 rounded-lg cursor-not-allowed">
+                <CheckCircle size={14} />
+                Sent
+              </span>
+            ) : (
+              <button
+                onClick={() => { if (isEmailTask) { setShowEmail(true); } else if (isECheckTask) { setShowECheck(true); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
+                className="inline-flex items-center text-sm font-bold text-white px-4 py-1.5 rounded-lg transition-colors shadow-md hover:shadow-lg"
+                style={{ backgroundColor: '#ff5000' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ff5000'}
+              >
+                {task.button_words}
+              </button>
+            )}
           </div>
         )}
 
@@ -172,6 +182,14 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
         <EmailPreviewModal
           task={task}
           onClose={() => setShowEmail(false)}
+          onRefresh={onRefresh}
+        />,
+        document.body
+      )}
+      {showECheck && createPortal(
+        <ECheckPreviewModal
+          task={task}
+          onClose={() => setShowECheck(false)}
           onRefresh={onRefresh}
         />,
         document.body
