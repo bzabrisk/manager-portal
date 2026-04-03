@@ -527,8 +527,11 @@ async function getEndedFundraisers() {
     const rep_paid = f[FUNDRAISER_FIELDS.rep_paid] || false;
     const invoice_payment_received = f[FUNDRAISER_FIELDS.invoice_payment_received] || false;
 
-    // MD payout only applies to MD products
-    const has_md_product = product_primary_string.toLowerCase().includes('md');
+    // MD payout applies when any MD-related product is linked or an md_payout amount exists
+    const mdDonationIds = f[FUNDRAISER_FIELDS.tp_mddonations] || [];
+    const has_md_product = product_primary_string.toLowerCase().includes('md')
+      || mdDonationIds.length > 0
+      || (f[FUNDRAISER_FIELDS.md_payout] != null && f[FUNDRAISER_FIELDS.md_payout] > 0);
     // Invoice required for WA State ASB, Traditional No-Risk, or Traditional Upfront
     const requires_invoice = asb_boosters === 'WA State ASB'
       || product_primary_string.toLowerCase().includes('traditional no-risk')

@@ -270,9 +270,11 @@ export default function Ended() {
     setMarkingReceived(fundraiserId);
     try {
       await api.fundraisers.update(fundraiserId, { md_payout_received: true });
-      refresh();
+      await refresh();
     } catch (err) {
       console.error('Failed to mark MD payout received:', err);
+      // Re-fetch to revert UI to actual Airtable state
+      await refresh();
     } finally {
       setMarkingReceived(null);
     }
@@ -282,9 +284,10 @@ export default function Ended() {
     setMarkingInvoiceReceived(fundraiserId);
     try {
       await api.fundraisers.update(fundraiserId, { invoice_payment_received: true });
-      refresh();
+      await refresh();
     } catch (err) {
       console.error('Failed to mark invoice payment received:', err);
+      await refresh();
     } finally {
       setMarkingInvoiceReceived(null);
     }
