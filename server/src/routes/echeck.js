@@ -89,7 +89,7 @@ router.get('/preview/:taskId', async (req, res) => {
       ]);
 
       const contact = contacts[0];
-      recipientName = contact ? (contact.fields[ACCOUNTING_CONTACT_FIELDS.name] || '') : '';
+      recipientName = organization;
       recipientEmail = contact ? (contact.fields[ACCOUNTING_CONTACT_FIELDS.email] || '') : '';
 
       const rep = reps[0];
