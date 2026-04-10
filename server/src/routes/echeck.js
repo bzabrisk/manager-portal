@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import {
   airtableGet,
+  airtableFetch,
   airtableFetchByIds,
   airtableUpdate,
   airtableCreate,
+  TABLES,
   TASK_FIELDS,
   FUNDRAISER_FIELDS,
   ACCOUNTING_CONTACT_FIELDS,
@@ -13,6 +15,21 @@ import {
 } from '../services/airtable.js';
 
 const router = Router();
+
+const BULK_REP_CONFIG = {
+  dravin: {
+    name: 'Dravin McGaughy',
+    email: 'dravin@smashfundraising.com',
+    recordId: 'recdywD6yFFsan38u',
+    airtableView: "Dravin's Quarterly Rep Commissions",
+  },
+  tahni: {
+    name: 'Tahni McGaughy',
+    email: 'tahni@smashfundraising.com',
+    recordId: 'recLmSrcuiM8uwxb9',
+    airtableView: "Tahni's Quarterly Rep Commissions",
+  },
+};
 
 const KRISTA_SIGNATURE = `
 <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 20px; padding-top: 15px;">
@@ -33,6 +50,50 @@ function getCheckbookBaseUrl() {
     ? 'https://sandbox.checkbook.io/v3'
     : 'https://checkbook.io/v3';
 }
+
+// GET /api/echeck/bulk-preview/:repKey
+// NOTE: Must come before /preview/:taskId so Express doesn't match "bulk-preview" as a taskId.
+router.get('/bulk-preview/:repKey', async (req, res) => {
+  try {
+    const { repKey } = req.params;
+    const config = BULK_REP_CONFIG[repKey];
+    if (!config) {
+      return res.status(400).json({ error: `Unknown rep key: ${repKey}` });
+    }
+
+    const records = await airtableFetch('fundraisers', { view: config.airtableView });
+
+    const fundraisers = [];
+    for (const r of records) {
+      const f = r.fields;
+      // Safety net — exclude already-paid
+      if (f[FUNDRAISER_FIELDS.rep_paid]) continue;
+
+      const attachments = f[FUNDRAISER_FIELDS.rep_commission_report] || [];
+      const hasPdf = attachments.length > 0;
+
+      fundraisers.push({
+        id: r.id,
+        organization: f[FUNDRAISER_FIELDS.organization] || '',
+        team: f[FUNDRAISER_FIELDS.team] || '',
+        endDate: f[FUNDRAISER_FIELDS.end_date] || null,
+        commission: f[FUNDRAISER_FIELDS.rep_commission] || 0,
+        statusRendered: f[FUNDRAISER_FIELDS.status_rendered] || '',
+        hasPdf,
+        pdfUrl: hasPdf ? attachments[0].url : null,
+        pdfFilename: hasPdf ? attachments[0].filename : null,
+      });
+    }
+
+    res.json({
+      rep: { name: config.name, email: config.email },
+      fundraisers,
+    });
+  } catch (err) {
+    console.error('Bulk e-check preview error:', err);
+    res.status(500).json({ error: err.message || 'Failed to load bulk e-check preview' });
+  }
+});
 
 // GET /api/echeck/preview/:taskId
 router.get('/preview/:taskId', async (req, res) => {
@@ -146,6 +207,130 @@ router.get('/preview/:taskId', async (req, res) => {
   } catch (err) {
     console.error('E-check preview error:', err);
     res.status(500).json({ error: err.message || 'Failed to generate e-check preview' });
+  }
+});
+
+// POST /api/echeck/bulk-send
+// NOTE: Must come before /send so Express route ordering works correctly alongside the bulk-preview pair.
+router.post('/bulk-send', async (req, res) => {
+  try {
+    const { repKey, fundraiserIds, totalAmount, description } = req.body;
+
+    const config = BULK_REP_CONFIG[repKey];
+    if (!config) {
+      return res.status(400).json({ error: `Unknown rep key: ${repKey}` });
+    }
+    if (!Array.isArray(fundraiserIds) || fundraiserIds.length === 0) {
+      return res.status(400).json({ error: 'fundraiserIds must be a non-empty array' });
+    }
+    if (!totalAmount || totalAmount <= 0) {
+      return res.status(400).json({ error: 'totalAmount must be greater than 0' });
+    }
+    if (!description) {
+      return res.status(400).json({ error: 'description is required' });
+    }
+
+    // Re-fetch fundraisers to validate amount
+    const fundraiserRecords = await airtableFetchByIds('fundraisers', fundraiserIds);
+    if (fundraiserRecords.length !== fundraiserIds.length) {
+      return res.status(400).json({ error: 'Some fundraiser IDs were not found' });
+    }
+    const computedTotal = fundraiserRecords.reduce(
+      (sum, r) => sum + (r.fields[FUNDRAISER_FIELDS.rep_commission] || 0),
+      0
+    );
+    if (Math.abs(computedTotal - totalAmount) > 0.01) {
+      return res.status(400).json({
+        error: `Amount mismatch: client sent $${totalAmount.toFixed(2)} but Airtable totals $${computedTotal.toFixed(2)}. Please refresh and try again.`,
+      });
+    }
+
+    const idempotencyKey = `bulk-rep-${repKey}-${Date.now()}`;
+
+    // Send the e-check via Checkbook.io
+    const response = await fetch(`${getCheckbookBaseUrl()}/check/digital`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `${process.env.CHECKBOOK_API_KEY}:${process.env.CHECKBOOK_API_SECRET}`,
+        'Content-Type': 'application/json',
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify({
+        name: config.name,
+        recipient: config.email,
+        amount: totalAmount,
+        description: description,
+      }),
+    });
+
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      try {
+        await airtableCreate('fundraiser_payouts', {
+          [FUNDRAISER_PAYOUT_FIELDS.fundraiser]: fundraiserIds,
+          [FUNDRAISER_PAYOUT_FIELDS.payout_purpose]: 'Rep Commission',
+          [FUNDRAISER_PAYOUT_FIELDS.status]: 'failed',
+          [FUNDRAISER_PAYOUT_FIELDS.error_message]: errBody.message || errBody.error || `HTTP ${response.status}`,
+          [FUNDRAISER_PAYOUT_FIELDS.idempotency_key]: idempotencyKey,
+          [FUNDRAISER_PAYOUT_FIELDS.sent_at]: new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }),
+        });
+      } catch (payoutErr) {
+        console.error('Warning: Failed to record bulk failed send:', payoutErr.message);
+      }
+      throw new Error(errBody.message || errBody.error || `Checkbook API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Record one fundraiser_payouts row linking all fundraisers
+    try {
+      await airtableCreate('fundraiser_payouts', {
+        [FUNDRAISER_PAYOUT_FIELDS.fundraiser]: fundraiserIds,
+        [FUNDRAISER_PAYOUT_FIELDS.payout_purpose]: 'Rep Commission',
+        [FUNDRAISER_PAYOUT_FIELDS.status]: 'sent',
+        [FUNDRAISER_PAYOUT_FIELDS.reference_number]: String(data.id),
+        [FUNDRAISER_PAYOUT_FIELDS.check_number]: data.number || null,
+        [FUNDRAISER_PAYOUT_FIELDS.sent_at]: new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }),
+        [FUNDRAISER_PAYOUT_FIELDS.idempotency_key]: idempotencyKey,
+      });
+    } catch (payoutErr) {
+      console.error('Warning: Bulk e-check sent but failed to create fundraiser_payouts record:', payoutErr.message);
+    }
+
+    // Mark fundraisers as rep_paid (Airtable batch endpoint accepts up to 10 records at a time)
+    const tableId = TABLES.fundraisers;
+    const apiUrl = `https://api.airtable.com/v0/appxDlniu6IPMVIVp/${tableId}`;
+    for (let i = 0; i < fundraiserIds.length; i += 10) {
+      const batch = fundraiserIds.slice(i, i + 10);
+      const updateRes = await fetch(apiUrl, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${process.env.AIRTABLE_API_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          records: batch.map(id => ({
+            id,
+            fields: { [FUNDRAISER_FIELDS.rep_paid]: true },
+          })),
+        }),
+      });
+      if (!updateRes.ok) {
+        const errText = await updateRes.text();
+        console.error(`Warning: Failed to mark batch as rep_paid: ${errText}`);
+      }
+    }
+
+    res.json({
+      success: true,
+      checkId: data.id,
+      checkNumber: data.number || null,
+      amount: totalAmount,
+      fundraiserCount: fundraiserIds.length,
+    });
+  } catch (err) {
+    console.error('Bulk e-check send error:', err);
+    res.status(500).json({ success: false, error: err.message || 'Failed to send bulk e-check' });
   }
 });
 

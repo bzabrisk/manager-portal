@@ -157,7 +157,7 @@ async function airtableFetch(tableName, params = {}) {
   const url = new URL(`${API_URL}/${tableId}`);
   url.searchParams.set('returnFieldsByFieldId', 'true');
   for (const [key, value] of Object.entries(params)) {
-    if (key === 'filterByFormula' || key === 'sort' || key === 'maxRecords' || key === 'pageSize') {
+    if (key === 'filterByFormula' || key === 'sort' || key === 'maxRecords' || key === 'pageSize' || key === 'view') {
       if (key === 'sort') {
         // sort is an array of objects
         value.forEach((s, i) => {

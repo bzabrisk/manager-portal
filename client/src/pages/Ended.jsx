@@ -85,8 +85,22 @@ function CloseoutChecklist({ closeout, greenTint, fundraiser }) {
   );
 }
 
-function WaitingBadges({ waiting, onMarkReceived, markingReceived, onMarkInvoiceReceived, markingInvoiceReceived }) {
+const QUARTERLY_REP_IDS = new Set(['recdywD6yFFsan38u', 'recLmSrcuiM8uwxb9']);
+
+function WaitingBadges({ fundraiser, waiting, onMarkReceived, markingReceived, onMarkInvoiceReceived, markingInvoiceReceived }) {
   const badges = [];
+
+  // Quarterly rep payment badge — Dravin or Tahni, not yet paid
+  const repIds = fundraiser.rep_ids || [];
+  const isQuarterlyRep = repIds.some(id => QUARTERLY_REP_IDS.has(id));
+  if (isQuarterlyRep && !fundraiser.closeout.rep_paid) {
+    badges.push(
+      <span key="quarterly-rep" className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full bg-purple-100 text-purple-700">
+        Rep Payment (Quarterly)
+      </span>
+    );
+  }
+
   if (waiting.waiting_on_md_payout) {
     badges.push(
       <span key="md" className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
@@ -207,6 +221,7 @@ function EndedFundraiserCard({ fundraiser, section, onTaskClick, onFundraiserCli
 
       {/* Waiting badges */}
       <WaitingBadges
+        fundraiser={fundraiser}
         waiting={fundraiser.waiting}
         onMarkReceived={() => onMarkReceived(fundraiser.id)}
         markingReceived={markingReceived === fundraiser.id}

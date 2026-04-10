@@ -93,5 +93,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+    bulkPreview: (repKey) => request(`/echeck/bulk-preview/${repKey}`),
+    bulkSend: (data) => request('/echeck/bulk-send', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   },
 };

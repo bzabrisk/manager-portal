@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import TaskDetailModal from './TaskDetailModal';
 import EmailPreviewModal from './EmailPreviewModal';
 import ECheckPreviewModal from './ECheckPreviewModal';
+import BulkECheckModal from './BulkECheckModal';
 import { formatAsbType, getAsbColor } from '../utils/asb';
 
 const TAG_COLORS = [
@@ -63,13 +64,16 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
   const [showDetail, setShowDetail] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
   const [showECheck, setShowECheck] = useState(false);
+  const [showBulkECheck, setShowBulkECheck] = useState(false);
 
   const fundraiserLabel = task.fundraiser
     ? `${task.fundraiser.organization} — ${task.fundraiser.team}`
     : null;
 
   const isEmailTask = task.action_url && task.action_url.startsWith('email:');
-  const isECheckTask = task.action_url && task.action_url.startsWith('echeck:');
+  const isBulkECheckTask = task.action_url && task.action_url.startsWith('echeck:bulk_rep_commission:');
+  const isSingleECheckTask = task.action_url && task.action_url.startsWith('echeck:') && !isBulkECheckTask;
+  const isECheckTask = isSingleECheckTask || isBulkECheckTask;
   const hasActionButton = task.button_words && task.action_url;
 
   const handleCardClick = () => {
@@ -153,7 +157,7 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
               </span>
             ) : (
               <button
-                onClick={(e) => { e.stopPropagation(); if (isEmailTask) { setShowEmail(true); } else if (isECheckTask) { setShowECheck(true); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
+                onClick={(e) => { e.stopPropagation(); if (isEmailTask) { setShowEmail(true); } else if (isBulkECheckTask) { setShowBulkECheck(true); } else if (isSingleECheckTask) { setShowECheck(true); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
                 className="inline-flex items-center text-xs font-bold text-white px-3 py-1.5 rounded-lg transition-colors shadow-md hover:shadow-lg"
                 style={{ backgroundColor: '#ff5000' }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
@@ -201,6 +205,15 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
         <ECheckPreviewModal
           task={task}
           onClose={() => setShowECheck(false)}
+          onRefresh={onRefresh}
+        />,
+        document.body
+      )}
+
+      {showBulkECheck && createPortal(
+        <BulkECheckModal
+          task={task}
+          onClose={() => setShowBulkECheck(false)}
           onRefresh={onRefresh}
         />,
         document.body

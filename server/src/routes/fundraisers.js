@@ -553,6 +553,7 @@ async function getEndedFundraisers() {
       end_date: f[FUNDRAISER_FIELDS.end_date] || null,
       gross_sales_md: f[FUNDRAISER_FIELDS.gross_sales_md] || null,
       md_payout: f[FUNDRAISER_FIELDS.md_payout] || null,
+      rep_ids: repLinked,
       rep_name,
       rep_photo,
       asb_boosters,
