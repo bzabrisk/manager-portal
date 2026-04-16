@@ -33,6 +33,7 @@ const REP_FIELDS = {
   name: 'fldwSbzcCBtvI4Rdp',
   email: 'fldxoGbTwhQmMfIWj',
   photo: 'fldSqcSDTP1FcggK6',
+  business_name: 'fldR3QP3GQCFvgqu7',
 };
 
 // Known rep record IDs

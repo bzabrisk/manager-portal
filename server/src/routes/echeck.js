@@ -168,7 +168,7 @@ router.get('/preview/:taskId', async (req, res) => {
       if (repIds.length > 0) {
         const reps = await airtableFetchByIds('reps', repIds);
         const rep = reps[0];
-        recipientName = rep ? (rep.fields[REP_FIELDS.name] || '') : '';
+        recipientName = rep ? (rep.fields[REP_FIELDS.business_name] || '') : '';
         recipientEmail = rep ? (rep.fields[REP_FIELDS.email] || '') : '';
       } else {
         recipientName = '';
