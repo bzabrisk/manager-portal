@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   X, Pencil, Mail, Phone, User, ExternalLink, ChevronRight, ChevronDown,
-  CheckCircle, Circle, FileText, Plus, AlertTriangle, Lock, Upload,
+  CheckCircle, Circle, FileText, Plus, AlertTriangle, Lock, Upload, Clock,
 } from 'lucide-react';
 import { api } from '../api/client';
 import TaskDetailModal from './TaskDetailModal';
 import NewTaskModal from './NewTaskModal';
 import { formatAsbType, getAsbColor } from '../utils/asb';
+
+const AIRTABLE_FUNDRAISER_URL_BASE = 'https://airtable.com/appxDlniu6IPMVIVp/tbl7aH2mtkAGC9jk9';
 
 const STATUS_COLORS = {
   'Upcoming': 'bg-blue-100 text-blue-700',
@@ -85,7 +87,7 @@ function ProgressBar({ kickoff, end }) {
   );
 }
 
-function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerate, awaitingMdPayout, polling, isStale }) {
+function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerate, awaitingMdPayout, polling, isStale, airtableUrl }) {
   const hasFile = files && files.length > 0;
 
   if (hasFile) {
@@ -148,8 +150,27 @@ function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerat
         <FileText size={18} />
         {generating ? 'Generating...' : `Generate ${label}`}
       </button>
-      {!isDataReady && (
-        <p className="text-xs text-slate-400 mt-1.5 text-center">Financial data not yet populated.</p>
+      {!isDataReady && !awaitingMdPayout && !polling && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
+          <div className="flex items-start gap-2">
+            <Clock size={14} className="text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs text-amber-700">
+                Waiting on Airtable to process the MD Payout Report — usually takes about 5 minutes. If it's been longer, the AI field agents may have skipped. Open this fundraiser in Airtable and click Run agent on any empty AI field.
+              </p>
+              {airtableUrl && (
+                <a
+                  href={airtableUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block text-sm font-medium text-[#ff5000] hover:underline mt-2"
+                >
+                  Open in Airtable &rarr;
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
       )}
       {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
     </div>
@@ -1231,6 +1252,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                   awaitingMdPayout={isMdFundraiser && !data.md_payout_report?.length}
                   polling={pollingForReports && !data.fundraiser_profit_report?.length}
                   isStale={fprStale}
+                  airtableUrl={`${AIRTABLE_FUNDRAISER_URL_BASE}/${data.id}`}
                 />
                 <ReportDocSlot
                   label="Rep Commission Report"
@@ -1242,6 +1264,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                   awaitingMdPayout={isMdFundraiser && !data.md_payout_report?.length}
                   polling={pollingForReports && !data.rep_commission_report?.length}
                   isStale={rcrStale}
+                  airtableUrl={`${AIRTABLE_FUNDRAISER_URL_BASE}/${data.id}`}
                 />
               </div>
 
