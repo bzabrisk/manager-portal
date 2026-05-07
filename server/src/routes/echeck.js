@@ -13,6 +13,7 @@ import {
   REP_FIELDS,
   FUNDRAISER_PAYOUT_FIELDS,
 } from '../services/airtable.js';
+import { sendEmail } from '../services/gmail.js';
 
 const router = Router();
 
@@ -411,7 +412,7 @@ router.post('/send', async (req, res) => {
       // Don't fail the whole request — the check was already sent successfully
     }
 
-    // Best-effort companion email with PDF report via Resend (rep_commission only)
+    // Best-effort companion email with PDF report (rep_commission only)
     // Team profit emails are sent manually from the frontend wizard step 2
     const result = { success: true, checkId: data.id };
 
@@ -422,27 +423,13 @@ router.post('/send', async (req, res) => {
           throw new Error(`Failed to download PDF: HTTP ${pdfResponse.status}`);
         }
         const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
-        const base64Content = pdfBuffer.toString('base64');
 
-        const resendResponse = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: 'Krista — SMASH Fundraising <krista@send.smashfundraising.com>',
-            to: [recipientEmail],
-            subject: `Your SMASH Fundraising Commission Report — ${organization} ${team}`,
-            html: `Hi ${recipientName},<br><br>Your commission e-check for ${organization} ${team} has been sent via Checkbook.io. You'll receive a separate email from Checkbook with deposit instructions.<br><br>Your commission report is attached for your records.<br><br>Thank you,<br>Krista McGaughy<br>SMASH Fundraising` + KRISTA_SIGNATURE,
-            attachments: [{ filename: pdfFilename, content: base64Content }],
-          }),
+        await sendEmail({
+          to: recipientEmail,
+          subject: `Your SMASH Fundraising Commission Report — ${organization} ${team}`,
+          html: `Hi ${recipientName},<br><br>Your commission e-check for ${organization} ${team} has been sent via Checkbook.io. You'll receive a separate email from Checkbook with deposit instructions.<br><br>Your commission report is attached for your records.<br><br>Thank you,<br>Krista McGaughy<br>SMASH Fundraising` + KRISTA_SIGNATURE,
+          attachments: [{ filename: pdfFilename, content: pdfBuffer }],
         });
-
-        if (!resendResponse.ok) {
-          const resendError = await resendResponse.json().catch(() => ({}));
-          throw new Error(resendError.message || `Resend API error: ${resendResponse.status}`);
-        }
 
         console.log(`Companion email with PDF sent to ${recipientEmail} for check ${data.id}`);
         result.emailSent = true;
@@ -471,23 +458,16 @@ router.post('/send-report-email', async (req, res) => {
 
     const fullHtml = htmlBody + KRISTA_SIGNATURE;
 
-    const resendPayload = {
-      from: 'Krista — SMASH Fundraising <krista@send.smashfundraising.com>',
-      to: [recipientEmail],
-      subject,
-      html: fullHtml,
-    };
-
+    const attachments = [];
     if (pdfUrl) {
       try {
         const fileResponse = await fetch(pdfUrl);
         if (fileResponse.ok) {
           const buffer = Buffer.from(await fileResponse.arrayBuffer());
-          const base64Content = buffer.toString('base64');
-          resendPayload.attachments = [{
+          attachments.push({
             filename: pdfFilename || 'report.pdf',
-            content: base64Content,
-          }];
+            content: buffer,
+          });
         } else {
           console.warn('Could not download PDF for report email:', fileResponse.status);
         }
@@ -496,19 +476,12 @@ router.post('/send-report-email', async (req, res) => {
       }
     }
 
-    const resendResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(resendPayload),
+    await sendEmail({
+      to: recipientEmail,
+      subject,
+      html: fullHtml,
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
-
-    if (!resendResponse.ok) {
-      const resendError = await resendResponse.json().catch(() => ({}));
-      throw new Error(resendError.message || `Resend API error: ${resendResponse.status}`);
-    }
 
     console.log(`Report email sent to ${recipientEmail}`);
     res.json({ success: true });

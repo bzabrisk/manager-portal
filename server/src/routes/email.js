@@ -9,6 +9,7 @@ import {
   CLIENT_BOOK_FIELDS,
   REP_FIELDS,
 } from '../services/airtable.js';
+import { sendEmail } from '../services/gmail.js';
 
 const router = Router();
 
@@ -154,25 +155,17 @@ router.post('/send', async (req, res) => {
     // Build the full HTML body with signature
     const fullHtml = body + KRISTA_SIGNATURE;
 
-    // Build Resend payload
-    const resendPayload = {
-      from: 'Krista — SMASH Fundraising <krista@send.smashfundraising.com>',
-      to: [to],
-      subject: subject,
-      html: fullHtml,
-    };
-
-    // Handle attachment if present
+    // Build attachments if present
+    const attachments = [];
     if (agreementUrl) {
       try {
         const fileResponse = await fetch(agreementUrl);
         if (fileResponse.ok) {
           const buffer = Buffer.from(await fileResponse.arrayBuffer());
-          const base64Content = buffer.toString('base64');
-          resendPayload.attachments = [{
+          attachments.push({
             filename: agreementFilename || 'Fundraiser-Agreement.pdf',
-            content: base64Content,
-          }];
+            content: buffer,
+          });
         } else {
           console.warn('Could not download agreement file:', fileResponse.status);
         }
@@ -181,20 +174,13 @@ router.post('/send', async (req, res) => {
       }
     }
 
-    // Send via Resend API
-    const resendResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(resendPayload),
+    // Send via Gmail API
+    await sendEmail({
+      to,
+      subject,
+      html: fullHtml,
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
-
-    if (!resendResponse.ok) {
-      const resendError = await resendResponse.json().catch(() => ({}));
-      throw new Error(resendError.message || `Resend API error: ${resendResponse.status}`);
-    }
 
     if (taskId) {
       await airtableUpdate('tasks', taskId, {
