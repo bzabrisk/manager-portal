@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import multer from 'multer';
 import {
+  BASE_ID,
   TABLES,
   TASK_FIELDS,
   FUNDRAISER_FIELDS,
@@ -17,6 +19,10 @@ import {
 } from '../services/airtable.js';
 
 const router = Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
 // GET /api/fundraisers/list — lightweight list for dropdowns and badges
 router.get('/list', async (req, res) => {
@@ -988,6 +994,75 @@ router.patch('/:recordId', async (req, res) => {
   } catch (err) {
     console.error('Error updating fundraiser:', err.message);
     res.status(500).json({ error: 'Failed to update fundraiser' });
+  }
+});
+
+// POST /api/fundraisers/:id/upload-md-payout-report
+router.post('/:id/upload-md-payout-report', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided.' });
+    }
+
+    const recordId = req.params.id;
+    const fieldId = FUNDRAISER_FIELDS.md_payout_report;
+
+    // 1. Capture existing attachment IDs so we can identify the new one
+    const existing = await airtableGet('fundraisers', recordId);
+    const existingAttachments = (existing.fields && existing.fields[fieldId]) || [];
+    const existingIds = new Set(existingAttachments.map(a => a.id));
+
+    // 2. Upload via Airtable content endpoint (appends to existing)
+    const base64 = req.file.buffer.toString('base64');
+    const uploadRes = await fetch(
+      `https://content.airtable.com/v0/${BASE_ID}/${recordId}/${fieldId}/uploadAttachment`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.AIRTABLE_API_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contentType: req.file.mimetype,
+          filename: req.file.originalname,
+          file: base64,
+        }),
+      }
+    );
+
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      console.error('Airtable uploadAttachment error:', uploadRes.status, errText);
+      return res.status(500).json({ error: 'Failed to upload to Airtable.' });
+    }
+
+    const uploadData = await uploadRes.json();
+    const allAttachments = (uploadData.fields && uploadData.fields[fieldId]) || [];
+    const newAttachment = allAttachments.find(a => !existingIds.has(a.id));
+
+    if (!newAttachment) {
+      return res.status(500).json({ error: 'Could not identify newly uploaded file.' });
+    }
+
+    // 3. PATCH to keep ONLY the new attachment (replace semantics)
+    await airtableUpdate('fundraisers', recordId, {
+      [fieldId]: [{ id: newAttachment.id }],
+    });
+
+    return res.json({
+      success: true,
+      attachment: {
+        id: newAttachment.id,
+        url: newAttachment.url,
+        filename: newAttachment.filename,
+      },
+    });
+  } catch (err) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'File is too large. Max 5 MB.' });
+    }
+    console.error('Error uploading MD Payout Report:', err);
+    return res.status(500).json({ error: 'Upload failed.' });
   }
 });
 

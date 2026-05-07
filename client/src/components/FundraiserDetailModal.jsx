@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   X, Pencil, Mail, Phone, User, ExternalLink, ChevronRight, ChevronDown,
-  CheckCircle, Circle, FileText, Plus, AlertTriangle, Lock,
+  CheckCircle, Circle, FileText, Plus, AlertTriangle, Lock, Upload,
 } from 'lucide-react';
 import { api } from '../api/client';
 import TaskDetailModal from './TaskDetailModal';
@@ -102,6 +102,11 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const [selectedTask, setSelectedTask] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
   const [showNewTask, setShowNewTask] = useState(false);
+
+  // MD Payout Report upload
+  const [uploadingMdPayout, setUploadingMdPayout] = useState(false);
+  const [mdPayoutError, setMdPayoutError] = useState('');
+  const mdPayoutFileInputRef = useRef(null);
 
   // Lookup data for edit mode dropdowns
   const [lookups, setLookups] = useState({ reps: [], contacts: [], accountingContacts: [], products: [] });
@@ -264,6 +269,22 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
     setEditMode(false);
   };
 
+  const handleMdPayoutFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingMdPayout(true);
+    setMdPayoutError('');
+    try {
+      await api.fundraisers.uploadMdPayoutReport(data.id, file);
+      await fetchDetail();
+    } catch (err) {
+      setMdPayoutError(err.message || 'Upload failed.');
+    } finally {
+      setUploadingMdPayout(false);
+      if (mdPayoutFileInputRef.current) mdPayoutFileInputRef.current.value = '';
+    }
+  };
+
   const handleOverlayClick = () => {
     if (editMode && hasChanges) {
       if (!window.confirm('You have unsaved changes. Discard them?')) return;
@@ -337,12 +358,12 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   });
 
   // Documents
+  const isMdFundraiser = (data.product_primary_string || '').toLowerCase().includes('md');
   const documents = [
     { label: 'Fundraiser Agreement', files: data.fundraiser_agreement },
     { label: 'Fundraiser Profit Report', files: data.fundraiser_profit_report },
     { label: 'Rep Commission Report', files: data.rep_commission_report },
     { label: 'Invoice', files: data.invoice_attachment },
-    { label: 'MD Payout Report', files: data.md_payout_report },
   ];
 
   return (
@@ -1046,6 +1067,56 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                   </div>
                 ))}
               </div>
+
+              {/* MD Payout Report — only shown for MD fundraisers, with upload affordance */}
+              {isMdFundraiser && (
+                <div className="mt-3">
+                  {data.md_payout_report && data.md_payout_report.length > 0 ? (
+                    <div className="border border-slate-200 rounded-lg p-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs text-slate-400 mb-1">MD Payout Report</p>
+                        <a
+                          href={data.md_payout_report[0].url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-sm text-[#ff5000] hover:underline min-w-0"
+                        >
+                          <FileText size={14} className="shrink-0" />
+                          <span className="break-all">{data.md_payout_report[0].filename}</span>
+                        </a>
+                      </div>
+                      <button
+                        onClick={() => mdPayoutFileInputRef.current?.click()}
+                        disabled={uploadingMdPayout}
+                        className="text-xs font-medium px-3 py-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 shrink-0"
+                      >
+                        {uploadingMdPayout ? 'Uploading...' : 'Replace'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => mdPayoutFileInputRef.current?.click()}
+                      disabled={uploadingMdPayout}
+                      className="w-full bg-[#ff5000] hover:bg-[#e64600] active:bg-[#cc3f00] text-white font-semibold py-4 px-4 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <Upload size={18} />
+                      {uploadingMdPayout ? 'Uploading...' : 'Attach MD Payout Report'}
+                    </button>
+                  )}
+
+                  {mdPayoutError && (
+                    <p className="text-xs text-red-500 mt-2">{mdPayoutError}</p>
+                  )}
+
+                  <input
+                    ref={mdPayoutFileInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={handleMdPayoutFileChange}
+                  />
+                </div>
+              )}
             </section>
 
             {/* Section 6: Tasks */}

@@ -319,6 +319,7 @@ async function airtableDelete(tableName, recordIds) {
 }
 
 export {
+  BASE_ID,
   TABLES,
   TASK_FIELDS,
   FUNDRAISER_FIELDS,

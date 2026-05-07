@@ -23,6 +23,26 @@ async function request(path, options = {}) {
   return res.json();
 }
 
+async function uploadRequest(path, formData) {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+
+  if (res.status === 401) {
+    window.location.reload();
+    return null;
+  }
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+    throw new Error(err.error || 'Upload failed');
+  }
+
+  return res.json();
+}
+
 export const api = {
   auth: {
     login: (password) => request('/auth/login', {
@@ -60,6 +80,11 @@ export const api = {
     lookupContacts: () => request('/fundraisers/lookup/contacts'),
     lookupAccountingContacts: () => request('/fundraisers/lookup/accounting-contacts'),
     lookupProducts: () => request('/fundraisers/lookup/products'),
+    uploadMdPayoutReport: (recordId, file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return uploadRequest(`/fundraisers/${recordId}/upload-md-payout-report`, formData);
+    },
   },
   payouts: {
     today: () => request('/payouts/today'),
