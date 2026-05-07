@@ -18,7 +18,7 @@ export default function Sidebar({ activeTaskCount, upcomingCount, activeCount, e
   return (
     <aside className="w-60 bg-slate-800 text-white flex flex-col shrink-0">
       <div className="p-5 border-b border-slate-700">
-        <img src="/smash-logo.png" alt="SMASH" className="h-10 mx-auto" />
+        <img src="/smash-logo.png" alt="SMASH" className="h-10 mx-auto object-contain" />
       </div>
 
       <nav className="flex-1 py-3">

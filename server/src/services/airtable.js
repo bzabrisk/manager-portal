@@ -107,6 +107,9 @@ const FUNDRAISER_FIELDS = {
   fpr_adj_team_to_rep_label: 'fld1jNPQUhrowvwK8',
   fpr_adj_asbfee: 'fldiUPom1EC2MkI7j',
   cost_product: 'fldkYOO4LKa0dpDUV',
+  // SMASH Profit breakdown
+  gross_sales_calc: 'fldmj5wdfPK52CK13',
+  md_cut: 'fldIR7omnYF6fRZNb',
 };
 
 // Client book (primary contact) field IDs

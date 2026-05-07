@@ -883,6 +883,10 @@ router.get('/:recordId', async (req, res) => {
       fpr_adj_team_to_rep: f[FUNDRAISER_FIELDS.fpr_adj_team_to_rep] ?? null,
       fpr_adj_team_to_rep_label: f[FUNDRAISER_FIELDS.fpr_adj_team_to_rep_label] || '',
       fpr_adj_asbfee: f[FUNDRAISER_FIELDS.fpr_adj_asbfee] ?? null,
+      // SMASH Profit breakdown
+      gross_sales_calc: f[FUNDRAISER_FIELDS.gross_sales_calc] ?? null,
+      md_cut: f[FUNDRAISER_FIELDS.md_cut] ?? null,
+      cost_product: f[FUNDRAISER_FIELDS.cost_product] ?? null,
       // Closeout
       md_payout_received: f[FUNDRAISER_FIELDS.md_payout_received] || false,
       check_invoice_sent: f[FUNDRAISER_FIELDS.check_invoice_sent] || false,
@@ -968,6 +972,12 @@ router.patch('/:recordId', async (req, res) => {
     if (updates.rcr_comment !== undefined) fields[FUNDRAISER_FIELDS.rcr_comment] = updates.rcr_comment || null;
     if (updates.fpr_adj_team_to_rep_label !== undefined) fields[FUNDRAISER_FIELDS.fpr_adj_team_to_rep_label] = updates.fpr_adj_team_to_rep_label || null;
     if (updates.extra_cd_boxes_ordered !== undefined) fields[FUNDRAISER_FIELDS.extra_cd_boxes_ordered] = updates.extra_cd_boxes_ordered !== null && updates.extra_cd_boxes_ordered !== '' ? Number(updates.extra_cd_boxes_ordered) : null;
+    // SMASH Profit editable field
+    if (updates.cost_product !== undefined) {
+      const cp = updates.cost_product !== null && updates.cost_product !== '' ? Number(updates.cost_product) : null;
+      if (cp !== null && (isNaN(cp) || cp < 0)) return res.status(400).json({ error: 'cost_product must be a non-negative number' });
+      fields[FUNDRAISER_FIELDS.cost_product] = cp;
+    }
 
     if (Object.keys(fields).length === 0) {
       return res.status(400).json({ error: 'No valid fields to update' });

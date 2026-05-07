@@ -95,6 +95,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   // Collapsible breakdown sections
   const [rcrOpen, setRcrOpen] = useState(false);
   const [fprOpen, setFprOpen] = useState(false);
+  const [smashOpen, setSmashOpen] = useState(false);
 
   // Editable fields state
   const [edits, setEdits] = useState({});
@@ -136,6 +137,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       rcr_adj_misc: result.rcr_adj_misc ?? '',
       rcr_comment: result.rcr_comment || '',
       extra_cd_boxes_ordered: result.extra_cd_boxes_ordered ?? '',
+      cost_product: result.cost_product ?? '',
     };
   }
 
@@ -186,6 +188,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       edits.rcr_adj_misc !== (data.rcr_adj_misc ?? ''),
       edits.rcr_comment !== (data.rcr_comment || ''),
       edits.extra_cd_boxes_ordered !== (data.extra_cd_boxes_ordered ?? ''),
+      edits.cost_product !== (data.cost_product ?? ''),
     ];
     return checks.some(Boolean);
   })();
@@ -239,6 +242,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       if (edits.rcr_adj_misc !== (data.rcr_adj_misc ?? '')) payload.rcr_adj_misc = edits.rcr_adj_misc;
       if (edits.rcr_comment !== (data.rcr_comment || '')) payload.rcr_comment = edits.rcr_comment;
       if (edits.extra_cd_boxes_ordered !== (data.extra_cd_boxes_ordered ?? '')) payload.extra_cd_boxes_ordered = edits.extra_cd_boxes_ordered;
+      if (edits.cost_product !== (data.cost_product ?? '')) payload.cost_product = edits.cost_product;
 
       if (Object.keys(payload).length > 0) {
         await api.fundraisers.update(recordId, payload);
@@ -305,6 +309,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const showDailyPayouts = data.asb_boosters === 'WA State ASB';
   const isCookieDough = data.product_primary_string?.toLowerCase().includes('cookie dough');
   const cdBoxesInvalid = edits.extra_cd_boxes_ordered !== '' && (isNaN(edits.extra_cd_boxes_ordered) || Number(edits.extra_cd_boxes_ordered) < 0 || !Number.isInteger(Number(edits.extra_cd_boxes_ordered)));
+  const costProductInvalid = edits.cost_product !== '' && (isNaN(edits.cost_product) || Number(edits.cost_product) < 0);
 
   // Financials
   const financials = [
@@ -891,6 +896,83 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                   </div>
                 )}
               </div>
+
+              {/* Part D: SMASH Profit Breakdown */}
+              <div className="mt-3 border border-slate-200 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setSmashOpen(prev => !prev)}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors rounded-lg"
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    {smashOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    SMASH Profit Breakdown
+                  </span>
+                  <span className="text-sm font-semibold text-slate-800">
+                    Final: {formatCurrency(data.smash_profit) || '\u2014'}
+                  </span>
+                </button>
+
+                {smashOpen && (
+                  <div className="px-4 pb-4 space-y-2">
+                    {/* Gross Sales */}
+                    <div className="flex justify-between py-1.5 border-b border-slate-100">
+                      <span className="text-sm font-medium text-slate-700">Gross Sales</span>
+                      <span className="text-sm font-semibold text-slate-800">{formatCurrency(data.gross_sales_calc) || '\u2014'}</span>
+                    </div>
+
+                    {/* Team Profit (deduction) */}
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-sm text-slate-600">Team Profit</span>
+                      <span className={`text-sm ${data.final_team_profit ? 'text-slate-700' : 'text-slate-400'}`}>
+                        {data.final_team_profit ? formatCurrency(-Math.abs(data.final_team_profit)) : '\u2014'}
+                      </span>
+                    </div>
+
+                    {/* Rep Commission (deduction) */}
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-sm text-slate-600">Rep Commission</span>
+                      <span className={`text-sm ${data.rep_commission ? 'text-slate-700' : 'text-slate-400'}`}>
+                        {data.rep_commission ? formatCurrency(-Math.abs(data.rep_commission)) : '\u2014'}
+                      </span>
+                    </div>
+
+                    {/* MD Cut (deduction) */}
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-sm text-slate-600">MD Cut</span>
+                      <span className={`text-sm ${data.md_cut ? 'text-slate-700' : 'text-slate-400'}`}>
+                        {data.md_cut ? formatCurrency(-Math.abs(data.md_cut)) : '\u2014'}
+                      </span>
+                    </div>
+
+                    {/* Product Cost (editable) */}
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-sm text-slate-600">Product Cost</span>
+                      {editMode ? (
+                        <div className="w-28">
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm text-slate-400">$</span>
+                            <input type="number" step="0.01" min="0" value={edits.cost_product}
+                              onChange={e => setEdits(prev => ({...prev, cost_product: e.target.value}))}
+                              className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000] ${costProductInvalid ? 'border-red-400' : 'border-slate-300'}`} />
+                          </div>
+                          {costProductInvalid && <p className="text-xs text-red-500 mt-0.5">Must be 0 or more</p>}
+                        </div>
+                      ) : (
+                        <span className={`text-sm ${data.cost_product ? 'text-slate-700' : 'text-slate-400'}`}>
+                          {data.cost_product ? formatCurrency(-Math.abs(data.cost_product)) : '\u2014'}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Final SMASH Profit */}
+                    <div className="flex justify-between py-2 border-t border-slate-200 mt-1">
+                      <span className="text-sm font-bold text-slate-800">Final SMASH Profit</span>
+                      <span className="text-base font-bold text-slate-800">{formatCurrency(data.smash_profit) || '\u2014'}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </section>
 
             {/* Section 4: Closeout Checklist */}
@@ -1110,9 +1192,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
               </button>
               <button
                 onClick={handleSave}
-                disabled={!hasChanges || saving || cdBoxesInvalid}
+                disabled={!hasChanges || saving || cdBoxesInvalid || costProductInvalid}
                 className={`px-4 py-2 text-sm text-white rounded-lg transition-colors ${
-                  hasChanges && !cdBoxesInvalid ? 'bg-[#ff5000] hover:bg-[#e04800]' : 'bg-slate-300 cursor-not-allowed'
+                  hasChanges && !cdBoxesInvalid && !costProductInvalid ? 'bg-[#ff5000] hover:bg-[#e04800]' : 'bg-slate-300 cursor-not-allowed'
                 }`}
               >
                 {saving ? 'Saving...' : 'Save'}
