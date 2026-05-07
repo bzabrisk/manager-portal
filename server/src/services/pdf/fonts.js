@@ -11,14 +11,14 @@ export function registerFonts() {
   Font.register({
     family: 'Nohemi',
     fonts: [
-      { src: join(fontsDir, 'Body: Nohemi-Regular.ttf') },
-      { src: join(fontsDir, 'Headlines: Nohemi-Black.ttf'), fontWeight: 900 },
+      { src: join(fontsDir, 'Nohemi-Regular.ttf') },
+      { src: join(fontsDir, 'Nohemi-Black.ttf'), fontWeight: 900 },
     ],
   });
   Font.register({
     family: 'MangoGrotesque',
     fonts: [
-      { src: join(fontsDir, 'Alt Headlines: MangoGrotesque-BoldItalic.ttf'), fontWeight: 700, fontStyle: 'italic' },
+      { src: join(fontsDir, 'MangoGrotesque-BoldItalic.ttf'), fontWeight: 700, fontStyle: 'italic' },
     ],
   });
   registered = true;

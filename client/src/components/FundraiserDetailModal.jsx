@@ -142,21 +142,16 @@ function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerat
 
   return (
     <div>
-      <button
-        onClick={onGenerate}
-        disabled={generating || !isDataReady}
-        className="w-full h-full bg-[#ff5000] hover:bg-[#e64600] active:bg-[#cc3f00] text-white font-semibold py-4 px-4 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-      >
-        <FileText size={18} />
-        {generating ? 'Generating...' : `Generate ${label}`}
-      </button>
-      {!isDataReady && !awaitingMdPayout && !polling && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
-          <div className="flex items-start gap-2">
-            <Clock size={14} className="text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs text-amber-700">
-                Waiting on Airtable to process the MD Payout Report — usually takes about 5 minutes. If it's been longer, the AI field agents may have skipped. Open this fundraiser in Airtable and click Run agent on any empty AI field.
+      {!isDataReady && !awaitingMdPayout && !polling ? (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 h-full flex flex-col justify-center">
+          <div className="flex items-start gap-2.5">
+            <Clock size={16} className="text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-900 mb-1">
+                {label} — waiting on Airtable
+              </p>
+              <p className="text-xs text-amber-800 leading-relaxed">
+                Airtable usually processes the MD Payout Report within ~5 minutes. If it's been longer, the AI field agents may have skipped. Open this fundraiser in Airtable and click Run agent on any empty AI field.
               </p>
               {airtableUrl && (
                 <a
@@ -171,8 +166,19 @@ function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerat
             </div>
           </div>
         </div>
+      ) : (
+        <>
+          <button
+            onClick={onGenerate}
+            disabled={generating || !isDataReady}
+            className="w-full h-full bg-[#ff5000] hover:bg-[#e64600] active:bg-[#cc3f00] text-white font-semibold py-4 px-4 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <FileText size={18} />
+            {generating ? 'Generating...' : `Generate ${label}`}
+          </button>
+          {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+        </>
       )}
-      {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
     </div>
   );
 }
