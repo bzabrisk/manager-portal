@@ -85,6 +85,77 @@ function ProgressBar({ kickoff, end }) {
   );
 }
 
+function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerate, awaitingMdPayout, polling, isStale }) {
+  const hasFile = files && files.length > 0;
+
+  if (hasFile) {
+    return (
+      <div>
+        <div className={`rounded-lg p-3 flex items-center justify-between gap-3 border ${isStale ? 'bg-amber-50 border-amber-300' : 'border-slate-200'}`}>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-slate-400 mb-1">{label}</p>
+            <a
+              href={files[0].url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm text-[#ff5000] hover:underline min-w-0"
+            >
+              <FileText size={14} className="shrink-0" />
+              <span className="break-all">{files[0].filename}</span>
+            </a>
+            {isStale && (
+              <p className="text-xs text-amber-700 italic mt-1">MD Payout was replaced — regenerate to update.</p>
+            )}
+          </div>
+          <button
+            onClick={onGenerate}
+            disabled={generating}
+            className={`text-xs font-medium px-3 py-1.5 rounded border disabled:opacity-50 shrink-0 ${isStale ? 'border-amber-300 text-amber-700 hover:bg-amber-100' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+          >
+            {generating ? 'Regenerating...' : 'Regenerate'}
+          </button>
+        </div>
+        {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+      </div>
+    );
+  }
+
+  if (polling) {
+    return (
+      <div className="border border-dashed border-amber-200 bg-amber-50 rounded-lg p-3 text-center">
+        <p className="text-xs text-slate-500 mb-1">{label}</p>
+        <p className="text-xs text-amber-700">Reports will auto-generate after MD Payout data is processed — usually 5 minutes. Feel free to close this modal; reports will appear when ready.</p>
+      </div>
+    );
+  }
+
+  if (awaitingMdPayout) {
+    return (
+      <div className="border border-dashed border-slate-200 rounded-lg p-3 text-center">
+        <p className="text-xs text-slate-400 mb-1">{label}</p>
+        <p className="text-xs text-slate-400 italic">Will auto-generate once MD Payout Report is uploaded.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        onClick={onGenerate}
+        disabled={generating || !isDataReady}
+        className="w-full h-full bg-[#ff5000] hover:bg-[#e64600] active:bg-[#cc3f00] text-white font-semibold py-4 px-4 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        <FileText size={18} />
+        {generating ? 'Generating...' : `Generate ${label}`}
+      </button>
+      {!isDataReady && (
+        <p className="text-xs text-slate-400 mt-1.5 text-center">Financial data not yet populated.</p>
+      )}
+      {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+    </div>
+  );
+}
+
 export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -107,6 +178,13 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const [uploadingMdPayout, setUploadingMdPayout] = useState(false);
   const [mdPayoutError, setMdPayoutError] = useState('');
   const mdPayoutFileInputRef = useRef(null);
+
+  // Report generation
+  const [generatingFpr, setGeneratingFpr] = useState(false);
+  const [generatingRcr, setGeneratingRcr] = useState(false);
+  const [reportError, setReportError] = useState({ fpr: '', rcr: '' });
+  const [pollingForReports, setPollingForReports] = useState(false);
+  const [mdPayoutToast, setMdPayoutToast] = useState('');
 
   // Lookup data for edit mode dropdowns
   const [lookups, setLookups] = useState({ reps: [], contacts: [], accountingContacts: [], products: [] });
@@ -272,16 +350,57 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const handleMdPayoutFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const autoGenLikely = (data.product_primary_string || '').toLowerCase().includes('md')
+      && !(data.fundraiser_profit_report?.length)
+      && !(data.rep_commission_report?.length);
     setUploadingMdPayout(true);
     setMdPayoutError('');
     try {
       await api.fundraisers.uploadMdPayoutReport(data.id, file);
       await fetchDetail();
+      if (autoGenLikely) {
+        setMdPayoutToast('MD Payout uploaded. Reports will generate automatically in a few minutes.');
+        setTimeout(() => setMdPayoutToast(''), 10000);
+        setPollingForReports(true);
+        // Poll up to 15 minutes (180 x 5s), stop early when both reports appear
+        for (let i = 0; i < 180; i++) {
+          await new Promise(r => setTimeout(r, 5000));
+          const result = await api.fundraisers.getDetail(data.id);
+          if (result.fundraiser_profit_report?.length && result.rep_commission_report?.length) {
+            await fetchDetail();
+            break;
+          }
+        }
+        setPollingForReports(false);
+        await fetchDetail();
+      }
     } catch (err) {
       setMdPayoutError(err.message || 'Upload failed.');
     } finally {
       setUploadingMdPayout(false);
+      setPollingForReports(false);
       if (mdPayoutFileInputRef.current) mdPayoutFileInputRef.current.value = '';
+    }
+  };
+
+  const handleGenerateReport = async (kind) => {
+    const setState = kind === 'fpr' ? setGeneratingFpr : setGeneratingRcr;
+    setState(true);
+    setReportError(prev => ({ ...prev, [kind]: '' }));
+    try {
+      const res = await fetch(`/api/reports/${kind}/${data.id}`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Generation failed');
+      }
+      await fetchDetail();
+    } catch (err) {
+      setReportError(prev => ({ ...prev, [kind]: err.message }));
+    } finally {
+      setState(false);
     }
   };
 
@@ -359,10 +478,14 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
 
   // Documents
   const isMdFundraiser = (data.product_primary_string || '').toLowerCase().includes('md');
+  const isReportDataReady = !!(data.gross_sales_md && data.final_team_profit && data.rep_commission);
+  const hasFpr = data.fundraiser_profit_report?.length > 0;
+  const hasRcr = data.rep_commission_report?.length > 0;
+  const currentMdPayoutId = data.md_payout_report?.[0]?.id || null;
+  const fprStale = !!(hasFpr && currentMdPayoutId && data.fpr_md_payout_source_id && data.fpr_md_payout_source_id !== currentMdPayoutId);
+  const rcrStale = !!(hasRcr && currentMdPayoutId && data.rcr_md_payout_source_id && data.rcr_md_payout_source_id !== currentMdPayoutId);
   const documents = [
     { label: 'Fundraiser Agreement', files: data.fundraiser_agreement },
-    { label: 'Fundraiser Profit Report', files: data.fundraiser_profit_report },
-    { label: 'Rep Commission Report', files: data.rep_commission_report },
     { label: 'Invoice', files: data.invoice_attachment },
   ];
 
@@ -437,6 +560,13 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
               </button>
             </div>
           </div>
+
+          {/* Toast banner */}
+          {mdPayoutToast && (
+            <div className="mx-6 mt-3 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 font-medium">
+              &#10003; {mdPayoutToast}
+            </div>
+          )}
 
           {/* Scrollable Content */}
           <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6">
@@ -1037,7 +1167,86 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
             {/* Section 5: Documents */}
             <section>
               <SectionHeader>Documents</SectionHeader>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Row 1: MD Payout Report (half-width, only for MD fundraisers) */}
+              {isMdFundraiser && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    {data.md_payout_report && data.md_payout_report.length > 0 ? (
+                      <div className="border border-slate-200 rounded-lg p-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs text-slate-400 mb-1">MD Payout Report</p>
+                          <a
+                            href={data.md_payout_report[0].url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-sm text-[#ff5000] hover:underline min-w-0"
+                          >
+                            <FileText size={14} className="shrink-0" />
+                            <span className="break-all">{data.md_payout_report[0].filename}</span>
+                          </a>
+                        </div>
+                        <button
+                          onClick={() => mdPayoutFileInputRef.current?.click()}
+                          disabled={uploadingMdPayout}
+                          className="text-xs font-medium px-3 py-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 shrink-0"
+                        >
+                          {uploadingMdPayout ? 'Uploading...' : 'Replace'}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => mdPayoutFileInputRef.current?.click()}
+                        disabled={uploadingMdPayout}
+                        className="w-full h-full bg-[#ff5000] hover:bg-[#e64600] active:bg-[#cc3f00] text-white font-semibold py-4 px-4 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        <Upload size={18} />
+                        {uploadingMdPayout ? 'Uploading...' : 'Attach MD Payout Report'}
+                      </button>
+                    )}
+
+                    {mdPayoutError && (
+                      <p className="text-xs text-red-500 mt-2">{mdPayoutError}</p>
+                    )}
+
+                    <input
+                      ref={mdPayoutFileInputRef}
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      onChange={handleMdPayoutFileChange}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Row 2: FPR and RCR */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                <ReportDocSlot
+                  label="Fundraiser Profit Report"
+                  files={data.fundraiser_profit_report}
+                  generating={generatingFpr}
+                  error={reportError.fpr}
+                  isDataReady={isReportDataReady}
+                  onGenerate={() => handleGenerateReport('fpr')}
+                  awaitingMdPayout={isMdFundraiser && !data.md_payout_report?.length}
+                  polling={pollingForReports && !data.fundraiser_profit_report?.length}
+                  isStale={fprStale}
+                />
+                <ReportDocSlot
+                  label="Rep Commission Report"
+                  files={data.rep_commission_report}
+                  generating={generatingRcr}
+                  error={reportError.rcr}
+                  isDataReady={isReportDataReady}
+                  onGenerate={() => handleGenerateReport('rcr')}
+                  awaitingMdPayout={isMdFundraiser && !data.md_payout_report?.length}
+                  polling={pollingForReports && !data.rep_commission_report?.length}
+                  isStale={rcrStale}
+                />
+              </div>
+
+              {/* Row 3: Fundraiser Agreement and Invoice */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                 {documents.map(doc => (
                   <div key={doc.label}>
                     {doc.files && doc.files.length > 0 ? (
@@ -1067,56 +1276,6 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                   </div>
                 ))}
               </div>
-
-              {/* MD Payout Report — only shown for MD fundraisers, with upload affordance */}
-              {isMdFundraiser && (
-                <div className="mt-3">
-                  {data.md_payout_report && data.md_payout_report.length > 0 ? (
-                    <div className="border border-slate-200 rounded-lg p-3 flex items-center justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-slate-400 mb-1">MD Payout Report</p>
-                        <a
-                          href={data.md_payout_report[0].url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-sm text-[#ff5000] hover:underline min-w-0"
-                        >
-                          <FileText size={14} className="shrink-0" />
-                          <span className="break-all">{data.md_payout_report[0].filename}</span>
-                        </a>
-                      </div>
-                      <button
-                        onClick={() => mdPayoutFileInputRef.current?.click()}
-                        disabled={uploadingMdPayout}
-                        className="text-xs font-medium px-3 py-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 shrink-0"
-                      >
-                        {uploadingMdPayout ? 'Uploading...' : 'Replace'}
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => mdPayoutFileInputRef.current?.click()}
-                      disabled={uploadingMdPayout}
-                      className="w-full bg-[#ff5000] hover:bg-[#e64600] active:bg-[#cc3f00] text-white font-semibold py-4 px-4 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      <Upload size={18} />
-                      {uploadingMdPayout ? 'Uploading...' : 'Attach MD Payout Report'}
-                    </button>
-                  )}
-
-                  {mdPayoutError && (
-                    <p className="text-xs text-red-500 mt-2">{mdPayoutError}</p>
-                  )}
-
-                  <input
-                    ref={mdPayoutFileInputRef}
-                    type="file"
-                    accept="application/pdf"
-                    className="hidden"
-                    onChange={handleMdPayoutFileChange}
-                  />
-                </div>
-              )}
             </section>
 
             {/* Section 6: Tasks */}

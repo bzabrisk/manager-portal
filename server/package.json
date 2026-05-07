@@ -3,15 +3,18 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/index.js",
-    "start": "node src/index.js"
+    "dev": "tsx watch src/index.js",
+    "start": "tsx src/index.js"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.5.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
     "multer": "^2.1.1",
-    "nodemailer": "^8.0.7"
+    "nodemailer": "^8.0.7",
+    "react": "^19.2.6",
+    "tsx": "^4.21.0"
   }
 }

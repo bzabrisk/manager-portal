@@ -14,6 +14,7 @@ import {
   airtableFetchByIds,
   airtableGet,
   airtableUpdate,
+  uploadAttachmentReplacing,
   getFundraisersList,
   getRepIds,
 } from '../services/airtable.js';
@@ -893,6 +894,9 @@ router.get('/:recordId', async (req, res) => {
       gross_sales_calc: f[FUNDRAISER_FIELDS.gross_sales_calc] ?? null,
       md_cut: f[FUNDRAISER_FIELDS.md_cut] ?? null,
       cost_product: f[FUNDRAISER_FIELDS.cost_product] ?? null,
+      // Report stale tracking
+      fpr_md_payout_source_id: f[FUNDRAISER_FIELDS.fpr_md_payout_source_id] || null,
+      rcr_md_payout_source_id: f[FUNDRAISER_FIELDS.rcr_md_payout_source_id] || null,
       // Closeout
       md_payout_received: f[FUNDRAISER_FIELDS.md_payout_received] || false,
       check_invoice_sent: f[FUNDRAISER_FIELDS.check_invoice_sent] || false,
@@ -1005,58 +1009,30 @@ router.post('/:id/upload-md-payout-report', upload.single('file'), async (req, r
     }
 
     const recordId = req.params.id;
-    const fieldId = FUNDRAISER_FIELDS.md_payout_report;
 
-    // 1. Capture existing attachment IDs so we can identify the new one
+    // Check existing report slots BEFORE upload for auto-gen gate
     const existing = await airtableGet('fundraisers', recordId);
-    const existingAttachments = (existing.fields && existing.fields[fieldId]) || [];
-    const existingIds = new Set(existingAttachments.map(a => a.id));
+    const fprEmpty = !(existing.fields[FUNDRAISER_FIELDS.fundraiser_profit_report] || []).length;
+    const rcrEmpty = !(existing.fields[FUNDRAISER_FIELDS.rep_commission_report] || []).length;
 
-    // 2. Upload via Airtable content endpoint (appends to existing)
-    const base64 = req.file.buffer.toString('base64');
-    const uploadRes = await fetch(
-      `https://content.airtable.com/v0/${BASE_ID}/${recordId}/${fieldId}/uploadAttachment`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.AIRTABLE_API_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contentType: req.file.mimetype,
-          filename: req.file.originalname,
-          file: base64,
-        }),
-      }
+    const result = await uploadAttachmentReplacing(
+      recordId,
+      FUNDRAISER_FIELDS.md_payout_report,
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype,
     );
 
-    if (!uploadRes.ok) {
-      const errText = await uploadRes.text();
-      console.error('Airtable uploadAttachment error:', uploadRes.status, errText);
-      return res.status(500).json({ error: 'Failed to upload to Airtable.' });
+    // Auto-generate reports once if both slots are empty (fire-and-forget)
+    if (fprEmpty && rcrEmpty) {
+      import('../services/pdf/autoGenerate.js').then(({ scheduleAutoGenerate }) => {
+        scheduleAutoGenerate(recordId).catch(err =>
+          console.error('Auto-generate failed for', recordId, err)
+        );
+      });
     }
 
-    const uploadData = await uploadRes.json();
-    const allAttachments = (uploadData.fields && uploadData.fields[fieldId]) || [];
-    const newAttachment = allAttachments.find(a => !existingIds.has(a.id));
-
-    if (!newAttachment) {
-      return res.status(500).json({ error: 'Could not identify newly uploaded file.' });
-    }
-
-    // 3. PATCH to keep ONLY the new attachment (replace semantics)
-    await airtableUpdate('fundraisers', recordId, {
-      [fieldId]: [{ id: newAttachment.id }],
-    });
-
-    return res.json({
-      success: true,
-      attachment: {
-        id: newAttachment.id,
-        url: newAttachment.url,
-        filename: newAttachment.filename,
-      },
-    });
+    return res.json({ success: true, attachment: result });
   } catch (err) {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(413).json({ error: 'File is too large. Max 5 MB.' });

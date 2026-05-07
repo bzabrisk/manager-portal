@@ -110,6 +110,32 @@ const FUNDRAISER_FIELDS = {
   // SMASH Profit breakdown
   gross_sales_calc: 'fldmj5wdfPK52CK13',
   md_cut: 'fldIR7omnYF6fRZNb',
+  // Per-line-item: primary product
+  pp_gross: 'fldUEWqqQrxgGBWhW',
+  pp_team_profit: 'fldArYeUCDT4izAtR',
+  pp_rep_comm: 'fldqf0jVqSi6n1Qh2',
+  pp_invoice_amount: 'fld7oKFJSITyUeoSu',
+  pp_actual_team_rate: 'fld5U55dsqyGwhpPB',
+  pp_actual_comm_rate: 'fldyGBitTIRWopsZB',
+  pp_invoice_rate: 'fldNNB78NvnMliKHJ',
+  // Per-line-item: secondary product
+  sp_gross: 'fldJF31WTo9Cw88Ws',
+  sp_team_profit: 'fldLmM7CWocxbJiXj',
+  sp_rep_comm: 'fldd12zkSK98IyqHW',
+  sp_invoice_amount: 'fldt9OyyP28gmyLgk',
+  sp_invoice_rate: 'fldK3Sim6uNwZ5S2D',
+  // Per-line-item: MD donations
+  mddonations_gross: 'fldkbVwfY7f3POWcR',
+  mddonations_team_profit: 'fldCi5RL34PaT7VCx',
+  mddonations_rep_comm: 'fldEivSp2cB8VnS3I',
+  mddonations_invoice_amount: 'fldoL8Ldg4fDLEP30',
+  mddonations_invoice_rate: 'fldwHLO7gtX7GRKRx',
+  mddonations_actual_comm_rate: 'fldTtZ6fUKvViglVn',
+  // Report metadata
+  season: 'fldjqsFC64Ktl0eiF',
+  fpr_md_payout_source_id: 'fldbs1SmxMPuGrlM6',
+  rcr_md_payout_source_id: 'fld5heECP4bVaPKE8',
+  fpr_comments: 'fldYbGDGqQ2G7xc4J',
 };
 
 // Client book (primary contact) field IDs
@@ -318,6 +344,44 @@ async function airtableDelete(tableName, recordIds) {
   return res.json();
 }
 
+async function uploadAttachmentReplacing(recordId, fieldId, buffer, filename, mimetype) {
+  // 1. Capture existing attachment IDs
+  const existing = await airtableGet('fundraisers', recordId);
+  const existingAttachments = (existing.fields && existing.fields[fieldId]) || [];
+  const existingIds = new Set(existingAttachments.map(a => a.id));
+
+  // 2. Upload via Airtable content endpoint (appends)
+  const base64 = buffer.toString('base64');
+  const uploadRes = await fetch(
+    `https://content.airtable.com/v0/${BASE_ID}/${recordId}/${fieldId}/uploadAttachment`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.AIRTABLE_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ contentType: mimetype, filename, file: base64 }),
+    }
+  );
+
+  if (!uploadRes.ok) {
+    const errText = await uploadRes.text();
+    throw new Error(`Airtable uploadAttachment error (${uploadRes.status}): ${errText}`);
+  }
+
+  const uploadData = await uploadRes.json();
+  const allAttachments = (uploadData.fields && uploadData.fields[fieldId]) || [];
+  const newAttachment = allAttachments.find(a => !existingIds.has(a.id));
+  if (!newAttachment) throw new Error('Could not identify newly uploaded file.');
+
+  // 3. PATCH to keep ONLY the new attachment (replace semantics)
+  await airtableUpdate('fundraisers', recordId, {
+    [fieldId]: [{ id: newAttachment.id }],
+  });
+
+  return { id: newAttachment.id, url: newAttachment.url, filename: newAttachment.filename };
+}
+
 export {
   BASE_ID,
   TABLES,
@@ -338,4 +402,5 @@ export {
   airtableDelete,
   getFundraisersList,
   getRepIds,
+  uploadAttachmentReplacing,
 };
