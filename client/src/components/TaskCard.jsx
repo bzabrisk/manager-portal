@@ -6,6 +6,7 @@ import TaskDetailModal from './TaskDetailModal';
 import EmailPreviewModal from './EmailPreviewModal';
 import ECheckPreviewModal from './ECheckPreviewModal';
 import BulkECheckModal from './BulkECheckModal';
+import ProductCostModal from './ProductCostModal';
 import { formatAsbType, getAsbColor } from '../utils/asb';
 
 const TAG_COLORS = [
@@ -65,6 +66,7 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
   const [showEmail, setShowEmail] = useState(false);
   const [showECheck, setShowECheck] = useState(false);
   const [showBulkECheck, setShowBulkECheck] = useState(false);
+  const [showCost, setShowCost] = useState(false);
 
   const fundraiserLabel = task.fundraiser
     ? `${task.fundraiser.organization} — ${task.fundraiser.team}`
@@ -74,6 +76,7 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
   const isBulkECheckTask = task.action_url && task.action_url.startsWith('echeck:bulk_rep_commission:');
   const isSingleECheckTask = task.action_url && task.action_url.startsWith('echeck:') && !isBulkECheckTask;
   const isECheckTask = isSingleECheckTask || isBulkECheckTask;
+  const isCostTask = task.action_url && task.action_url.startsWith('cost:');
   const hasActionButton = task.button_words && task.action_url;
 
   const handleCardClick = () => {
@@ -157,7 +160,7 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
               </span>
             ) : (
               <button
-                onClick={(e) => { e.stopPropagation(); if (isEmailTask) { setShowEmail(true); } else if (isBulkECheckTask) { setShowBulkECheck(true); } else if (isSingleECheckTask) { setShowECheck(true); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
+                onClick={(e) => { e.stopPropagation(); if (isEmailTask) { setShowEmail(true); } else if (isBulkECheckTask) { setShowBulkECheck(true); } else if (isSingleECheckTask) { setShowECheck(true); } else if (isCostTask) { setShowCost(true); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
                 className="inline-flex items-center text-xs font-bold text-white px-3 py-1.5 rounded-lg transition-colors shadow-md hover:shadow-lg"
                 style={{ backgroundColor: '#ff5000' }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
@@ -218,6 +221,15 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
         />,
         document.body
       )}
+
+      {showCost && createPortal(
+        <ProductCostModal
+          task={task}
+          onClose={() => setShowCost(false)}
+          onRefresh={onRefresh}
+        />,
+        document.body
+      )}
     </>
   );
 }
@@ -260,7 +272,7 @@ function EditTaskModal({ task, onClose, onRefresh }) {
       const payload = { ...form };
       if (payload.action_url && payload.action_url.trim()) {
         const url = payload.action_url.trim();
-        if (!url.startsWith('email:') && !url.startsWith('echeck:')) {
+        if (!url.startsWith('email:') && !url.startsWith('echeck:') && !url.startsWith('cost:')) {
           payload.action_url = url.startsWith('http://') || url.startsWith('https://') ? url : 'https://' + url;
         }
       }

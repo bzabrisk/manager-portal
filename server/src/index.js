@@ -16,6 +16,7 @@ import payoutsRoutes from './routes/payouts.js';
 import chatRoutes from './routes/chat.js';
 import emailRoutes from './routes/email.js';
 import echeckRoutes from './routes/echeck.js';
+import costRoutes from './routes/cost.js';
 import { authMiddleware } from './middleware/auth.js';
 
 const app = express();
@@ -48,6 +49,7 @@ app.use('/api/payouts', authMiddleware, payoutsRoutes);
 app.use('/api/chat', authMiddleware, chatRoutes);
 app.use('/api/email', authMiddleware, emailRoutes);
 app.use('/api/echeck', authMiddleware, echeckRoutes);
+app.use('/api/cost', authMiddleware, costRoutes);
 
 // Serve React frontend in production
 if (process.env.NODE_ENV === 'production') {

@@ -7,6 +7,7 @@ import { formatAsbType, getAsbColor } from '../utils/asb';
 import EmailPreviewModal from './EmailPreviewModal';
 import ECheckPreviewModal from './ECheckPreviewModal';
 import BulkECheckModal from './BulkECheckModal';
+import ProductCostModal from './ProductCostModal';
 
 function stripHtml(str) {
   if (!str) return '';
@@ -31,6 +32,7 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
   const [showEmail, setShowEmail] = useState(false);
   const [showECheck, setShowECheck] = useState(false);
   const [showBulkECheck, setShowBulkECheck] = useState(false);
+  const [showCost, setShowCost] = useState(false);
 
   const handleMarkDone = async () => {
     setMarking(true);
@@ -49,6 +51,7 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
   const isBulkECheckTask = task.action_url && task.action_url.startsWith('echeck:bulk_rep_commission:');
   const isSingleECheckTask = task.action_url && task.action_url.startsWith('echeck:') && !isBulkECheckTask;
   const isECheckTask = isSingleECheckTask || isBulkECheckTask;
+  const isCostTask = task.action_url && task.action_url.startsWith('cost:');
   const hasActionButton = task.button_words && task.action_url;
   const fundraisers = task.fundraisers || (task.fundraiser ? [task.fundraiser] : []);
 
@@ -132,7 +135,7 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
               </span>
             ) : (
               <button
-                onClick={() => { if (isEmailTask) { setShowEmail(true); } else if (isBulkECheckTask) { setShowBulkECheck(true); } else if (isSingleECheckTask) { setShowECheck(true); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
+                onClick={() => { if (isEmailTask) { setShowEmail(true); } else if (isBulkECheckTask) { setShowBulkECheck(true); } else if (isSingleECheckTask) { setShowECheck(true); } else if (isCostTask) { setShowCost(true); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
                 className="inline-flex items-center text-sm font-bold text-white px-4 py-1.5 rounded-lg transition-colors shadow-md hover:shadow-lg"
                 style={{ backgroundColor: '#ff5000' }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
@@ -202,6 +205,14 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
         <BulkECheckModal
           task={task}
           onClose={() => setShowBulkECheck(false)}
+          onRefresh={onRefresh}
+        />,
+        document.body
+      )}
+      {showCost && createPortal(
+        <ProductCostModal
+          task={task}
+          onClose={() => setShowCost(false)}
           onRefresh={onRefresh}
         />,
         document.body

@@ -106,6 +106,7 @@ const FUNDRAISER_FIELDS = {
   fpr_adj_team_to_rep: 'fldZBFkZCxhmxwNOj',
   fpr_adj_team_to_rep_label: 'fld1jNPQUhrowvwK8',
   fpr_adj_asbfee: 'fldiUPom1EC2MkI7j',
+  cost_product: 'fldkYOO4LKa0dpDUV',
 };
 
 // Client book (primary contact) field IDs
