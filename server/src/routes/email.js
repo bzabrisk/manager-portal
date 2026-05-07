@@ -40,7 +40,7 @@ const EMAIL_TEMPLATES = {
       return `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.6;">
 <p>Hello ${getFirstName(data.accounting_contact_name)},</p>
 
-<p>I'm Krista, Business Manager at SMASH Fundraising. ${data.organization} ${data.team} has a fundraiser scheduled to start on ${kickoffFormatted} with our rep, ${data.rep_name}. I understand that this fundraiser will be run through ASB, and therefore will require our fully ASB-compliant program.</p>
+<p>${data.organization} ${data.team} has a fundraiser scheduled to start on ${kickoffFormatted} with our rep, ${data.rep_name}. I understand that this fundraiser will be run through ASB, and therefore may require our fully ASB-compliant program.</p>
 
 <p>If this is our first time working together, please confirm receipt of this email before fundraiser kickoff for security purposes.</p>
 
@@ -52,7 +52,7 @@ const EMAIL_TEMPLATES = {
 
 <p><em>Optional:</em> Some districts require a signed contract in place before each fundraiser. For your convenience, I attached a pre-filled and pre-signed ASB-compliant Fundraiser Agreement to this email. If your district prefers/requires district-wide vendor approval, we do that too. Just put us in touch with the right person and we'll take it from there.</p>
 
-<p>If you have any questions or if your district has additional needs, I would love to chat. You can respond to me here, or text/call (360) 482-3341. We love simplifying the work of our ASB/financial advisors.</p>
+<p>If you have any questions or if your district has additional needs, please let me know. You can respond to me here, or text/call (360) 482-3341. We love simplifying the work of our ASB/financial advisors.</p>
 </div>`;
     },
   },
