@@ -25,7 +25,7 @@ function buildProfitReportHtml(preview) {
   const endDate = preview.endDate || '';
   const repName = preview.repName || '';
 
-  return `<p>Hi ${preview.recipientName},</p>
+  return `<p>Hi ${preview.organization},</p>
 
 <p>Great news, your ${preview.team} fundraiser is officially wrapped up!</p>
 
@@ -56,9 +56,9 @@ function buildProfitReportHtml(preview) {
 
 <p>You'll receive a separate email from Checkbook with deposit instructions for your e-check. Your detailed profit report is attached to this email for your records.</p>
 
-<p>Thank you for fundraising with SMASH — it was a pleasure working with your team!</p>
+<p>If a mailed paper check is preferred, please let us know before printing the check or selecting the ACH transfer option. Once the payment has been initiated, it cannot be modified or reversed.</p>
 
-<p>Warm regards,<br>Krista McGaughy<br>SMASH Fundraising</p>`;
+<p>Thank you for fundraising with SMASH — it was a pleasure working with your team!</p>`;
 }
 
 function StepIndicator({ current }) {
