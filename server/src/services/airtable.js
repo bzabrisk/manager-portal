@@ -89,6 +89,23 @@ const FUNDRAISER_FIELDS = {
   primary_contact_email: 'fldpNuvbEbmZrYuGb',
   accounting_contact_email: 'fldH17UIgXDn67jc1',
   include_md_donations: 'fldZ7EFPBXeADzc6T',
+  // Rep Commission breakdown
+  rep_comm_before_adj: 'fldOYLS7mmlG9Y7wK',
+  rcr_adj_team_to_rep: 'fldxnsA49jqZkpW9U',
+  rcr_adj_asbfee: 'fldEr4FykTP6NaSmJ',
+  rcr_adj_half_md_prize_fee: 'fldwUJQRk533BLCAr',
+  rcr_adj_smallfradj: 'fldJV8EyeWqDPMRaH',
+  rcr_adj_excessprint: 'fld7B8JddfcjhJs3A',
+  rcr_adj_extra_cd_boxes: 'fldEQfYpJBlx84etr',
+  rcr_adj_misc: 'fld0iQuhUQDk5L5IY',
+  rcr_comment: 'fld3vDtAwws1m9EUq',
+  extra_cd_boxes_ordered: 'fldobBrd984o4OLhe',
+  // Team Profit breakdown
+  team_profit_before_adj: 'fldElrfu61nJ9zrUs',
+  fpr_adj_md_prize_share: 'fld9o19YSMa8cX39M',
+  fpr_adj_team_to_rep: 'fldZBFkZCxhmxwNOj',
+  fpr_adj_team_to_rep_label: 'fld1jNPQUhrowvwK8',
+  fpr_adj_asbfee: 'fldiUPom1EC2MkI7j',
 };
 
 // Client book (primary contact) field IDs

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  X, Pencil, Mail, Phone, User, ExternalLink,
+  X, Pencil, Mail, Phone, User, ExternalLink, ChevronRight, ChevronDown,
   CheckCircle, Circle, FileText, Plus, AlertTriangle, Lock,
 } from 'lucide-react';
 import { api } from '../api/client';
@@ -92,6 +92,10 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Collapsible breakdown sections
+  const [rcrOpen, setRcrOpen] = useState(false);
+  const [fprOpen, setFprOpen] = useState(false);
+
   // Editable fields state
   const [edits, setEdits] = useState({});
   const [selectedTask, setSelectedTask] = useState(null);
@@ -121,13 +125,17 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       cards_lost: result.cards_lost ?? '',
       md_portal_url: result.md_portal_url || '',
       include_md_donations: result.include_md_donations || false,
-      gross_sales_md: result.gross_sales_md ?? '',
-      md_payout: result.md_payout ?? '',
       md_payout_received: result.md_payout_received,
       check_invoice_sent: result.check_invoice_sent,
       rep_paid: result.rep_paid,
       invoice_payment_received: result.invoice_payment_received,
       admin_notes: result.admin_notes,
+      // Rep Commission breakdown editable fields
+      rcr_adj_team_to_rep: result.rcr_adj_team_to_rep ?? '',
+      fpr_adj_team_to_rep_label: result.fpr_adj_team_to_rep_label || '',
+      rcr_adj_misc: result.rcr_adj_misc ?? '',
+      rcr_comment: result.rcr_comment || '',
+      extra_cd_boxes_ordered: result.extra_cd_boxes_ordered ?? '',
     };
   }
 
@@ -168,13 +176,16 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       edits.cards_lost !== (data.cards_lost ?? ''),
       edits.md_portal_url !== (data.md_portal_url || ''),
       edits.include_md_donations !== (data.include_md_donations || false),
-      edits.gross_sales_md !== (data.gross_sales_md ?? ''),
-      edits.md_payout !== (data.md_payout ?? ''),
       edits.md_payout_received !== data.md_payout_received,
       edits.check_invoice_sent !== data.check_invoice_sent,
       edits.rep_paid !== data.rep_paid,
       edits.invoice_payment_received !== data.invoice_payment_received,
       edits.admin_notes !== data.admin_notes,
+      edits.rcr_adj_team_to_rep !== (data.rcr_adj_team_to_rep ?? ''),
+      edits.fpr_adj_team_to_rep_label !== (data.fpr_adj_team_to_rep_label || ''),
+      edits.rcr_adj_misc !== (data.rcr_adj_misc ?? ''),
+      edits.rcr_comment !== (data.rcr_comment || ''),
+      edits.extra_cd_boxes_ordered !== (data.extra_cd_boxes_ordered ?? ''),
     ];
     return checks.some(Boolean);
   })();
@@ -217,14 +228,17 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       if (edits.cards_ordered !== (data.cards_ordered ?? '')) payload.cards_ordered = edits.cards_ordered;
       if (edits.cards_sold_manual !== (data.cards_sold_manual ?? '')) payload.cards_sold_manual = edits.cards_sold_manual;
       if (edits.cards_lost !== (data.cards_lost ?? '')) payload.cards_lost = edits.cards_lost;
-      if (edits.gross_sales_md !== (data.gross_sales_md ?? '')) payload.gross_sales_md = edits.gross_sales_md;
-      if (edits.md_payout !== (data.md_payout ?? '')) payload.md_payout = edits.md_payout;
       if (edits.include_md_donations !== (data.include_md_donations || false)) payload.include_md_donations = edits.include_md_donations;
       if (edits.md_payout_received !== data.md_payout_received) payload.md_payout_received = edits.md_payout_received;
       if (edits.check_invoice_sent !== data.check_invoice_sent) payload.check_invoice_sent = edits.check_invoice_sent;
       if (edits.rep_paid !== data.rep_paid) payload.rep_paid = edits.rep_paid;
       if (edits.invoice_payment_received !== data.invoice_payment_received) payload.invoice_payment_received = edits.invoice_payment_received;
       if (edits.admin_notes !== data.admin_notes) payload.admin_notes = edits.admin_notes;
+      if (edits.rcr_adj_team_to_rep !== (data.rcr_adj_team_to_rep ?? '')) payload.rcr_adj_team_to_rep = edits.rcr_adj_team_to_rep;
+      if (edits.fpr_adj_team_to_rep_label !== (data.fpr_adj_team_to_rep_label || '')) payload.fpr_adj_team_to_rep_label = edits.fpr_adj_team_to_rep_label;
+      if (edits.rcr_adj_misc !== (data.rcr_adj_misc ?? '')) payload.rcr_adj_misc = edits.rcr_adj_misc;
+      if (edits.rcr_comment !== (data.rcr_comment || '')) payload.rcr_comment = edits.rcr_comment;
+      if (edits.extra_cd_boxes_ordered !== (data.extra_cd_boxes_ordered ?? '')) payload.extra_cd_boxes_ordered = edits.extra_cd_boxes_ordered;
 
       if (Object.keys(payload).length > 0) {
         await api.fundraisers.update(recordId, payload);
@@ -289,6 +303,8 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
     || data.product_primary_string?.toLowerCase().includes('traditional no-risk')
     || data.product_primary_string?.toLowerCase().includes('traditional upfront');
   const showDailyPayouts = data.asb_boosters === 'WA State ASB';
+  const isCookieDough = data.product_primary_string?.toLowerCase().includes('cookie dough');
+  const cdBoxesInvalid = edits.extra_cd_boxes_ordered !== '' && (isNaN(edits.extra_cd_boxes_ordered) || Number(edits.extra_cd_boxes_ordered) < 0 || !Number.isInteger(Number(edits.extra_cd_boxes_ordered)));
 
   // Financials
   const financials = [
@@ -635,49 +651,11 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
             </section>
 
             {/* Section 3: Financials */}
-            {editMode ? (
-              <section>
-                <SectionHeader>Financials</SectionHeader>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <p className="text-xs text-slate-400">Gross Sales</p>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <span className="text-sm text-slate-400">$</span>
-                      <input type="number" step="0.01" value={edits.gross_sales_md}
-                        onChange={e => setEdits(prev => ({...prev, gross_sales_md: e.target.value}))}
-                        className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
-                    </div>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3 opacity-60">
-                    <p className="text-xs text-slate-400">Team Profit <span className="text-slate-300">(auto)</span></p>
-                    <p className="text-lg font-semibold text-slate-800 mt-0.5">{formatCurrency(data.final_team_profit) || '\u2014'}</p>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3 opacity-60">
-                    <p className="text-xs text-slate-400">Invoice Amount <span className="text-slate-300">(auto)</span></p>
-                    <p className="text-lg font-semibold text-slate-800 mt-0.5">{formatCurrency(data.final_invoice_amount) || '\u2014'}</p>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3 opacity-60">
-                    <p className="text-xs text-slate-400">Rep Commission <span className="text-slate-300">(auto)</span></p>
-                    <p className="text-lg font-semibold text-slate-800 mt-0.5">{formatCurrency(data.rep_commission) || '\u2014'}</p>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3 opacity-60">
-                    <p className="text-xs text-slate-400">SMASH Profit <span className="text-slate-300">(auto)</span></p>
-                    <p className="text-lg font-semibold text-slate-800 mt-0.5">{formatCurrency(data.smash_profit) || '\u2014'}</p>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <p className="text-xs text-slate-400">MD Payout</p>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <span className="text-sm text-slate-400">$</span>
-                      <input type="number" step="0.01" value={edits.md_payout}
-                        onChange={e => setEdits(prev => ({...prev, md_payout: e.target.value}))}
-                        className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
-                    </div>
-                  </div>
-                </div>
-              </section>
-            ) : financials.length > 0 && (
-              <section>
-                <SectionHeader>Financials</SectionHeader>
+            <section>
+              <SectionHeader>Financials</SectionHeader>
+
+              {/* Part A: Summary (all read-only) */}
+              {financials.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {financials.map(f => (
                     <div key={f.label} className="bg-slate-50 rounded-lg p-3">
@@ -686,8 +664,234 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                     </div>
                   ))}
                 </div>
-              </section>
-            )}
+              )}
+
+              {/* Part B: Rep Commission Breakdown */}
+              <div className="mt-4 border border-slate-200 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setRcrOpen(prev => !prev)}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors rounded-lg"
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    {rcrOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    Rep Commission Breakdown
+                  </span>
+                  <span className="text-sm font-semibold text-slate-800">
+                    Final: {formatCurrency(data.rep_commission) || '\u2014'}
+                  </span>
+                </button>
+
+                {rcrOpen && (
+                  <div className="px-4 pb-4 space-y-2">
+                    {/* Subtotal */}
+                    <div className="flex justify-between py-1.5 border-b border-slate-100">
+                      <span className="text-sm font-medium text-slate-700">Subtotal</span>
+                      <span className="text-sm font-semibold text-slate-800">{formatCurrency(data.rep_comm_before_adj) || '\u2014'}</span>
+                    </div>
+
+                    {/* Adjustment between Team & Rep */}
+                    <div className="py-1.5">
+                      {editMode ? (
+                        <>
+                          <div className="flex justify-between items-start gap-3">
+                            <div>
+                              <span className="text-sm text-slate-600">Adjustment between Team & Rep</span>
+                              <p className="text-xs text-slate-400 mt-0.5">Positive = team gives rep &middot; Negative = rep gives team</p>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <div className="flex items-center gap-1 w-28">
+                                <span className="text-sm text-slate-400">$</span>
+                                <input type="number" step="0.01" value={edits.rcr_adj_team_to_rep}
+                                  onChange={e => setEdits(prev => ({...prev, rcr_adj_team_to_rep: e.target.value}))}
+                                  className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                              </div>
+                              <input type="text" placeholder="Label" value={edits.fpr_adj_team_to_rep_label}
+                                onChange={e => setEdits(prev => ({...prev, fpr_adj_team_to_rep_label: e.target.value}))}
+                                className="w-40 border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex justify-between">
+                          <div>
+                            <span className="text-sm text-slate-600">Adjustment between Team & Rep</span>
+                            {data.fpr_adj_team_to_rep_label && <p className="text-xs text-slate-400 mt-0.5">{data.fpr_adj_team_to_rep_label}</p>}
+                          </div>
+                          <span className={`text-sm ${data.rcr_adj_team_to_rep ? 'text-slate-700' : 'text-slate-400'}`}>
+                            {data.rcr_adj_team_to_rep ? formatCurrency(data.rcr_adj_team_to_rep) : '\u2014'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* WA State ASB Fee */}
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-sm text-slate-600">WA State ASB Fee</span>
+                      <span className={`text-sm ${data.rcr_adj_asbfee ? 'text-slate-700' : 'text-slate-400'}`}>
+                        {data.rcr_adj_asbfee ? formatCurrency(data.rcr_adj_asbfee) : '\u2014'}
+                      </span>
+                    </div>
+
+                    {/* 50% MD Prize Shop Fee */}
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-sm text-slate-600">50% MD Prize Shop Fee</span>
+                      <span className={`text-sm ${data.rcr_adj_half_md_prize_fee ? 'text-slate-700' : 'text-slate-400'}`}>
+                        {data.rcr_adj_half_md_prize_fee ? formatCurrency(data.rcr_adj_half_md_prize_fee) : '\u2014'}
+                      </span>
+                    </div>
+
+                    {/* Small Fundraiser Adj */}
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-sm text-slate-600">Small Fundraiser Adj</span>
+                      <span className={`text-sm ${data.rcr_adj_smallfradj ? 'text-slate-700' : 'text-slate-400'}`}>
+                        {data.rcr_adj_smallfradj ? formatCurrency(data.rcr_adj_smallfradj) : '\u2014'}
+                      </span>
+                    </div>
+
+                    {/* Excess Printing Adj */}
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-sm text-slate-600">Excess Printing Adj</span>
+                      <span className={`text-sm ${data.rcr_adj_excessprint ? 'text-slate-700' : 'text-slate-400'}`}>
+                        {data.rcr_adj_excessprint ? formatCurrency(data.rcr_adj_excessprint) : '\u2014'}
+                      </span>
+                    </div>
+
+                    {/* Extra Cookie Dough Boxes — only for Cookie Dough products */}
+                    {isCookieDough && (
+                      <>
+                        <div className="flex justify-between items-center py-1.5">
+                          <span className="text-sm text-slate-600">Extra boxes ordered</span>
+                          {editMode ? (
+                            <div className="w-20">
+                              <input type="number" min="0" step="1" value={edits.extra_cd_boxes_ordered}
+                                onChange={e => setEdits(prev => ({...prev, extra_cd_boxes_ordered: e.target.value}))}
+                                className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000] ${cdBoxesInvalid ? 'border-red-400' : 'border-slate-300'}`} />
+                              {cdBoxesInvalid && <p className="text-xs text-red-500 mt-0.5">Must be 0 or more</p>}
+                            </div>
+                          ) : (
+                            <span className={`text-sm ${data.extra_cd_boxes_ordered ? 'text-slate-700' : 'text-slate-400'}`}>
+                              {data.extra_cd_boxes_ordered ?? '\u2014'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex justify-between py-1.5">
+                          <span className="text-sm text-slate-600">Extra cookie dough boxes (&times;$7)</span>
+                          <span className={`text-sm ${data.rcr_adj_extra_cd_boxes ? 'text-slate-700' : 'text-slate-400'}`}>
+                            {data.rcr_adj_extra_cd_boxes ? formatCurrency(data.rcr_adj_extra_cd_boxes) : '\u2014'}
+                          </span>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Misc Deduction */}
+                    <div className="py-1.5">
+                      {editMode ? (
+                        <div className="flex justify-between items-start gap-3">
+                          <span className="text-sm text-slate-600 pt-1 shrink-0">Misc Deduction</span>
+                          <div className="flex items-start gap-2">
+                            <div className="flex items-center gap-1 w-28">
+                              <span className="text-sm text-slate-400">$</span>
+                              <input type="number" step="0.01" value={edits.rcr_adj_misc}
+                                onChange={e => setEdits(prev => ({...prev, rcr_adj_misc: e.target.value}))}
+                                className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                            </div>
+                            <input type="text" placeholder="Comment" value={edits.rcr_comment}
+                              onChange={e => setEdits(prev => ({...prev, rcr_comment: e.target.value}))}
+                              maxLength={500}
+                              className="w-40 border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex justify-between">
+                          <div>
+                            <span className="text-sm text-slate-600">Misc Deduction</span>
+                            {data.rcr_comment && <p className="text-xs text-slate-400 mt-0.5">{data.rcr_comment}</p>}
+                          </div>
+                          <span className={`text-sm ${data.rcr_adj_misc ? 'text-slate-700' : 'text-slate-400'}`}>
+                            {data.rcr_adj_misc ? formatCurrency(data.rcr_adj_misc) : '\u2014'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Final Rep Commission */}
+                    <div className="flex justify-between py-2 border-t border-slate-200 mt-1">
+                      <span className="text-sm font-bold text-slate-800">Final Rep Commission</span>
+                      <span className="text-base font-bold text-slate-800">{formatCurrency(data.rep_commission) || '\u2014'}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Part C: Team Profit Breakdown */}
+              <div className="mt-3 border border-slate-200 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setFprOpen(prev => !prev)}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors rounded-lg"
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    {fprOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    Team Profit Breakdown
+                  </span>
+                  <span className="text-sm font-semibold text-slate-800">
+                    Final: {formatCurrency(data.final_team_profit) || '\u2014'}
+                  </span>
+                </button>
+
+                {fprOpen && (
+                  <div className="px-4 pb-4 space-y-2">
+                    {/* Subtotal */}
+                    <div className="flex justify-between py-1.5 border-b border-slate-100">
+                      <span className="text-sm font-medium text-slate-700">Subtotal</span>
+                      <span className="text-sm font-semibold text-slate-800">{formatCurrency(data.team_profit_before_adj) || '\u2014'}</span>
+                    </div>
+
+                    {/* 50% Prize Share */}
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-sm text-slate-600">50% Prize Share</span>
+                      <span className={`text-sm ${data.fpr_adj_md_prize_share ? 'text-slate-700' : 'text-slate-400'}`}>
+                        {data.fpr_adj_md_prize_share ? formatCurrency(data.fpr_adj_md_prize_share) : '\u2014'}
+                      </span>
+                    </div>
+
+                    {/* Adjustment between Team & Rep (read-only mirror) */}
+                    <div className="flex justify-between items-start py-1.5">
+                      <div>
+                        <span className="text-sm text-slate-600">Adjustment between Team & Rep</span>
+                        {editMode ? (
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            <button type="button" onClick={() => { setRcrOpen(true); setFprOpen(false); }} className="text-[#ff5000] hover:underline">
+                              Edit in Rep Commission Breakdown &uarr;
+                            </button>
+                          </p>
+                        ) : (
+                          data.fpr_adj_team_to_rep_label && <p className="text-xs text-slate-400 mt-0.5">{data.fpr_adj_team_to_rep_label}</p>
+                        )}
+                      </div>
+                      <span className={`text-sm ${data.fpr_adj_team_to_rep ? 'text-slate-700' : 'text-slate-400'}`}>
+                        {data.fpr_adj_team_to_rep ? formatCurrency(data.fpr_adj_team_to_rep) : '\u2014'}
+                      </span>
+                    </div>
+
+                    {/* ASB Fee */}
+                    <div className="flex justify-between py-1.5">
+                      <span className="text-sm text-slate-600">ASB Fee</span>
+                      <span className={`text-sm ${data.fpr_adj_asbfee ? 'text-slate-700' : 'text-slate-400'}`}>
+                        {data.fpr_adj_asbfee ? formatCurrency(data.fpr_adj_asbfee) : '\u2014'}
+                      </span>
+                    </div>
+
+                    {/* Final Team Profit */}
+                    <div className="flex justify-between py-2 border-t border-slate-200 mt-1">
+                      <span className="text-sm font-bold text-slate-800">Final Team Profit</span>
+                      <span className="text-base font-bold text-slate-800">{formatCurrency(data.final_team_profit) || '\u2014'}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
 
             {/* Section 4: Closeout Checklist */}
             {showCloseout && (
@@ -906,9 +1110,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
               </button>
               <button
                 onClick={handleSave}
-                disabled={!hasChanges || saving}
+                disabled={!hasChanges || saving || cdBoxesInvalid}
                 className={`px-4 py-2 text-sm text-white rounded-lg transition-colors ${
-                  hasChanges ? 'bg-[#ff5000] hover:bg-[#e04800]' : 'bg-slate-300 cursor-not-allowed'
+                  hasChanges && !cdBoxesInvalid ? 'bg-[#ff5000] hover:bg-[#e04800]' : 'bg-slate-300 cursor-not-allowed'
                 }`}
               >
                 {saving ? 'Saving...' : 'Save'}

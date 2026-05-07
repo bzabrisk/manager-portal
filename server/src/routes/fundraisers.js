@@ -866,6 +866,23 @@ router.get('/:recordId', async (req, res) => {
       rep_commission: f[FUNDRAISER_FIELDS.rep_commission] || null,
       smash_profit: f[FUNDRAISER_FIELDS.smash_profit] || null,
       md_payout: f[FUNDRAISER_FIELDS.md_payout] || null,
+      // Rep Commission breakdown
+      rep_comm_before_adj: f[FUNDRAISER_FIELDS.rep_comm_before_adj] ?? null,
+      rcr_adj_team_to_rep: f[FUNDRAISER_FIELDS.rcr_adj_team_to_rep] ?? null,
+      rcr_adj_asbfee: f[FUNDRAISER_FIELDS.rcr_adj_asbfee] ?? null,
+      rcr_adj_half_md_prize_fee: f[FUNDRAISER_FIELDS.rcr_adj_half_md_prize_fee] ?? null,
+      rcr_adj_smallfradj: f[FUNDRAISER_FIELDS.rcr_adj_smallfradj] ?? null,
+      rcr_adj_excessprint: f[FUNDRAISER_FIELDS.rcr_adj_excessprint] ?? null,
+      rcr_adj_extra_cd_boxes: f[FUNDRAISER_FIELDS.rcr_adj_extra_cd_boxes] ?? null,
+      rcr_adj_misc: f[FUNDRAISER_FIELDS.rcr_adj_misc] ?? null,
+      rcr_comment: f[FUNDRAISER_FIELDS.rcr_comment] || '',
+      extra_cd_boxes_ordered: f[FUNDRAISER_FIELDS.extra_cd_boxes_ordered] ?? null,
+      // Team Profit breakdown
+      team_profit_before_adj: f[FUNDRAISER_FIELDS.team_profit_before_adj] ?? null,
+      fpr_adj_md_prize_share: f[FUNDRAISER_FIELDS.fpr_adj_md_prize_share] ?? null,
+      fpr_adj_team_to_rep: f[FUNDRAISER_FIELDS.fpr_adj_team_to_rep] ?? null,
+      fpr_adj_team_to_rep_label: f[FUNDRAISER_FIELDS.fpr_adj_team_to_rep_label] || '',
+      fpr_adj_asbfee: f[FUNDRAISER_FIELDS.fpr_adj_asbfee] ?? null,
       // Closeout
       md_payout_received: f[FUNDRAISER_FIELDS.md_payout_received] || false,
       check_invoice_sent: f[FUNDRAISER_FIELDS.check_invoice_sent] || false,
@@ -941,6 +958,16 @@ router.patch('/:recordId', async (req, res) => {
     if (updates.product_secondary_id !== undefined) fields[FUNDRAISER_FIELDS.product_secondary] = updates.product_secondary_id ? [updates.product_secondary_id] : [];
     // Checkbox
     if (updates.include_md_donations !== undefined) fields[FUNDRAISER_FIELDS.include_md_donations] = updates.include_md_donations;
+    // Rep Commission adjustment fields
+    if (updates.rcr_adj_team_to_rep !== undefined) {
+      // rcr_adj_team_to_rep is a formula; the writable source is fpr_adj_team_to_rep (negated)
+      const val = updates.rcr_adj_team_to_rep !== null && updates.rcr_adj_team_to_rep !== '' ? Number(updates.rcr_adj_team_to_rep) : null;
+      fields[FUNDRAISER_FIELDS.fpr_adj_team_to_rep] = val !== null ? -val : null;
+    }
+    if (updates.rcr_adj_misc !== undefined) fields[FUNDRAISER_FIELDS.rcr_adj_misc] = updates.rcr_adj_misc !== null && updates.rcr_adj_misc !== '' ? Number(updates.rcr_adj_misc) : null;
+    if (updates.rcr_comment !== undefined) fields[FUNDRAISER_FIELDS.rcr_comment] = updates.rcr_comment || null;
+    if (updates.fpr_adj_team_to_rep_label !== undefined) fields[FUNDRAISER_FIELDS.fpr_adj_team_to_rep_label] = updates.fpr_adj_team_to_rep_label || null;
+    if (updates.extra_cd_boxes_ordered !== undefined) fields[FUNDRAISER_FIELDS.extra_cd_boxes_ordered] = updates.extra_cd_boxes_ordered !== null && updates.extra_cd_boxes_ordered !== '' ? Number(updates.extra_cd_boxes_ordered) : null;
 
     if (Object.keys(fields).length === 0) {
       return res.status(400).json({ error: 'No valid fields to update' });
