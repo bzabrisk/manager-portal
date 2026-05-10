@@ -5,13 +5,13 @@ import { dirname, join } from 'path';
 import { COLORS, FONTS, SIZES } from '../styles.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const logoPath = join(__dirname, '..', '..', '..', 'assets', 'images', 'smash-logo-black.png');
+const logoPath = join(__dirname, '..', '..', '..', 'assets', 'images', 'smash-logo-white.png');
 
 const s = StyleSheet.create({
   band: {
-    backgroundColor: COLORS.orange,
+    backgroundColor: COLORS.ink,
     paddingHorizontal: 40,
-    paddingVertical: 16,
+    paddingVertical: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -23,6 +23,7 @@ const s = StyleSheet.create({
     color: COLORS.white,
     fontSize: SIZES.reportTitle,
     letterSpacing: 1,
+    textTransform: 'uppercase',
   },
 });
 

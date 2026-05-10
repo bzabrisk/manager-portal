@@ -13,12 +13,14 @@ const s = StyleSheet.create({
   },
   label: {
     fontFamily: FONTS.body,
-    fontSize: SIZES.small,
+    fontWeight: 400,
+    fontSize: 9,
     color: COLORS.inkMuted,
   },
   amount: {
     fontFamily: FONTS.body,
-    fontSize: SIZES.small,
+    fontWeight: 400,
+    fontSize: 9,
     color: COLORS.inkSoft,
     width: 80,
     textAlign: 'right',

@@ -9,7 +9,7 @@ const s = StyleSheet.create({
     fontWeight: 900,
     fontSize: SIZES.sectionHeader,
     color: COLORS.orange,
-    letterSpacing: 1.5,
+    letterSpacing: 1.0,
     textTransform: 'uppercase',
   },
   line: {

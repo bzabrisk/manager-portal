@@ -16,6 +16,15 @@ export function registerFonts() {
     ],
   });
   Font.register({
+    family: 'Satoshi',
+    fonts: [
+      { src: join(fontsDir, 'Satoshi-Variable.ttf') },
+      { src: join(fontsDir, 'Satoshi-Variable.ttf'), fontWeight: 500 },
+      { src: join(fontsDir, 'Satoshi-Variable.ttf'), fontWeight: 700 },
+      { src: join(fontsDir, 'Satoshi-Variable.ttf'), fontWeight: 900 },
+    ],
+  });
+  Font.register({
     family: 'MangoGrotesque',
     fonts: [
       { src: join(fontsDir, 'MangoGrotesque-BoldItalic.ttf'), fontWeight: 700, fontStyle: 'italic' },

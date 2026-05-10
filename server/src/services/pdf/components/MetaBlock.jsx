@@ -3,19 +3,22 @@ import { View, Text, StyleSheet } from '@react-pdf/renderer';
 import { COLORS, FONTS, SIZES } from '../styles.js';
 
 const s = StyleSheet.create({
-  container: { marginTop: 20, marginBottom: 16 },
-  row: { flexDirection: 'row', marginBottom: 4 },
+  container: { marginTop: 24, marginBottom: 20 },
+  row: { flexDirection: 'row', marginBottom: 5, alignItems: 'baseline' },
   label: {
-    fontFamily: FONTS.body,
+    fontFamily: FONTS.heading,
     fontWeight: 900,
-    fontSize: SIZES.meta,
+    fontSize: SIZES.metaLabel,
     color: COLORS.ink,
-    width: 100,
+    width: 110,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   value: {
     fontFamily: FONTS.body,
+    fontWeight: 400,
     fontSize: SIZES.meta,
-    color: COLORS.inkSoft,
+    color: COLORS.ink,
   },
 });
 

@@ -15,17 +15,17 @@ const s = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: COLORS.orangeLight,
+    backgroundColor: COLORS.surface,
     paddingVertical: 5,
     borderBottomWidth: 0.5,
     borderBottomColor: COLORS.border,
   },
-  label: { flex: 2, fontFamily: FONTS.body, fontSize: SIZES.body, color: COLORS.ink },
-  qty: { width: 45, textAlign: 'right', fontFamily: FONTS.body, fontSize: SIZES.body, color: COLORS.ink },
-  gross: { width: 75, textAlign: 'right', fontFamily: FONTS.body, fontSize: SIZES.body, color: COLORS.ink },
-  percent: { width: 60, textAlign: 'right', fontFamily: FONTS.body, fontSize: SIZES.body, color: COLORS.ink },
-  amount: { width: 80, textAlign: 'right', fontFamily: FONTS.body, fontSize: SIZES.body, color: COLORS.ink },
-  headerText: { fontWeight: 900, fontSize: SIZES.small, color: COLORS.inkSoft },
+  label: { flex: 2, fontFamily: FONTS.body, fontWeight: 400, fontSize: SIZES.body, color: COLORS.ink },
+  qty: { width: 45, textAlign: 'right', fontFamily: FONTS.body, fontWeight: 400, fontSize: SIZES.body, color: COLORS.ink },
+  gross: { width: 75, textAlign: 'right', fontFamily: FONTS.body, fontWeight: 400, fontSize: SIZES.body, color: COLORS.ink },
+  percent: { width: 60, textAlign: 'right', fontFamily: FONTS.body, fontWeight: 400, fontSize: SIZES.body, color: COLORS.ink },
+  amount: { width: 80, textAlign: 'right', fontFamily: FONTS.body, fontWeight: 400, fontSize: SIZES.body, color: COLORS.ink },
+  headerText: { fontFamily: FONTS.body, fontWeight: 700, fontSize: SIZES.small, textTransform: 'uppercase', letterSpacing: 0.5, color: COLORS.inkSoft },
 });
 
 export function LineItemHeader({ showQty, columns }) {
@@ -55,11 +55,11 @@ export default function LineItemRow({ label, qty, gross, percent, amount, showQt
 export function SubtotalRow({ amount, showQty }) {
   return (
     <View style={[s.row, { borderBottomWidth: 1, borderBottomColor: COLORS.ink }]}>
-      <Text style={[s.label, { fontWeight: 900 }]}>Subtotal</Text>
+      <Text style={[s.label, { fontWeight: 700 }]}>Subtotal</Text>
       {showQty && <Text style={s.qty} />}
       <Text style={s.gross} />
       <Text style={s.percent} />
-      <Text style={[s.amount, { fontWeight: 900 }]}>{fmt(amount)}</Text>
+      <Text style={[s.amount, { fontWeight: 700 }]}>{fmt(amount)}</Text>
     </View>
   );
 }

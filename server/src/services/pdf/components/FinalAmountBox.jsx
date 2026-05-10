@@ -6,7 +6,7 @@ const fmt = (v) => v != null ? `$${Number(v).toLocaleString('en-US', { minimumFr
 
 const s = StyleSheet.create({
   box: {
-    backgroundColor: COLORS.orange,
+    backgroundColor: COLORS.ink,
     borderRadius: 4,
     paddingHorizontal: 16,
     paddingVertical: 10,
