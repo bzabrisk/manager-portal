@@ -3,6 +3,7 @@ import {
   FUNDRAISER_FIELDS,
   REP_FIELDS,
   airtableGet,
+  airtableUpdate,
   airtableFetchByIds,
   uploadAttachmentReplacing,
 } from '../services/airtable.js';
