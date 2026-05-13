@@ -89,6 +89,9 @@ export async function fetchFundraiserDataForReports(recordId) {
     rcr_adj_misc: f[F.rcr_adj_misc] ?? null,
     rcr_comment: f[F.rcr_comment] || '',
     extra_cd_boxes_ordered: f[F.extra_cd_boxes_ordered] ?? null,
+    // Linked-record presence flags
+    has_secondary: ((f[F.product_secondary] || []).length > 0),
+    has_tp_donations: ((f[F.tp_mddonations] || []).length > 0),
     // MD Payout source tracking
     md_payout_attachment_id: (f[F.md_payout_report] || [])[0]?.id || null,
   };

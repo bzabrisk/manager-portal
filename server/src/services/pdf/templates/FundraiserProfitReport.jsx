@@ -60,8 +60,8 @@ export default function FundraiserProfitReport({ data }) {
   const isTradNoRisk = data.product_primary_string === 'Team Cards - Traditional No-Risk';
   const isTradUpfront = data.product_primary_string === 'Team Cards - Traditional Upfront Purchase';
   const isWaAsb = data.asb_boosters === 'WA State ASB';
-  const hasSecondary = !!data.sp_gross;
-  const hasTpDonations = !!data.mddonations_gross && data.product_primary_string !== 'MD Donations - Digital';
+  const hasSecondary = data.has_secondary;
+  const hasTpDonations = data.has_tp_donations && data.product_primary_string !== 'MD Donations - Digital';
   const showProfitSummary = !isTradUpfront;
   const showInvoiceSection = isWaAsb || isTradNoRisk || isTradUpfront;
   const showQtyColumn = isTradNoRisk || isTradUpfront;
@@ -75,28 +75,33 @@ export default function FundraiserProfitReport({ data }) {
       gross: data.pp_gross,
       percent: data.pp_actual_team_rate,
       amount: data.pp_team_profit,
-      invoiceRate: data.pp_invoice_rate,
+      invoiceRate: data.pp_gross ? (data.pp_invoice_amount / data.pp_gross) : null,
       invoiceAmount: data.pp_invoice_amount,
     },
     hasSecondary && {
       label: data.product_secondary_name || 'Secondary Product',
       qty: null,
       gross: data.sp_gross,
-      percent: null, // sp doesn't always have a separate rate display
+      percent: data.sp_gross ? (data.sp_team_profit / data.sp_gross) : null,
       amount: data.sp_team_profit,
-      invoiceRate: data.sp_invoice_rate,
+      invoiceRate: data.sp_gross ? (data.sp_invoice_amount / data.sp_gross) : null,
       invoiceAmount: data.sp_invoice_amount,
     },
     hasTpDonations && {
       label: 'MD Donations - Digital',
       qty: null,
       gross: data.mddonations_gross,
-      percent: null,
+      percent: data.mddonations_gross ? (data.mddonations_team_profit / data.mddonations_gross) : null,
       amount: data.mddonations_team_profit,
-      invoiceRate: data.mddonations_invoice_rate,
+      invoiceRate: data.mddonations_gross ? (data.mddonations_invoice_amount / data.mddonations_gross) : null,
       invoiceAmount: data.mddonations_invoice_amount,
     },
   ].filter(Boolean);
+
+  // For Traditional Upfront, the per-unit dollar amount is more meaningful than a percentage
+  const upfrontPerCardAmount = isTradUpfront && data.cards_sold
+    ? (data.pp_invoice_amount / data.cards_sold)
+    : null;
 
   const profitSubtotal = lineItems.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
   const invoiceSubtotal = lineItems.reduce((sum, i) => sum + (Number(i.invoiceAmount) || 0), 0);
@@ -154,9 +159,10 @@ export default function FundraiserProfitReport({ data }) {
                   label={item.label}
                   qty={item.qty}
                   gross={item.gross}
-                  percent={item.invoiceRate}
+                  percent={isTradUpfront && i === 0 ? upfrontPerCardAmount : item.invoiceRate}
                   amount={item.invoiceAmount}
                   showQty={showQtyColumn}
+                  rateAsCurrency={isTradUpfront && i === 0}
                 />
               ))}
               <FinalAmountBox label="FINAL INVOICE" amount={data.final_invoice_amount} />

@@ -23,6 +23,9 @@ const s = StyleSheet.create({
 });
 
 export default function RepCommissionReport({ data }) {
+  const hasSecondary = data.has_secondary;
+  const hasTpDonations = data.has_tp_donations && data.product_primary_string !== 'MD Donations - Digital';
+
   const lineItems = [
     data.pp_gross != null && {
       label: data.product_primary_string || 'Primary Product',
@@ -30,13 +33,13 @@ export default function RepCommissionReport({ data }) {
       percent: data.pp_actual_comm_rate,
       amount: data.pp_rep_comm,
     },
-    data.sp_gross && {
+    hasSecondary && {
       label: data.product_secondary_name || 'Secondary Product',
       gross: data.sp_gross,
-      percent: null,
+      percent: data.sp_gross ? (data.sp_rep_comm / data.sp_gross) : null,
       amount: data.sp_rep_comm,
     },
-    data.mddonations_gross && data.product_primary_string !== 'MD Donations - Digital' && {
+    hasTpDonations && {
       label: 'MD Donations - Digital',
       gross: data.mddonations_gross,
       percent: data.mddonations_actual_comm_rate,
@@ -66,7 +69,7 @@ export default function RepCommissionReport({ data }) {
             season={data.season}
           />
 
-          <SectionHeader>COMMISSION SUMMARY</SectionHeader>
+          <SectionHeader>PROFIT SUMMARY</SectionHeader>
           <LineItemHeader columns={{ percent: '% Comm' }} />
           {lineItems.map((item, i) => (
             <LineItemRow

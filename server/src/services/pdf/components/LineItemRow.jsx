@@ -32,7 +32,7 @@ export function LineItemHeader({ showQty, columns }) {
   return (
     <View style={s.headerRow}>
       <Text style={[s.label, s.headerText]}>{columns?.label || 'Product'}</Text>
-      {showQty && <Text style={[s.qty, s.headerText]}>Qty</Text>}
+      {showQty && <Text style={[s.qty, s.headerText]}>Qty Sold</Text>}
       <Text style={[s.gross, s.headerText]}>Gross</Text>
       <Text style={[s.percent, s.headerText]}>{columns?.percent || '% to Team'}</Text>
       <Text style={[s.amount, s.headerText]}>Amount</Text>
@@ -40,13 +40,13 @@ export function LineItemHeader({ showQty, columns }) {
   );
 }
 
-export default function LineItemRow({ label, qty, gross, percent, amount, showQty }) {
+export default function LineItemRow({ label, qty, gross, percent, amount, showQty, rateAsCurrency }) {
   return (
     <View style={s.row}>
       <Text style={s.label}>{label}</Text>
       {showQty && <Text style={s.qty}>{qty != null ? String(qty) : '\u2014'}</Text>}
       <Text style={s.gross}>{fmt(gross)}</Text>
-      <Text style={s.percent}>{pct(percent)}</Text>
+      <Text style={s.percent}>{rateAsCurrency ? fmt(percent) : pct(percent)}</Text>
       <Text style={s.amount}>{fmt(amount)}</Text>
     </View>
   );
