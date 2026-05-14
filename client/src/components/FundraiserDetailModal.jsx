@@ -209,7 +209,8 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   // Report generation
   const [generatingFpr, setGeneratingFpr] = useState(false);
   const [generatingRcr, setGeneratingRcr] = useState(false);
-  const [reportError, setReportError] = useState({ fpr: '', rcr: '' });
+  const [generatingAgreement, setGeneratingAgreement] = useState(false);
+  const [reportError, setReportError] = useState({ fpr: '', rcr: '', agreement: '' });
   const [pollingForReports, setPollingForReports] = useState(false);
   const [mdPayoutToast, setMdPayoutToast] = useState('');
 
@@ -241,6 +242,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       rep_paid: result.rep_paid,
       invoice_payment_received: result.invoice_payment_received,
       admin_notes: result.admin_notes,
+      agreement_notes: result.agreement_notes || '',
       // Rep Commission breakdown editable fields
       rcr_adj_team_to_rep: result.rcr_adj_team_to_rep ?? '',
       fpr_adj_team_to_rep_label: result.fpr_adj_team_to_rep_label || '',
@@ -293,6 +295,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       edits.rep_paid !== data.rep_paid,
       edits.invoice_payment_received !== data.invoice_payment_received,
       edits.admin_notes !== data.admin_notes,
+      edits.agreement_notes !== (data.agreement_notes || ''),
       edits.rcr_adj_team_to_rep !== (data.rcr_adj_team_to_rep ?? ''),
       edits.fpr_adj_team_to_rep_label !== (data.fpr_adj_team_to_rep_label || ''),
       edits.rcr_adj_misc !== (data.rcr_adj_misc ?? ''),
@@ -347,6 +350,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       if (edits.rep_paid !== data.rep_paid) payload.rep_paid = edits.rep_paid;
       if (edits.invoice_payment_received !== data.invoice_payment_received) payload.invoice_payment_received = edits.invoice_payment_received;
       if (edits.admin_notes !== data.admin_notes) payload.admin_notes = edits.admin_notes;
+      if (edits.agreement_notes !== (data.agreement_notes || '')) payload.agreement_notes = edits.agreement_notes;
       if (edits.rcr_adj_team_to_rep !== (data.rcr_adj_team_to_rep ?? '')) payload.rcr_adj_team_to_rep = edits.rcr_adj_team_to_rep;
       if (edits.fpr_adj_team_to_rep_label !== (data.fpr_adj_team_to_rep_label || '')) payload.fpr_adj_team_to_rep_label = edits.fpr_adj_team_to_rep_label;
       if (edits.rcr_adj_misc !== (data.rcr_adj_misc ?? '')) payload.rcr_adj_misc = edits.rcr_adj_misc;
@@ -411,7 +415,8 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   };
 
   const handleGenerateReport = async (kind) => {
-    const setState = kind === 'fpr' ? setGeneratingFpr : setGeneratingRcr;
+    const setStateMap = { fpr: setGeneratingFpr, rcr: setGeneratingRcr, agreement: setGeneratingAgreement };
+    const setState = setStateMap[kind];
     setState(true);
     setReportError(prev => ({ ...prev, [kind]: '' }));
     try {
@@ -511,7 +516,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const currentMdPayoutId = data.md_payout_report?.[0]?.id || null;
   const fprStale = !!(hasFpr && currentMdPayoutId && data.fpr_md_payout_source_id && data.fpr_md_payout_source_id !== currentMdPayoutId);
   const rcrStale = !!(hasRcr && currentMdPayoutId && data.rcr_md_payout_source_id && data.rcr_md_payout_source_id !== currentMdPayoutId);
-  const documents = [
+  const staticDocuments = [
     { label: 'Fundraiser Agreement (Signed)', files: data.fundraiser_agreement_final },
     { label: 'Invoice', files: data.invoice_attachment },
   ];
@@ -1274,9 +1279,21 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                 />
               </div>
 
-              {/* Row 3: Fundraiser Agreement and Invoice */}
+              {/* Row 3: Fundraiser Agreement (Unsigned) — generatable */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                {documents.map(doc => (
+                <ReportDocSlot
+                  label="Fundraiser Agreement (Unsigned)"
+                  files={data.fundraiser_agreement_unsigned}
+                  generating={generatingAgreement}
+                  error={reportError.agreement}
+                  isDataReady={true}
+                  onGenerate={() => handleGenerateReport('agreement')}
+                />
+              </div>
+
+              {/* Row 4: Signed Agreement and Invoice */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                {staticDocuments.map(doc => (
                   <div key={doc.label}>
                     {doc.files && doc.files.length > 0 ? (
                       <div className="border border-slate-200 rounded-lg p-3">
@@ -1406,7 +1423,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
             )}
 
             {/* Section 8: Notes */}
-            {(data.admin_notes || data.rep_notes || editMode) && (
+            {(data.admin_notes || data.rep_notes || data.agreement_notes || editMode) && (
               <section>
                 <SectionHeader>Notes</SectionHeader>
                 <div className="space-y-4">
@@ -1428,6 +1445,26 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                       )
                     )}
                   </div>
+                  {/* Agreement Notes */}
+                  {(editMode || data.agreement_notes) && (
+                    <div>
+                      <p className="text-xs text-slate-400 mb-1">
+                        Agreement Notes
+                        {editMode && <span className="ml-1 text-slate-300 font-normal">(included in Fundraiser Agreement under "Additional Notes" — leave blank to auto-fill tiered pricing notes for card products)</span>}
+                      </p>
+                      {editMode ? (
+                        <textarea
+                          value={edits.agreement_notes}
+                          onChange={e => setEdits(prev => ({ ...prev, agreement_notes: e.target.value }))}
+                          rows={3}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]"
+                          placeholder="Leave blank for default behavior, or type custom notes here..."
+                        />
+                      ) : (
+                        <p className="text-sm text-slate-700 whitespace-pre-wrap bg-slate-50 rounded-lg p-3">{data.agreement_notes}</p>
+                      )}
+                    </div>
+                  )}
                   {/* Rep Notes */}
                   {data.rep_notes && (
                     <div>
