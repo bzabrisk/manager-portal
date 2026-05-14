@@ -78,7 +78,7 @@ const s = StyleSheet.create({
   twoCol: {
     flexDirection: 'row',
     gap: 14,
-    marginTop: 10,
+    marginTop: 5,
   },
   leftCol: {
     flex: 1,
@@ -168,7 +168,7 @@ const s = StyleSheet.create({
   notesText: {
     fontFamily: FONTS.body,
     fontWeight: 400,
-    fontSize: 7.5,
+    fontSize: 6,
     color: COLORS.ink,
     lineHeight: 1.4,
     padding: 6,
@@ -425,7 +425,7 @@ export default function FundraiserAgreement({ data }) {
           </View>
 
           {/* School/Organization agrees to */}
-          <Banner style={{ marginTop: 10 }}>School/Organization agrees to:</Banner>
+          <Banner style={{ marginTop: 5 }}>School/Organization agrees to:</Banner>
           <Text style={s.listItem}>1. Allow SMASH to operate the fundraiser within their School or Organization.</Text>
           <Text style={s.listItem}>2. Allow SMASH to use its logo for fundraiser-related purposes, including product design, digital platforms, prize incentives, and to display examples of completed fundraiser materials in future promotional content.</Text>
           <Text style={s.listItem}>3. Use their best efforts to sell the product provided at the specified retail price.</Text>
@@ -441,7 +441,7 @@ export default function FundraiserAgreement({ data }) {
           </View>
 
           {/* Duration, Term, and Termination */}
-          <Banner style={{ marginTop: 10 }}>Duration, Term, and Termination:</Banner>
+          <Banner style={{ marginTop: 5 }}>Duration, Term, and Termination:</Banner>
           <Text style={s.listItem}>1. SMASH and the Organization agree that SMASH shall be the exclusive provider for the fundraising term listed above.</Text>
           <Text style={s.listItem}>2. (Specific Terms for Discount Card Products Only) If for any reason, the Organization cannot perform the fundraiser, the Organization will reimburse SMASH Fundraising for production costs using the following calculations: $20 per applicable merchant signed, plus 25% of any printing, designing, and shipping costs. The Organization acknowledges that these costs are a reasonable approximation of actual damages to SMASH.</Text>
 
@@ -485,7 +485,7 @@ export default function FundraiserAgreement({ data }) {
           </View>
 
           {/* For SMASH Records */}
-          <Banner style={{ marginTop: 10 }}>For SMASH Records:</Banner>
+          <Banner style={{ marginTop: 5 }}>For SMASH Records:</Banner>
           <View style={s.recordsTable}>
             <View style={s.recordsRow}>
               <Text style={[s.recordsLabel, { width: '18%' }]}>School/Organization</Text>

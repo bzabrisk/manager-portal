@@ -158,10 +158,12 @@ router.post('/rcr/:fundraiserId', async (req, res) => {
 // --- Fundraiser Agreement ---
 
 function buildAgreementNotes({ agreement_notes_manual, primary_product_name }) {
-  if (agreement_notes_manual && agreement_notes_manual.trim()) {
-    return agreement_notes_manual.trim();
-  }
-  return getTierNotes(primary_product_name);
+  const tierText = getTierNotes(primary_product_name);
+  const manual = (agreement_notes_manual || '').trim();
+  if (tierText && manual) return `${tierText}\n\n${manual}`;
+  if (tierText) return tierText;
+  if (manual) return manual;
+  return '';
 }
 
 const PRODUCT_PROFIT_PCT_FIELD = 'fldgThkrxMzkurPK7';
