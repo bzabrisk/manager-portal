@@ -14,6 +14,7 @@ const fmt = (v) => v != null ? `$${Number(v).toLocaleString('en-US', { minimumFr
 const s = StyleSheet.create({
   page: {
     fontFamily: FONTS.body,
+    fontWeight: 400,
     fontSize: 10,
     paddingTop: PAGE.paddingTop,
     paddingBottom: PAGE.paddingBottom,
@@ -24,6 +25,7 @@ const s = StyleSheet.create({
   },
   grossLine: {
     fontFamily: FONTS.body,
+    fontWeight: 400,
     fontSize: 10,
     color: COLORS.inkSoft,
     marginBottom: 4,
@@ -38,6 +40,7 @@ const s = StyleSheet.create({
   },
   footnoteText: {
     fontFamily: FONTS.body,
+    fontWeight: 400,
     fontSize: 8,
     color: COLORS.inkSoft,
     lineHeight: 1.5,
@@ -50,6 +53,7 @@ const s = StyleSheet.create({
   },
   commentsText: {
     fontFamily: FONTS.body,
+    fontWeight: 400,
     fontSize: 8,
     color: COLORS.inkMuted,
     lineHeight: 1.5,

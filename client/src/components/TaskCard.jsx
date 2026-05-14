@@ -7,7 +7,27 @@ import EmailPreviewModal from './EmailPreviewModal';
 import ECheckPreviewModal from './ECheckPreviewModal';
 import BulkECheckModal from './BulkECheckModal';
 import ProductCostModal from './ProductCostModal';
+import FundraiserDetailModal from './FundraiserDetailModal';
 import { formatAsbType, getAsbColor } from '../utils/asb';
+
+function isPortalDeepLink(url) {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.origin !== window.location.origin && !parsed.hostname.includes('smashfundraising.com')) return false;
+    return !!parsed.searchParams.get('fundraiser')?.startsWith('rec');
+  } catch {
+    return false;
+  }
+}
+
+function extractFundraiserIdFromUrl(url) {
+  try {
+    return new URL(url, window.location.origin).searchParams.get('fundraiser');
+  } catch {
+    return null;
+  }
+}
 
 const TAG_COLORS = [
   'bg-rose-100 text-rose-700 border-rose-200',
@@ -67,6 +87,7 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
   const [showECheck, setShowECheck] = useState(false);
   const [showBulkECheck, setShowBulkECheck] = useState(false);
   const [showCost, setShowCost] = useState(false);
+  const [deepLinkFundraiserId, setDeepLinkFundraiserId] = useState(null);
 
   const fundraiserLabel = task.fundraiser
     ? `${task.fundraiser.organization} — ${task.fundraiser.team}`
@@ -160,7 +181,7 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
               </span>
             ) : (
               <button
-                onClick={(e) => { e.stopPropagation(); if (isEmailTask) { setShowEmail(true); } else if (isBulkECheckTask) { setShowBulkECheck(true); } else if (isSingleECheckTask) { setShowECheck(true); } else if (isCostTask) { setShowCost(true); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
+                onClick={(e) => { e.stopPropagation(); if (isEmailTask) { setShowEmail(true); } else if (isBulkECheckTask) { setShowBulkECheck(true); } else if (isSingleECheckTask) { setShowECheck(true); } else if (isCostTask) { setShowCost(true); } else if (isPortalDeepLink(task.action_url)) { setDeepLinkFundraiserId(extractFundraiserIdFromUrl(task.action_url)); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
                 className="inline-flex items-center text-xs font-bold text-white px-3 py-1.5 rounded-lg transition-colors shadow-md hover:shadow-lg"
                 style={{ backgroundColor: '#ff5000' }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
@@ -226,6 +247,15 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
         <ProductCostModal
           task={task}
           onClose={() => setShowCost(false)}
+          onRefresh={onRefresh}
+        />,
+        document.body
+      )}
+
+      {deepLinkFundraiserId && createPortal(
+        <FundraiserDetailModal
+          recordId={deepLinkFundraiserId}
+          onClose={() => setDeepLinkFundraiserId(null)}
           onRefresh={onRefresh}
         />,
         document.body

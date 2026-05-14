@@ -7,6 +7,7 @@ const s = StyleSheet.create({
   line: { height: 1, backgroundColor: COLORS.orange, marginBottom: 6 },
   text: {
     fontFamily: FONTS.body,
+    fontWeight: 400,
     fontSize: SIZES.small,
     color: COLORS.inkMuted,
   },

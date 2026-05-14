@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import { api } from './api/client';
 import AuthGate from './components/AuthGate';
 import Sidebar from './components/Sidebar';
+import FundraiserDetailModal from './components/FundraiserDetailModal';
 import CashChat from './components/CashChat';
 import Dashboard from './pages/Dashboard';
 import Upcoming from './pages/Upcoming';
@@ -35,6 +36,19 @@ export default function App() {
 }
 
 function AuthenticatedApp({ onLogout }) {
+  const [deepLinkFundraiserId, setDeepLinkFundraiserId] = useState(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fundraiserId = params.get('fundraiser');
+    if (fundraiserId && fundraiserId.startsWith('rec')) {
+      setDeepLinkFundraiserId(fundraiserId);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('fundraiser');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, []);
+
   const { data: tasks, loading, error, refresh } = usePolling(() => api.tasks.list());
   const { data: upcomingData } = usePolling(() => api.fundraisers.upcomingCount());
   const { data: activeData } = usePolling(() => api.fundraisers.activeCount());
@@ -71,6 +85,13 @@ function AuthenticatedApp({ onLogout }) {
         </Routes>
       </main>
       <CashChat />
+
+      {deepLinkFundraiserId && (
+        <FundraiserDetailModal
+          recordId={deepLinkFundraiserId}
+          onClose={() => setDeepLinkFundraiserId(null)}
+        />
+      )}
     </div>
   );
 }

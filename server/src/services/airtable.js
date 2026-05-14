@@ -116,6 +116,8 @@ const FUNDRAISER_FIELDS = {
   md_cut: 'fldIR7omnYF6fRZNb',
   // Per-line-item: primary product
   pp_gross: 'fldUEWqqQrxgGBWhW',
+  pp_gross_manual: 'fldWSgjOoFLij0LHJ',
+  pp_gross_automd: 'fldPA0s3g4bfSrHYR',
   pp_team_profit: 'fldArYeUCDT4izAtR',
   pp_rep_comm: 'fldqf0jVqSi6n1Qh2',
   pp_invoice_amount: 'fld7oKFJSITyUeoSu',

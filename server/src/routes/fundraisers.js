@@ -866,6 +866,11 @@ router.get('/:recordId', async (req, res) => {
       rep_photo,
       primary_contact,
       accounting_contact,
+      // Product split fields
+      pp_gross_manual: f[FUNDRAISER_FIELDS.pp_gross_manual] ?? null,
+      pp_gross_automd: f[FUNDRAISER_FIELDS.pp_gross_automd] ?? null,
+      sp_gross: f[FUNDRAISER_FIELDS.sp_gross] ?? null,
+      has_secondary: (f[FUNDRAISER_FIELDS.product_secondary] || []).length > 0,
       // Financials
       gross_sales_md: f[FUNDRAISER_FIELDS.gross_sales_md] || null,
       final_team_profit: f[FUNDRAISER_FIELDS.final_team_profit] || null,
@@ -967,6 +972,8 @@ router.patch('/:recordId', async (req, res) => {
     // Currency fields
     if (updates.gross_sales_md !== undefined) fields[FUNDRAISER_FIELDS.gross_sales_md] = updates.gross_sales_md !== null && updates.gross_sales_md !== '' ? Number(updates.gross_sales_md) : null;
     if (updates.md_payout !== undefined) fields[FUNDRAISER_FIELDS.md_payout] = updates.md_payout !== null && updates.md_payout !== '' ? Number(updates.md_payout) : null;
+    if (updates.pp_gross_manual !== undefined) fields[FUNDRAISER_FIELDS.pp_gross_manual] = updates.pp_gross_manual !== null && updates.pp_gross_manual !== '' ? Number(updates.pp_gross_manual) : null;
+    if (updates.sp_gross !== undefined) fields[FUNDRAISER_FIELDS.sp_gross] = updates.sp_gross !== null && updates.sp_gross !== '' ? Number(updates.sp_gross) : null;
     // Linked record fields
     if (updates.rep_id !== undefined) fields[FUNDRAISER_FIELDS.rep] = updates.rep_id ? [updates.rep_id] : [];
     if (updates.primary_contact_id !== undefined) fields[FUNDRAISER_FIELDS.primary_contact] = updates.primary_contact_id ? [updates.primary_contact_id] : [];

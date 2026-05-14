@@ -239,6 +239,7 @@ export async function fetchFundraiserDataForAgreement(recordId) {
     has_tp_donations: hasTpDonations,
     donations_product_name: donationsProduct?.name || '',
     donations_product_profit_pct: donationsProduct?.profitPct ?? null,
+    season: resolveLookup(f[F.season]) || '',
     additional_notes: additionalNotes,
   };
 }
@@ -246,7 +247,7 @@ export async function fetchFundraiserDataForAgreement(recordId) {
 export async function generateAgreementForFundraiser(recordId) {
   const data = await fetchFundraiserDataForAgreement(recordId);
   const buffer = await renderAgreement(data);
-  const filename = `Fundraiser Agreement - ${data.organization} - ${data.team}.pdf`;
+  const filename = `FA - ${data.organization} ${data.team} - ${data.season}.pdf`;
   const result = await uploadAttachmentReplacing(
     recordId,
     FUNDRAISER_FIELDS.fundraiser_agreement_unsigned,

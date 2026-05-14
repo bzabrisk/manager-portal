@@ -87,7 +87,7 @@ function ProgressBar({ kickoff, end }) {
   );
 }
 
-function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerate, awaitingMdPayout, polling, isStale, airtableUrl }) {
+function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerate, awaitingMdPayout, polling, isStale, airtableUrl, isMdFundraiser = true, blocked, blockedReason }) {
   const hasFile = files && files.length > 0;
 
   if (hasFile) {
@@ -111,8 +111,9 @@ function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerat
           </div>
           <button
             onClick={onGenerate}
-            disabled={generating}
-            className={`text-xs font-medium px-3 py-1.5 rounded border disabled:opacity-50 shrink-0 ${isStale ? 'border-amber-300 text-amber-700 hover:bg-amber-100' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            disabled={generating || blocked}
+            title={blocked ? blockedReason : undefined}
+            className={`text-xs font-medium px-3 py-1.5 rounded border disabled:opacity-50 disabled:cursor-not-allowed shrink-0 ${isStale ? 'border-amber-300 text-amber-700 hover:bg-amber-100' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
           >
             {generating ? 'Regenerating...' : 'Regenerate'}
           </button>
@@ -136,6 +137,27 @@ function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerat
       <div className="border border-dashed border-slate-200 rounded-lg p-3 text-center">
         <p className="text-xs text-slate-400 mb-1">{label}</p>
         <p className="text-xs text-slate-400 italic">Will auto-generate once MD Payout Report is uploaded.</p>
+      </div>
+    );
+  }
+
+  // Non-MD fundraiser with no file: always show Generate button
+  if (!isMdFundraiser) {
+    return (
+      <div>
+        <button
+          onClick={onGenerate}
+          disabled={generating || blocked}
+          title={blocked ? blockedReason : undefined}
+          className="w-full h-full bg-[#ff5000] hover:bg-[#e64600] active:bg-[#cc3f00] text-white font-semibold py-4 px-4 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <FileText size={18} />
+          {generating ? 'Generating...' : `Generate ${label}`}
+        </button>
+        {!isDataReady && (
+          <p className="text-xs text-slate-400 mt-1.5 text-center">Make sure Qty Sold is entered above before generating.</p>
+        )}
+        {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
       </div>
     );
   }
@@ -170,7 +192,8 @@ function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerat
         <>
           <button
             onClick={onGenerate}
-            disabled={generating || !isDataReady}
+            disabled={generating || !isDataReady || blocked}
+            title={blocked ? blockedReason : undefined}
             className="w-full h-full bg-[#ff5000] hover:bg-[#e64600] active:bg-[#cc3f00] text-white font-semibold py-4 px-4 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <FileText size={18} />
@@ -179,6 +202,101 @@ function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerat
           {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
         </>
       )}
+    </div>
+  );
+}
+
+function ManualProductSplitCallout({ data, onSaved }) {
+  const [ppInput, setPpInput] = useState(data.pp_gross_manual ?? '');
+  const [spInput, setSpInput] = useState(data.sp_gross ?? '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const referenceTotal = data.pp_gross_automd;
+
+  const handleSave = async () => {
+    setError('');
+    const pp = parseFloat(ppInput);
+    const sp = parseFloat(spInput);
+    if (isNaN(pp) || isNaN(sp) || pp < 0 || sp < 0) {
+      setError('Both fields must be valid positive numbers.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.fundraisers.update(data.id, { pp_gross_manual: pp, sp_gross: sp });
+      await onSaved();
+    } catch (err) {
+      setError(err.message || 'Failed to save.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-3">
+      <div className="flex items-start gap-2.5 mb-3">
+        <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-amber-900 mb-1">
+            Two-product fundraiser — manual split needed
+          </p>
+          <p className="text-xs text-amber-800 leading-relaxed">
+            The MD Payout Report combines product totals into one number, so the breakdown can't be detected automatically. Please enter how much of the combined total came from each product before generating reports.
+          </p>
+          {referenceTotal != null && (
+            <p className="text-xs text-amber-800 mt-2">
+              Combined total from MD Payout Report: <strong>${Number(referenceTotal).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="space-y-2 ml-7">
+        <div>
+          <label className="block text-xs font-medium text-amber-900 mb-1">
+            Primary — {data.product_primary_string || 'product'}
+          </label>
+          <div className="relative">
+            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-amber-700 text-sm">$</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={ppInput}
+              onChange={e => setPpInput(e.target.value)}
+              disabled={saving}
+              className="w-full pl-6 pr-2 py-1.5 text-sm border border-amber-300 rounded bg-white focus:outline-none focus:border-amber-500"
+              placeholder="0.00"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-amber-900 mb-1">
+            Secondary — {data.product_secondary_name || 'product'}
+          </label>
+          <div className="relative">
+            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-amber-700 text-sm">$</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={spInput}
+              onChange={e => setSpInput(e.target.value)}
+              disabled={saving}
+              className="w-full pl-6 pr-2 py-1.5 text-sm border border-amber-300 rounded bg-white focus:outline-none focus:border-amber-500"
+              placeholder="0.00"
+            />
+          </div>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="mt-2 px-4 py-1.5 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded shadow-sm disabled:opacity-50"
+        >
+          {saving ? 'Saving...' : 'Save split'}
+        </button>
+        {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+      </div>
     </div>
   );
 }
@@ -516,6 +634,10 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const currentMdPayoutId = data.md_payout_report?.[0]?.id || null;
   const fprStale = !!(hasFpr && currentMdPayoutId && data.fpr_md_payout_source_id && data.fpr_md_payout_source_id !== currentMdPayoutId);
   const rcrStale = !!(hasRcr && currentMdPayoutId && data.rcr_md_payout_source_id && data.rcr_md_payout_source_id !== currentMdPayoutId);
+  const hasSecondary = data.has_secondary;
+  const needsManualProductSplit = isMdFundraiser
+    && hasSecondary
+    && (!data.pp_gross_manual || data.pp_gross_manual === 0 || data.sp_gross == null || data.sp_gross === 0);
 
   return (
     <>
@@ -1247,6 +1369,11 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                 </div>
               )}
 
+              {/* Manual product split callout for two-product MD fundraisers */}
+              {needsManualProductSplit && (
+                <ManualProductSplitCallout data={data} onSaved={fetchDetail} />
+              )}
+
               {/* Row 2: FPR and RCR */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                 <ReportDocSlot
@@ -1260,6 +1387,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                   polling={pollingForReports && !data.fundraiser_profit_report?.length}
                   isStale={fprStale}
                   airtableUrl={`${AIRTABLE_FUNDRAISER_URL_BASE}/${data.id}`}
+                  isMdFundraiser={isMdFundraiser}
+                  blocked={needsManualProductSplit}
+                  blockedReason="Enter the product split above first."
                 />
                 <ReportDocSlot
                   label="Rep Commission Report"
@@ -1272,6 +1402,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                   polling={pollingForReports && !data.rep_commission_report?.length}
                   isStale={rcrStale}
                   airtableUrl={`${AIRTABLE_FUNDRAISER_URL_BASE}/${data.id}`}
+                  isMdFundraiser={isMdFundraiser}
+                  blocked={needsManualProductSplit}
+                  blockedReason="Enter the product split above first."
                 />
               </div>
 

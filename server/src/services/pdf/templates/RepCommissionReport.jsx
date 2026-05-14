@@ -12,6 +12,7 @@ import Footer from '../components/Footer.jsx';
 const s = StyleSheet.create({
   page: {
     fontFamily: FONTS.body,
+    fontWeight: 400,
     fontSize: 10,
     paddingTop: PAGE.paddingTop,
     paddingBottom: PAGE.paddingBottom,
