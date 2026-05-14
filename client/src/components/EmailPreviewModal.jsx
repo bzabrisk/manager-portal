@@ -259,7 +259,14 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
               {hasAgreement ? (
                 <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
                   <Paperclip size={14} className="text-slate-400" />
-                  <span>{agreementFilename || 'Fundraiser-Agreement.pdf'}</span>
+                  <a
+                    href={agreementUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#ff5000] hover:underline"
+                  >
+                    {agreementFilename || 'Fundraiser-Agreement.pdf'}
+                  </a>
                   <span className="text-xs text-green-600 font-medium ml-auto">✓ Will be attached</span>
                 </div>
               ) : (

@@ -18,10 +18,11 @@ export function registerFonts() {
   Font.register({
     family: 'Satoshi',
     fonts: [
-      { src: join(fontsDir, 'Satoshi-Variable.ttf') },
-      { src: join(fontsDir, 'Satoshi-Variable.ttf'), fontWeight: 500 },
-      { src: join(fontsDir, 'Satoshi-Variable.ttf'), fontWeight: 700 },
-      { src: join(fontsDir, 'Satoshi-Variable.ttf'), fontWeight: 900 },
+      { src: join(fontsDir, 'Satoshi-Light.ttf'), fontWeight: 300 },
+      { src: join(fontsDir, 'Satoshi-Regular.ttf'), fontWeight: 400 },
+      { src: join(fontsDir, 'Satoshi-Medium.ttf'), fontWeight: 500 },
+      { src: join(fontsDir, 'Satoshi-Bold.ttf'), fontWeight: 700 },
+      { src: join(fontsDir, 'Satoshi-Black.ttf'), fontWeight: 900 },
     ],
   });
   Font.register({
@@ -36,5 +37,6 @@ export function registerFonts() {
       { src: join(fontsDir, 'GreatVibes-Regular.ttf') },
     ],
   });
+  Font.registerHyphenationCallback(word => [word]);
   registered = true;
 }

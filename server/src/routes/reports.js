@@ -11,6 +11,7 @@ import {
   uploadAttachmentReplacing,
 } from '../services/airtable.js';
 import { renderFpr, renderRcr, renderAgreement } from '../services/pdf/render.js';
+import { getTierNotes } from '../constants/tieredProducts.js';
 
 const router = Router();
 
@@ -160,24 +161,7 @@ function buildAgreementNotes({ agreement_notes_manual, primary_product_name }) {
   if (agreement_notes_manual && agreement_notes_manual.trim()) {
     return agreement_notes_manual.trim();
   }
-  if (primary_product_name === 'Team Cards - Traditional Upfront Purchase') {
-    return [
-      '*Tiered pricing based on cards sold:',
-      '  \u2022 1500+ cards: 80%',
-      '  \u2022 1000\u20131499 cards: 76%',
-      '  \u2022 800\u2013999 cards: 72%',
-      '  \u2022 Under 800 cards: 68%',
-    ].join('\n');
-  }
-  if (primary_product_name === 'Team Cards - Traditional No-Risk' || primary_product_name === 'Team Cards - MD Digital') {
-    return [
-      '*Tiered pricing based on cards sold:',
-      '  \u2022 1000+ cards: 64%',
-      '  \u2022 500\u2013999 cards: 60%',
-      '  \u2022 Under 500 cards: 56%',
-    ].join('\n');
-  }
-  return '';
+  return getTierNotes(primary_product_name);
 }
 
 const PRODUCT_PROFIT_PCT_FIELD = 'fldgThkrxMzkurPK7';
@@ -228,7 +212,7 @@ export async function fetchFundraiserDataForAgreement(recordId) {
 
   const additionalNotes = buildAgreementNotes({
     agreement_notes_manual: f[F.agreement_notes] || '',
-    primary_product_name: productPrimaryString,
+    primary_product_name: primaryProduct?.name || '',
   });
 
   return {

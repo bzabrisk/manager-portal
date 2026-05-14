@@ -516,10 +516,6 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const currentMdPayoutId = data.md_payout_report?.[0]?.id || null;
   const fprStale = !!(hasFpr && currentMdPayoutId && data.fpr_md_payout_source_id && data.fpr_md_payout_source_id !== currentMdPayoutId);
   const rcrStale = !!(hasRcr && currentMdPayoutId && data.rcr_md_payout_source_id && data.rcr_md_payout_source_id !== currentMdPayoutId);
-  const staticDocuments = [
-    { label: 'Fundraiser Agreement (Signed)', files: data.fundraiser_agreement_final },
-    { label: 'Invoice', files: data.invoice_attachment },
-  ];
 
   return (
     <>
@@ -1279,7 +1275,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                 />
               </div>
 
-              {/* Row 3: Fundraiser Agreement (Unsigned) — generatable */}
+              {/* Row 3: Unsigned Agreement + Signed Agreement */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                 <ReportDocSlot
                   label="Fundraiser Agreement (Unsigned)"
@@ -1289,38 +1285,62 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                   isDataReady={true}
                   onGenerate={() => handleGenerateReport('agreement')}
                 />
+                <div>
+                  {data.fundraiser_agreement_final && data.fundraiser_agreement_final.length > 0 ? (
+                    <div className="border border-slate-200 rounded-lg p-3">
+                      <p className="text-xs text-slate-400 mb-1">Fundraiser Agreement (Signed)</p>
+                      {data.fundraiser_agreement_final.map((file, i) => (
+                        <a
+                          key={i}
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-sm text-[#ff5000] hover:underline min-w-0"
+                        >
+                          <FileText size={14} className="shrink-0" />
+                          <span className="break-all">{file.filename}</span>
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="border border-dashed border-slate-200 rounded-lg p-3 text-center">
+                      <p className="text-xs text-slate-400 mb-1">Fundraiser Agreement (Signed)</p>
+                      <div className="flex items-center justify-center gap-1.5 text-xs text-slate-300">
+                        <FileText size={14} /> No file uploaded
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Row 4: Signed Agreement and Invoice */}
+              {/* Row 4: Invoice */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                {staticDocuments.map(doc => (
-                  <div key={doc.label}>
-                    {doc.files && doc.files.length > 0 ? (
-                      <div className="border border-slate-200 rounded-lg p-3">
-                        <p className="text-xs text-slate-400 mb-1">{doc.label}</p>
-                        {doc.files.map((file, i) => (
-                          <a
-                            key={i}
-                            href={file.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 text-sm text-[#ff5000] hover:underline min-w-0"
-                          >
-                            <FileText size={14} className="shrink-0" />
-                            <span className="break-all">{file.filename}</span>
-                          </a>
-                        ))}
+                <div>
+                  {data.invoice_attachment && data.invoice_attachment.length > 0 ? (
+                    <div className="border border-slate-200 rounded-lg p-3">
+                      <p className="text-xs text-slate-400 mb-1">Invoice</p>
+                      {data.invoice_attachment.map((file, i) => (
+                        <a
+                          key={i}
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-sm text-[#ff5000] hover:underline min-w-0"
+                        >
+                          <FileText size={14} className="shrink-0" />
+                          <span className="break-all">{file.filename}</span>
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="border border-dashed border-slate-200 rounded-lg p-3 text-center">
+                      <p className="text-xs text-slate-400 mb-1">Invoice</p>
+                      <div className="flex items-center justify-center gap-1.5 text-xs text-slate-300">
+                        <FileText size={14} /> No file uploaded
                       </div>
-                    ) : (
-                      <div className="border border-dashed border-slate-200 rounded-lg p-3 text-center">
-                        <p className="text-xs text-slate-400 mb-1">{doc.label}</p>
-                        <div className="flex items-center justify-center gap-1.5 text-xs text-slate-300">
-                          <FileText size={14} /> No file uploaded
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </section>
 
