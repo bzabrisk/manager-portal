@@ -47,6 +47,8 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
   const [agreementFilename, setAgreementFilename] = useState(null);
   const [hasAgreement, setHasAgreement] = useState(false);
   const [signature, setSignature] = useState('');
+  const [fundraiserId, setFundraiserId] = useState(null);
+  const [generatingAgreement, setGeneratingAgreement] = useState(false);
   const bodyRef = useRef(null);
 
   useEffect(() => {
@@ -64,6 +66,7 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
         setAgreementFilename(data.agreementFilename || null);
         setHasAgreement(!!data.hasAgreement);
         setSignature(data.signature || '');
+        setFundraiserId(data.fundraiserId || null);
       })
       .catch(err => setError(err.message || 'Failed to load email preview'))
       .finally(() => setLoading(false));
@@ -94,6 +97,28 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
     } catch (err) {
       setSendError(err.message || 'Failed to send email');
       setSending(false);
+    }
+  };
+
+  const handleGenerateAgreement = async () => {
+    if (!fundraiserId) return;
+    setGeneratingAgreement(true);
+    setSendError('');
+    try {
+      const res = await fetch(`/api/reports/agreement/${fundraiserId}`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to generate');
+      // Refetch the preview to pick up the new attachment
+      const preview = await api.email.preview(task.id);
+      setHasAgreement(!!preview.hasAgreement);
+      setAgreementUrl(preview.agreementUrl || null);
+      setAgreementFilename(preview.agreementFilename || null);
+    } catch (err) {
+      setSendError('Could not generate agreement: ' + (err.message || 'unknown error'));
+    } finally {
+      setGeneratingAgreement(false);
     }
   };
 
@@ -240,7 +265,16 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
               ) : (
                 <div className="flex items-center gap-2 text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                   <AlertTriangle size={14} className="text-amber-500 flex-shrink-0" />
-                  <span className="text-amber-700">Fundraiser Agreement not uploaded in Airtable — email will send without attachment</span>
+                  <span className="text-amber-700 flex-1">
+                    Fundraiser Agreement not generated yet. Generate it before sending.
+                  </span>
+                  <button
+                    onClick={handleGenerateAgreement}
+                    disabled={generatingAgreement}
+                    className="text-xs font-medium px-3 py-1.5 rounded bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 shrink-0"
+                  >
+                    {generatingAgreement ? 'Generating...' : 'Generate Now'}
+                  </button>
                 </div>
               )}
             </div>
@@ -267,8 +301,8 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
               </button>
               <button
                 onClick={handleSend}
-                disabled={!hasToRecipients || sending || sent}
-                title={!hasToRecipients ? 'Add at least one recipient to To' : undefined}
+                disabled={!hasToRecipients || !hasAgreement || sending || sent}
+                title={!hasToRecipients ? 'Add at least one recipient to To' : !hasAgreement ? 'Generate the Fundraiser Agreement first' : undefined}
                 className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50"
                 style={{ backgroundColor: '#ff5000' }}
                 onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04800'; }}
