@@ -143,7 +143,7 @@ router.get('/preview/:taskId', async (req, res) => {
 
     const template = EMAIL_TEMPLATES[templateId];
 
-    const agreementAttachments = fr[FUNDRAISER_FIELDS.fundraiser_agreement] || [];
+    const agreementAttachments = fr[FUNDRAISER_FIELDS.fundraiser_agreement_unsigned] || [];
     const hasAgreement = agreementAttachments.length > 0;
     const agreementUrl = hasAgreement ? agreementAttachments[0].url : null;
     const agreementFilename = hasAgreement ? agreementAttachments[0].filename : null;

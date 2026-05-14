@@ -2,12 +2,15 @@ import { Router } from 'express';
 import {
   FUNDRAISER_FIELDS,
   REP_FIELDS,
+  CLIENT_BOOK_FIELDS,
+  ACCOUNTING_CONTACT_FIELDS,
+  PRODUCT_FIELDS,
   airtableGet,
   airtableUpdate,
   airtableFetchByIds,
   uploadAttachmentReplacing,
 } from '../services/airtable.js';
-import { renderFpr, renderRcr } from '../services/pdf/render.js';
+import { renderFpr, renderRcr, renderAgreement } from '../services/pdf/render.js';
 
 const router = Router();
 
@@ -148,6 +151,133 @@ router.post('/rcr/:fundraiserId', async (req, res) => {
   } catch (err) {
     console.error('Error generating RCR:', err);
     res.status(500).json({ error: err.message || 'Failed to generate RCR.' });
+  }
+});
+
+// --- Fundraiser Agreement ---
+
+function buildAgreementNotes({ agreement_notes_manual, primary_product_name }) {
+  if (agreement_notes_manual && agreement_notes_manual.trim()) {
+    return agreement_notes_manual.trim();
+  }
+  if (primary_product_name === 'Team Cards - Traditional Upfront Purchase') {
+    return [
+      '*Tiered pricing based on cards sold:',
+      '  \u2022 1500+ cards: 80%',
+      '  \u2022 1000\u20131499 cards: 76%',
+      '  \u2022 800\u2013999 cards: 72%',
+      '  \u2022 Under 800 cards: 68%',
+    ].join('\n');
+  }
+  if (primary_product_name === 'Team Cards - Traditional No-Risk' || primary_product_name === 'Team Cards - MD Digital') {
+    return [
+      '*Tiered pricing based on cards sold:',
+      '  \u2022 1000+ cards: 64%',
+      '  \u2022 500\u2013999 cards: 60%',
+      '  \u2022 Under 500 cards: 56%',
+    ].join('\n');
+  }
+  return '';
+}
+
+const PRODUCT_PROFIT_PCT_FIELD = 'fldgThkrxMzkurPK7';
+
+export async function fetchFundraiserDataForAgreement(recordId) {
+  const record = await airtableGet('fundraisers', recordId);
+  const f = record.fields;
+  const F = FUNDRAISER_FIELDS;
+
+  const productPrimaryString = resolveLookup(f[F.product_primary_string]) || '';
+
+  // Collect all linked record IDs
+  const repIds = f[F.rep] || [];
+  const primaryContactIds = f[F.primary_contact] || [];
+  const accountingContactIds = f[F.accounting_contact] || [];
+  const primaryProductIds = f[F.product_primary] || [];
+  const secondaryProductIds = f[F.product_secondary] || [];
+  const donationsProductIds = f[F.tp_mddonations] || [];
+
+  const allProductIds = [...new Set([...primaryProductIds, ...secondaryProductIds, ...donationsProductIds])];
+
+  // Fetch linked records in parallel
+  const [reps, primaryContacts, accountingContacts, products] = await Promise.all([
+    repIds.length > 0 ? airtableFetchByIds('reps', repIds) : [],
+    primaryContactIds.length > 0 ? airtableFetchByIds('client_book', primaryContactIds) : [],
+    accountingContactIds.length > 0 ? airtableFetchByIds('accounting_contact', accountingContactIds) : [],
+    allProductIds.length > 0 ? airtableFetchByIds('products', allProductIds) : [],
+  ]);
+
+  const productMap = {};
+  for (const p of products) {
+    productMap[p.id] = {
+      name: p.fields[PRODUCT_FIELDS.name] || '',
+      profitPct: p.fields[PRODUCT_PROFIT_PCT_FIELD] ?? null,
+    };
+  }
+
+  const repName = reps[0]?.fields?.[REP_FIELDS.name] || '';
+  const pcName = primaryContacts[0]?.fields?.[CLIENT_BOOK_FIELDS.name] || '';
+  const pcEmail = primaryContacts[0]?.fields?.[CLIENT_BOOK_FIELDS.email] || '';
+  const acName = accountingContacts[0]?.fields?.[ACCOUNTING_CONTACT_FIELDS.name] || '';
+  const acEmail = accountingContacts[0]?.fields?.[ACCOUNTING_CONTACT_FIELDS.email] || '';
+
+  const primaryProduct = primaryProductIds[0] ? productMap[primaryProductIds[0]] : null;
+  const secondaryProduct = secondaryProductIds[0] ? productMap[secondaryProductIds[0]] : null;
+  const donationsProduct = donationsProductIds[0] ? productMap[donationsProductIds[0]] : null;
+  const hasTpDonations = donationsProductIds.length > 0;
+
+  const additionalNotes = buildAgreementNotes({
+    agreement_notes_manual: f[F.agreement_notes] || '',
+    primary_product_name: productPrimaryString,
+  });
+
+  return {
+    id: recordId,
+    organization: f[F.organization] || '',
+    team: f[F.team] || '',
+    kickoff_date: f[F.kickoff_date] || '',
+    end_date: f[F.end_date] || '',
+    asb_boosters: f[F.asb_boosters] || '',
+    rep_pays_asb_fee: f[F.rep_pays_asb_fee] || false,
+    fundraiser_id: f[F.fundraiser_id] || '',
+    product_primary_string: productPrimaryString,
+    rep_name: repName,
+    primary_contact_name: pcName,
+    primary_contact_email: pcEmail,
+    accounting_contact_name: acName,
+    accounting_contact_email: acEmail,
+    primary_product_name: primaryProduct?.name || '',
+    primary_product_profit_pct: primaryProduct?.profitPct ?? null,
+    secondary_product_name: secondaryProduct?.name || '',
+    secondary_product_profit_pct: secondaryProduct?.profitPct ?? null,
+    has_tp_donations: hasTpDonations,
+    donations_product_name: donationsProduct?.name || '',
+    donations_product_profit_pct: donationsProduct?.profitPct ?? null,
+    additional_notes: additionalNotes,
+  };
+}
+
+export async function generateAgreementForFundraiser(recordId) {
+  const data = await fetchFundraiserDataForAgreement(recordId);
+  const buffer = await renderAgreement(data);
+  const filename = `Fundraiser Agreement - ${data.organization} - ${data.team}.pdf`;
+  const result = await uploadAttachmentReplacing(
+    recordId,
+    FUNDRAISER_FIELDS.fundraiser_agreement_unsigned,
+    buffer,
+    filename,
+    'application/pdf',
+  );
+  return result;
+}
+
+router.post('/agreement/:fundraiserId', async (req, res) => {
+  try {
+    const result = await generateAgreementForFundraiser(req.params.fundraiserId);
+    res.json({ success: true, attachment: result });
+  } catch (err) {
+    console.error('Error generating Fundraiser Agreement:', err);
+    res.status(500).json({ error: err.message || 'Failed to generate Fundraiser Agreement.' });
   }
 });
 

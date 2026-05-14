@@ -30,5 +30,11 @@ export function registerFonts() {
       { src: join(fontsDir, 'MangoGrotesque-BoldItalic.ttf'), fontWeight: 700, fontStyle: 'italic' },
     ],
   });
+  Font.register({
+    family: 'GreatVibes',
+    fonts: [
+      { src: join(fontsDir, 'GreatVibes-Regular.ttf') },
+    ],
+  });
   registered = true;
 }

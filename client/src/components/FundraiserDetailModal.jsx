@@ -512,7 +512,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const fprStale = !!(hasFpr && currentMdPayoutId && data.fpr_md_payout_source_id && data.fpr_md_payout_source_id !== currentMdPayoutId);
   const rcrStale = !!(hasRcr && currentMdPayoutId && data.rcr_md_payout_source_id && data.rcr_md_payout_source_id !== currentMdPayoutId);
   const documents = [
-    { label: 'Fundraiser Agreement', files: data.fundraiser_agreement },
+    { label: 'Fundraiser Agreement (Signed)', files: data.fundraiser_agreement_final },
     { label: 'Invoice', files: data.invoice_attachment },
   ];
 

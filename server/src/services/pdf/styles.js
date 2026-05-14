@@ -15,6 +15,7 @@ export const FONTS = {
   heading: 'Nohemi',
   body: 'Satoshi',
   alt: 'MangoGrotesque',
+  signature: 'GreatVibes',
 };
 
 export const SIZES = {

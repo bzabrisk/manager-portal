@@ -903,7 +903,9 @@ router.get('/:recordId', async (req, res) => {
       rep_paid: f[FUNDRAISER_FIELDS.rep_paid] || false,
       invoice_payment_received: f[FUNDRAISER_FIELDS.invoice_payment_received] || false,
       // Documents
-      fundraiser_agreement: extractAttachment(FUNDRAISER_FIELDS.fundraiser_agreement),
+      fundraiser_agreement_unsigned: extractAttachment(FUNDRAISER_FIELDS.fundraiser_agreement_unsigned),
+      fundraiser_agreement_final: extractAttachment(FUNDRAISER_FIELDS.fundraiser_agreement_final),
+      agreement_notes: f[FUNDRAISER_FIELDS.agreement_notes] || '',
       fundraiser_profit_report: extractAttachment(FUNDRAISER_FIELDS.fundraiser_profit_report),
       rep_commission_report: extractAttachment(FUNDRAISER_FIELDS.rep_commission_report),
       invoice_attachment: extractAttachment(FUNDRAISER_FIELDS.invoice_attachment),
@@ -945,6 +947,7 @@ router.patch('/:recordId', async (req, res) => {
     if (updates.invoice_payment_received !== undefined) fields[FUNDRAISER_FIELDS.invoice_payment_received] = updates.invoice_payment_received;
     // Notes
     if (updates.admin_notes !== undefined) fields[FUNDRAISER_FIELDS.admin_notes] = updates.admin_notes;
+    if (updates.agreement_notes !== undefined) fields[FUNDRAISER_FIELDS.agreement_notes] = updates.agreement_notes;
     // Status override
     if (updates.manual_status_override !== undefined) fields[FUNDRAISER_FIELDS.manual_status_override] = updates.manual_status_override;
     // Text fields
