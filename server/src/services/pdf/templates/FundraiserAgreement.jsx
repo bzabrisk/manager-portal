@@ -9,7 +9,6 @@ const TIERED_PRODUCTS = new Set([
   'Team Cards - Traditional No-Risk',
   'Team Cards - MD Digital',
 ]);
-const isTiered = (name) => TIERED_PRODUCTS.has(name);
 
 const fmtDate = (d) => {
   if (!d) return 'TBD';
@@ -22,233 +21,237 @@ const s = StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: 8,
     paddingTop: PAGE.paddingTop,
-    paddingBottom: PAGE.paddingBottom,
+    paddingBottom: 30,
   },
   content: {
     paddingHorizontal: PAGE.paddingHorizontal,
     flex: 1,
   },
-  // Top row
-  topRow: {
-    flexDirection: 'row',
-    marginTop: 14,
-    gap: 16,
-  },
-  introCol: {
-    flex: 1,
-  },
-  introText: {
+  // Intro
+  intro: {
     fontFamily: FONTS.body,
     fontSize: 9,
     color: COLORS.ink,
     lineHeight: 1.5,
+    marginTop: 10,
+    marginBottom: 6,
   },
-  detailsBox: {
-    width: '35%',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 8,
-    borderRadius: 3,
+  // Black banner
+  banner: {
+    backgroundColor: COLORS.ink,
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+    marginBottom: 4,
   },
-  detailsTitle: {
+  bannerText: {
+    color: COLORS.white,
     fontFamily: FONTS.body,
     fontWeight: 700,
-    fontSize: 9,
-    color: COLORS.ink,
-    marginBottom: 4,
-  },
-  detailsLine: {
-    fontFamily: FONTS.body,
     fontSize: 8,
-    color: COLORS.ink,
-    marginBottom: 2,
   },
-  // Products mini-table
-  prodTableHeader: {
+  // Two-column layout
+  twoCol: {
     flexDirection: 'row',
-    borderBottomWidth: 0.5,
-    borderBottomColor: COLORS.border,
-    paddingBottom: 2,
-    marginTop: 6,
-    marginBottom: 2,
+    gap: 14,
   },
-  prodTableRow: {
-    flexDirection: 'row',
-    paddingVertical: 1.5,
+  leftCol: {
+    flex: 1,
   },
-  prodName: { flex: 1, fontFamily: FONTS.body, fontSize: 7, color: COLORS.ink },
-  prodPct: { width: 45, textAlign: 'right', fontFamily: FONTS.body, fontSize: 7, color: COLORS.ink },
-  prodHeaderText: { fontFamily: FONTS.body, fontWeight: 700, fontSize: 7, color: COLORS.inkSoft },
-  // Section headers
-  sectionHeader: {
-    fontFamily: FONTS.heading,
-    fontWeight: 900,
-    fontSize: 10,
-    color: COLORS.orange,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginTop: 12,
-    marginBottom: 4,
+  rightCol: {
+    width: '35%',
   },
-  sectionLine: {
-    height: 1,
-    backgroundColor: COLORS.orange,
-    marginBottom: 6,
-  },
-  // List items
+  // Numbered list
   listItem: {
     fontFamily: FONTS.body,
-    fontSize: 8,
+    fontSize: 7.5,
     color: COLORS.ink,
-    lineHeight: 1.5,
-    marginBottom: 3,
-    paddingLeft: 4,
+    lineHeight: 1.45,
+    marginBottom: 1.5,
   },
-  // Checkbox boxes row
+  // Checkbox row
   checkboxRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
-    marginBottom: 6,
+    gap: 6,
+    marginTop: 3,
   },
-  checkboxBox: {
+  checkboxCell: {
     flex: 1,
-    borderWidth: 0.5,
-    borderColor: COLORS.border,
-    borderRadius: 2,
-    padding: 6,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 3,
   },
-  checkboxLabel: {
+  checkboxText: {
+    fontFamily: FONTS.body,
+    fontSize: 6.5,
+    lineHeight: 1.4,
+    flex: 1,
+  },
+  // Details box
+  detailsBox: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  detailsLabel: {
+    fontFamily: FONTS.body,
+    fontSize: 7.5,
+    color: COLORS.inkSoft,
+    width: 55,
+  },
+  detailsValue: {
+    fontFamily: FONTS.body,
+    fontSize: 7.5,
+    color: COLORS.ink,
+  },
+  // Product table
+  prodRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: COLORS.border,
+  },
+  prodName: {
+    flex: 1,
+    fontFamily: FONTS.body,
+    fontSize: 7,
+    color: COLORS.ink,
+  },
+  prodPct: {
+    width: 42,
+    textAlign: 'right',
+    fontFamily: FONTS.body,
+    fontSize: 7,
+    color: COLORS.ink,
+  },
+  // Notes box
+  notesBox: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginTop: 6,
+    minHeight: 30,
+  },
+  notesText: {
     fontFamily: FONTS.body,
     fontSize: 7,
     color: COLORS.ink,
     lineHeight: 1.4,
-  },
-  checkMark: {
-    fontFamily: FONTS.body,
-    fontSize: 9,
-    marginRight: 3,
-  },
-  // Additional notes
-  notesLabel: {
-    fontFamily: FONTS.body,
-    fontWeight: 700,
-    fontSize: 8,
-    color: COLORS.ink,
-    marginTop: 6,
-    marginBottom: 2,
-  },
-  notesText: {
-    fontFamily: FONTS.body,
-    fontSize: 8,
-    color: COLORS.ink,
-    lineHeight: 1.5,
-    marginBottom: 4,
+    padding: 6,
   },
   // Signature block
   sigBlock: {
-    marginTop: 14,
-    gap: 10,
+    marginTop: 10,
   },
   sigRow: {
     flexDirection: 'row',
-    gap: 24,
+    gap: 20,
+    marginBottom: 8,
   },
-  sigCell: {
+  sigCellWide: {
+    flex: 3,
+  },
+  sigCellNarrow: {
+    flex: 2,
+  },
+  sigCellDate: {
     flex: 1,
   },
   sigLine: {
     borderBottomWidth: 0.5,
     borderBottomColor: COLORS.ink,
-    height: 18,
-  },
-  sigLineWithContent: {
-    borderBottomWidth: 0.5,
-    borderBottomColor: COLORS.ink,
-    height: 24,
+    height: 16,
     justifyContent: 'flex-end',
-    paddingBottom: 2,
   },
   sigLabel: {
     fontFamily: FONTS.body,
-    fontSize: 7,
+    fontSize: 6.5,
     color: COLORS.inkMuted,
-    marginTop: 2,
+    marginTop: 1,
   },
   sigName: {
     fontFamily: FONTS.signature,
-    fontSize: 22,
+    fontSize: 20,
     color: COLORS.ink,
+    paddingBottom: 1,
   },
-  sigPrintName: {
+  sigPrint: {
     fontFamily: FONTS.body,
-    fontSize: 9,
-    color: COLORS.ink,
-  },
-  sigDate: {
-    fontFamily: FONTS.body,
-    fontSize: 9,
-    color: COLORS.ink,
-  },
-  // SMASH Records section
-  recordsHeader: {
-    fontFamily: FONTS.body,
-    fontWeight: 700,
     fontSize: 8,
-    color: COLORS.inkSoft,
-    marginTop: 12,
-    marginBottom: 4,
+    color: COLORS.ink,
+    paddingBottom: 1,
   },
-  recordsGrid: {
+  // Records table
+  recordsTable: {
+    marginTop: 4,
+    borderWidth: 0.5,
+    borderColor: COLORS.border,
+  },
+  recordsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-  },
-  recordsCell: {
-    width: '32%',
-    marginBottom: 3,
+    borderBottomWidth: 0.5,
+    borderBottomColor: COLORS.border,
   },
   recordsLabel: {
+    backgroundColor: COLORS.surface,
+    paddingVertical: 2.5,
+    paddingHorizontal: 5,
     fontFamily: FONTS.body,
-    fontSize: 6,
-    color: COLORS.inkMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    fontSize: 7,
+    color: COLORS.inkSoft,
+    fontWeight: 700,
+    borderRightWidth: 0.5,
+    borderRightColor: COLORS.border,
   },
   recordsValue: {
+    backgroundColor: COLORS.white,
+    paddingVertical: 2.5,
+    paddingHorizontal: 5,
     fontFamily: FONTS.body,
-    fontSize: 7.5,
+    fontSize: 7,
     color: COLORS.ink,
-  },
-  recordsValueBold: {
-    fontFamily: FONTS.body,
-    fontWeight: 700,
-    fontSize: 7.5,
-    color: COLORS.ink,
+    borderRightWidth: 0.5,
+    borderRightColor: COLORS.border,
   },
 });
 
-function Checkbox({ checked }) {
+function Banner({ children, style }) {
   return (
-    <View style={{ width: 9, height: 9, borderWidth: 0.8, borderColor: COLORS.ink, marginRight: 4, alignItems: 'center', justifyContent: 'center' }}>
-      {checked && <View style={{ width: 5, height: 5, backgroundColor: COLORS.orange }} />}
+    <View style={[s.banner, style]}>
+      <Text style={s.bannerText}>{children}</Text>
     </View>
   );
 }
 
-function CheckboxInline({ checked }) {
+function BannerTwoCol({ left, right, style }) {
   return (
-    <View style={{ width: 8, height: 8, borderWidth: 0.7, borderColor: COLORS.ink, marginHorizontal: 2, alignItems: 'center', justifyContent: 'center', display: 'inline' }}>
-      {checked && <View style={{ width: 4.5, height: 4.5, backgroundColor: COLORS.orange }} />}
+    <View style={[s.banner, { flexDirection: 'row', justifyContent: 'space-between' }, style]}>
+      <Text style={s.bannerText}>{left}</Text>
+      <Text style={s.bannerText}>{right}</Text>
     </View>
   );
 }
 
-function SectionTitle({ children }) {
+function Checkbox({ checked, size = 7 }) {
   return (
-    <View>
-      <Text style={s.sectionHeader}>{children}</Text>
-      <View style={s.sectionLine} />
+    <View style={{
+      width: size,
+      height: size,
+      borderWidth: 0.8,
+      borderColor: checked ? COLORS.ink : COLORS.inkMuted,
+      marginTop: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    }}>
+      {checked && (
+        <Text style={{ fontSize: size - 2, fontFamily: FONTS.body, fontWeight: 700, color: COLORS.ink, lineHeight: 1 }}>
+          {'✓'}
+        </Text>
+      )}
     </View>
   );
 }
@@ -257,6 +260,7 @@ export default function FundraiserAgreement({ data }) {
   const isWaAsb = data.asb_boosters === 'WA State ASB';
   const isTraditional = (data.product_primary_string || '').includes('Traditional');
 
+  // Checkbox priority: WA ASB > Traditional > Digital
   const checkDigital = !isWaAsb && !isTraditional;
   const checkTraditional = isTraditional && !isWaAsb;
   const checkWaAsb = isWaAsb;
@@ -264,25 +268,25 @@ export default function FundraiserAgreement({ data }) {
   const today = new Date();
   const todayFormatted = `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
 
-  // Products table rows
+  // Build product rows
   const productRows = [];
   if (data.primary_product_name) {
-    const pctStr = data.primary_product_profit_pct != null
-      ? `${Math.round(data.primary_product_profit_pct * 100)}%${isTiered(data.primary_product_name) ? '*' : ''}`
+    const pct = data.primary_product_profit_pct != null
+      ? `${Math.round(data.primary_product_profit_pct * 100)}%${TIERED_PRODUCTS.has(data.primary_product_name) ? '*' : ''}`
       : '\u2014';
-    productRows.push({ name: data.primary_product_name, pct: pctStr });
+    productRows.push({ name: data.primary_product_name, pct });
   }
   if (data.secondary_product_name) {
-    const pctStr = data.secondary_product_profit_pct != null
-      ? `${Math.round(data.secondary_product_profit_pct * 100)}%${isTiered(data.secondary_product_name) ? '*' : ''}`
+    const pct = data.secondary_product_profit_pct != null
+      ? `${Math.round(data.secondary_product_profit_pct * 100)}%${TIERED_PRODUCTS.has(data.secondary_product_name) ? '*' : ''}`
       : '\u2014';
-    productRows.push({ name: data.secondary_product_name, pct: pctStr });
+    productRows.push({ name: data.secondary_product_name, pct });
   }
   if (data.has_tp_donations && data.donations_product_name) {
-    const pctStr = data.donations_product_profit_pct != null
+    const pct = data.donations_product_profit_pct != null
       ? `${Math.round(data.donations_product_profit_pct * 100)}%`
       : '\u2014';
-    productRows.push({ name: data.donations_product_name, pct: pctStr });
+    productRows.push({ name: data.donations_product_name, pct });
   }
 
   return (
@@ -290,170 +294,169 @@ export default function FundraiserAgreement({ data }) {
       <Page size="LETTER" style={s.page}>
         <ReportHeader title="FUNDRAISER AGREEMENT" />
         <View style={s.content}>
-          {/* Top row: intro + details box */}
-          <View style={s.topRow}>
-            <View style={s.introCol}>
-              <Text style={s.introText}>
-                SMASH Fundraising ("SMASH") and Organization identified below enter into the following Fundraiser Agreement for the purpose of providing a Fundraising Program designed to facilitate the Organization's fundraising efforts.
-              </Text>
-            </View>
-            <View style={s.detailsBox}>
-              <Text style={s.detailsTitle}>Fundraiser Details:</Text>
-              <Text style={s.detailsLine}>Start Date: {fmtDate(data.kickoff_date)}</Text>
-              <Text style={s.detailsLine}>End Date: {fmtDate(data.end_date)}</Text>
-              {productRows.length > 0 && (
-                <View>
-                  <View style={s.prodTableHeader}>
-                    <Text style={[s.prodName, s.prodHeaderText]}>Product</Text>
-                    <Text style={[s.prodPct, s.prodHeaderText]}>Profit %</Text>
-                  </View>
-                  {productRows.map((row, i) => (
-                    <View key={i} style={s.prodTableRow}>
-                      <Text style={s.prodName}>{row.name}</Text>
-                      <Text style={s.prodPct}>{row.pct}</Text>
-                    </View>
-                  ))}
+          {/* Intro */}
+          <Text style={s.intro}>
+            SMASH Fundraising ("SMASH") and Organization identified below enter into the following Fundraiser Agreement for the purpose of providing a Fundraising Program designed to facilitate the Organization's fundraising efforts.
+          </Text>
+
+          {/* Two-column: SMASH agrees (left) + Details (right) */}
+          <View style={s.twoCol}>
+            {/* LEFT COLUMN */}
+            <View style={s.leftCol}>
+              <Banner>SMASH agrees to:</Banner>
+              <Text style={s.listItem}>1. Provide a digital fundraising platform, if applicable.</Text>
+              <Text style={s.listItem}>2. Provide any applicable program materials, envelopes, order forms, and pay for any production and printing costs.</Text>
+              <Text style={s.listItem}>3. Obtain necessary merchant discounts for any discount product.</Text>
+              <Text style={s.listItem}>4. Use its best efforts to assist the Organization with its fundraising efforts.</Text>
+              <Text style={s.listItem}>5. To train and provide the Organization with proper materials to conduct the fundraiser.</Text>
+              <Text style={s.listItem}>6. Manage funds as agreed below</Text>
+
+              {/* Three checkbox boxes */}
+              <View style={s.checkboxRow}>
+                <View style={s.checkboxCell}>
+                  <Checkbox checked={checkDigital} />
+                  <Text style={[s.checkboxText, { color: checkDigital ? COLORS.ink : COLORS.inkMuted }]}>
+                    SMASH will send Organization a check for raised profit after fundraiser close (Digital)
+                  </Text>
                 </View>
-              )}
+                <View style={s.checkboxCell}>
+                  <Checkbox checked={checkTraditional} />
+                  <Text style={[s.checkboxText, { color: checkTraditional ? COLORS.ink : COLORS.inkMuted }]}>
+                    Organization will collect funds and SMASH will invoice for gross sales minus Organization profit at close of fundraiser (Traditional)
+                  </Text>
+                </View>
+                <View style={s.checkboxCell}>
+                  <Checkbox checked={checkWaAsb} />
+                  <Text style={[s.checkboxText, { color: checkWaAsb ? COLORS.ink : COLORS.inkMuted, fontWeight: checkWaAsb ? 700 : 400 }]}>
+                    SMASH will perform daily fund sweeps, issue daily checks to Organization for the cumulative gross funds raised, intact, and invoice Organization for costs at fundraiser close (Digital, WA State ASB Compliant)
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* RIGHT COLUMN */}
+            <View style={s.rightCol}>
+              {/* Fundraiser Details box */}
+              <View style={s.detailsBox}>
+                <Banner style={{ marginBottom: 0 }}>Fundraiser Details:</Banner>
+                <View style={s.detailsRow}>
+                  <Text style={s.detailsLabel}>Start Date</Text>
+                  <Text style={s.detailsValue}>{fmtDate(data.kickoff_date)}</Text>
+                </View>
+                <View style={[s.detailsRow, { borderBottomWidth: 0.5, borderBottomColor: COLORS.border, paddingBottom: 4 }]}>
+                  <Text style={s.detailsLabel}>End Date</Text>
+                  <Text style={s.detailsValue}>{fmtDate(data.end_date)}</Text>
+                </View>
+                {/* Product sub-header */}
+                <BannerTwoCol left="Product" right="Profit %" style={{ marginBottom: 0, marginTop: 0 }} />
+                {productRows.map((row, i) => (
+                  <View key={i} style={[s.prodRow, i === productRows.length - 1 && { borderBottomWidth: 0 }]}>
+                    <Text style={s.prodName}>{row.name}</Text>
+                    <Text style={s.prodPct}>{row.pct}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Additional Notes box */}
+              <View style={s.notesBox}>
+                <Banner style={{ marginBottom: 0 }}>Additional Notes:</Banner>
+                {data.additional_notes ? (
+                  <Text style={s.notesText}>{data.additional_notes}</Text>
+                ) : (
+                  <View style={{ height: 16 }} />
+                )}
+              </View>
             </View>
           </View>
-
-          {/* SMASH agrees to */}
-          <SectionTitle>SMASH agrees to:</SectionTitle>
-          <Text style={s.listItem}>1. Provide a digital fundraising platform, if applicable.</Text>
-          <Text style={s.listItem}>2. Provide any applicable program materials, envelopes, order forms, and pay for any production and printing costs.</Text>
-          <Text style={s.listItem}>3. Obtain necessary merchant discounts for any discount product.</Text>
-          <Text style={s.listItem}>4. Use its best efforts to assist the Organization with its fundraising efforts.</Text>
-          <Text style={s.listItem}>5. To train and provide the Organization with proper materials to conduct the fundraiser.</Text>
-          <Text style={s.listItem}>6. Manage funds as agreed below</Text>
-
-          {/* Three checkbox boxes */}
-          <View style={s.checkboxRow}>
-            <View style={s.checkboxBox}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                <Checkbox checked={checkDigital} />
-                <Text style={s.checkboxLabel}>
-                  SMASH will send Organization a check for raised profit after fundraiser close (Digital)
-                </Text>
-              </View>
-            </View>
-            <View style={s.checkboxBox}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                <Checkbox checked={checkTraditional} />
-                <Text style={s.checkboxLabel}>
-                  Organization will collect funds and SMASH will invoice for gross sales minus Organization profit at close of fundraiser (Traditional)
-                </Text>
-              </View>
-            </View>
-            <View style={s.checkboxBox}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                <Checkbox checked={checkWaAsb} />
-                <Text style={s.checkboxLabel}>
-                  SMASH will perform daily fund sweeps, issue daily checks to Organization for the cumulative gross funds raised, intact, and invoice Organization for costs at fundraiser close (Digital, WA State ASB Compliant)
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Additional Notes */}
-          <Text style={s.notesLabel}>Additional Notes:</Text>
-          <Text style={s.notesText}>{data.additional_notes || ' '}</Text>
 
           {/* School/Organization agrees to */}
-          <SectionTitle>School/Organization agrees to:</SectionTitle>
+          <Banner style={{ marginTop: 8 }}>School/Organization agrees to:</Banner>
           <Text style={s.listItem}>1. Allow SMASH to operate the fundraiser within their School or Organization.</Text>
           <Text style={s.listItem}>2. Allow SMASH to use its logo for fundraiser-related purposes, including product design, digital platforms, prize incentives, and to display examples of completed fundraiser materials in future promotional content.</Text>
           <Text style={s.listItem}>3. Use their best efforts to sell the product provided at the specified retail price.</Text>
           <Text style={s.listItem}>4. Manage funds as agreed in the previous section.</Text>
           <Text style={s.listItem}>5. (Specific Terms for Discount Card Products Only) Acknowledgement that "best efforts" includes refraining from initiating any competing fundraisers within one month prior to the fundraiser kickoff date without prior approval from SMASH. At the close of the fundraiser, the Organization will return all unsold or unused physical products to SMASH. SMASH retains the right to engage in fundraising activities with other organizations using the same products or partnerships.</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 3, paddingLeft: 4 }}>
-            <Text style={[s.listItem, { marginBottom: 0 }]}>{'6. ASB Fee (ASB Compliant Only): Pay 2% of gross fundraiser revenue to cover costs of daily sweeps and rushed financing. Fee will not be deducted from proceeds; SMASH will invoice the district upon fundraiser completion. Check this box '}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 1.5 }}>
+            <Text style={[s.listItem, { marginBottom: 0, flex: 1 }]}>
+              {'6. ASB Fee (ASB Compliant Only): Pay 2% of gross fundraiser revenue to cover costs of daily sweeps and rushed financing. Fee will not be deducted from proceeds; SMASH will invoice the district upon fundraiser completion. Check this box '}
+            </Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 16, marginBottom: 6 }}>
-            <Checkbox checked={data.rep_pays_asb_fee} />
-            <Text style={[s.listItem, { marginBottom: 0 }]}> if representative is waiving this fee.</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 10, marginBottom: 3 }}>
+            <Checkbox checked={data.rep_pays_asb_fee} size={6} />
+            <Text style={[s.listItem, { marginBottom: 0, marginLeft: 3 }]}>if representative is waiving this fee.</Text>
           </View>
 
           {/* Duration, Term, and Termination */}
-          <SectionTitle>Duration, Term, and Termination:</SectionTitle>
+          <Banner style={{ marginTop: 4 }}>Duration, Term, and Termination:</Banner>
           <Text style={s.listItem}>1. SMASH and the Organization agree that SMASH shall be the exclusive provider for the fundraising term listed above.</Text>
           <Text style={s.listItem}>2. (Specific Terms for Discount Card Products Only) If for any reason, the Organization cannot perform the fundraiser, the Organization will reimburse SMASH Fundraising for production costs using the following calculations: $20 per applicable merchant signed, plus 25% of any printing, designing, and shipping costs. The Organization acknowledges that these costs are a reasonable approximation of actual damages to SMASH.</Text>
 
           {/* Signature block */}
           <View style={s.sigBlock}>
-            {/* Row 1: blank org signature */}
+            {/* Row 1: blank org rep */}
             <View style={s.sigRow}>
-              <View style={s.sigCell}>
+              <View style={s.sigCellWide}>
                 <View style={s.sigLine} />
                 <Text style={s.sigLabel}>Authorized Organization Representative (Signature)</Text>
               </View>
-              <View style={s.sigRow}>
-                <View style={s.sigCell}>
-                  <View style={s.sigLine} />
-                  <Text style={s.sigLabel}>Print Name & Title</Text>
-                </View>
-                <View style={s.sigCell}>
-                  <View style={s.sigLine} />
-                  <Text style={s.sigLabel}>Date</Text>
-                </View>
+              <View style={s.sigCellNarrow}>
+                <View style={s.sigLine} />
+                <Text style={s.sigLabel}>Print Name & Title</Text>
+              </View>
+              <View style={s.sigCellDate}>
+                <View style={s.sigLine} />
+                <Text style={s.sigLabel}>Date</Text>
               </View>
             </View>
             {/* Row 2: Krista's signature */}
             <View style={s.sigRow}>
-              <View style={s.sigCell}>
-                <View style={s.sigLineWithContent}>
+              <View style={s.sigCellWide}>
+                <View style={s.sigLine}>
                   <Text style={s.sigName}>Krista McGaughy</Text>
                 </View>
                 <Text style={s.sigLabel}>Authorized SMASH Fundraising Representative (Signature)</Text>
               </View>
-              <View style={s.sigRow}>
-                <View style={s.sigCell}>
-                  <View style={s.sigLineWithContent}>
-                    <Text style={s.sigPrintName}>Krista McGaughy, Business Manager</Text>
-                  </View>
-                  <Text style={s.sigLabel}>Print Name & Title</Text>
+              <View style={s.sigCellNarrow}>
+                <View style={s.sigLine}>
+                  <Text style={s.sigPrint}>Krista McGaughy, Business Manager</Text>
                 </View>
-                <View style={s.sigCell}>
-                  <View style={s.sigLineWithContent}>
-                    <Text style={s.sigDate}>{todayFormatted}</Text>
-                  </View>
-                  <Text style={s.sigLabel}>Date</Text>
+                <Text style={s.sigLabel}>Print Name & Title</Text>
+              </View>
+              <View style={s.sigCellDate}>
+                <View style={s.sigLine}>
+                  <Text style={s.sigPrint}>{todayFormatted}</Text>
                 </View>
+                <Text style={s.sigLabel}>Date</Text>
               </View>
             </View>
           </View>
 
           {/* For SMASH Records */}
-          <Text style={s.recordsHeader}>For SMASH Records:</Text>
-          <View style={s.recordsGrid}>
-            <View style={s.recordsCell}>
-              <Text style={s.recordsLabel}>School/Organization</Text>
-              <Text style={s.recordsValueBold}>{data.organization}</Text>
-              <Text style={s.recordsValue}>{data.team}</Text>
+          <Banner style={{ marginTop: 4 }}>For SMASH Records:</Banner>
+          <View style={s.recordsTable}>
+            <View style={s.recordsRow}>
+              <Text style={[s.recordsLabel, { width: '18%' }]}>School/Organization</Text>
+              <Text style={[s.recordsValue, { width: '32%' }]}>{data.organization}</Text>
+              <Text style={[s.recordsLabel, { width: '18%' }]}>Group</Text>
+              <Text style={[s.recordsValue, { width: '32%', borderRightWidth: 0 }]}>{data.team}</Text>
             </View>
-            <View style={s.recordsCell}>
-              <Text style={s.recordsLabel}>SMASH Representative</Text>
-              <Text style={s.recordsValue}>{data.rep_name || '\u2014'}</Text>
+            <View style={s.recordsRow}>
+              <Text style={[s.recordsLabel, { width: '18%' }]}>SMASH Representative</Text>
+              <Text style={[s.recordsValue, { width: '32%' }]}>{data.rep_name || '\u2014'}</Text>
+              <Text style={[s.recordsLabel, { width: '18%' }]}>SMASH Record #</Text>
+              <Text style={[s.recordsValue, { width: '32%', borderRightWidth: 0 }]}>{data.fundraiser_id || '\u2014'}</Text>
             </View>
-            <View style={s.recordsCell}>
-              <Text style={s.recordsLabel}>SMASH Record #</Text>
-              <Text style={s.recordsValue}>{data.fundraiser_id || '\u2014'}</Text>
+            <View style={s.recordsRow}>
+              <Text style={[s.recordsLabel, { width: '18%' }]}>Coach/Leader Name</Text>
+              <Text style={[s.recordsValue, { width: '32%' }]}>{data.primary_contact_name || '\u2014'}</Text>
+              <Text style={[s.recordsLabel, { width: '18%' }]}>Coach/Leader Email</Text>
+              <Text style={[s.recordsValue, { width: '32%', borderRightWidth: 0 }]}>{data.primary_contact_email || '\u2014'}</Text>
             </View>
-            <View style={s.recordsCell}>
-              <Text style={s.recordsLabel}>Coach/Leader Name</Text>
-              <Text style={s.recordsValue}>{data.primary_contact_name || '\u2014'}</Text>
-            </View>
-            <View style={s.recordsCell}>
-              <Text style={s.recordsLabel}>Coach/Leader Email</Text>
-              <Text style={s.recordsValue}>{data.primary_contact_email || '\u2014'}</Text>
-            </View>
-            <View style={s.recordsCell}>
-              <Text style={s.recordsLabel}>Acct Contact Name</Text>
-              <Text style={s.recordsValue}>{data.accounting_contact_name || '\u2014'}</Text>
-            </View>
-            <View style={s.recordsCell}>
-              <Text style={s.recordsLabel}>Acct Contact Email</Text>
-              <Text style={s.recordsValue}>{data.accounting_contact_email || '\u2014'}</Text>
+            <View style={[s.recordsRow, { borderBottomWidth: 0 }]}>
+              <Text style={[s.recordsLabel, { width: '18%' }]}>Acct Contact Name</Text>
+              <Text style={[s.recordsValue, { width: '32%' }]}>{data.accounting_contact_name || '\u2014'}</Text>
+              <Text style={[s.recordsLabel, { width: '18%' }]}>Acct Contact Email</Text>
+              <Text style={[s.recordsValue, { width: '32%', borderRightWidth: 0 }]}>{data.accounting_contact_email || '\u2014'}</Text>
             </View>
           </View>
 
