@@ -29,6 +29,16 @@ const KRISTA_SIGNATURE = `
 
 const getFirstName = (fullName) => (fullName || '').split(' ')[0];
 
+function buildGreeting(contacts) {
+  const names = contacts
+    .filter(c => c.hasEmail)
+    .map(c => c.firstName);
+  if (names.length === 0) return 'Hello there,';
+  if (names.length === 1) return `Hello ${names[0]},`;
+  if (names.length === 2) return `Hello ${names[0]} and ${names[1]},`;
+  return `Hello ${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]},`;
+}
+
 const EMAIL_TEMPLATES = {
   'asb-onboarding': {
     subject: (data) => `${data.team} fundraiser: ASB Compliant Onboarding with SMASH Fundraising`,
@@ -38,7 +48,7 @@ const EMAIL_TEMPLATES = {
         : '[date TBD]';
 
       return `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.6;">
-<p>Hello ${getFirstName(data.accounting_contact_name)},</p>
+<p>${data.greeting}</p>
 
 <p>${data.organization} ${data.team} has a fundraiser scheduled to start on ${kickoffFormatted} with our rep, ${data.rep_name}. I understand that this fundraiser will be run through ASB, and therefore may require our fully ASB-compliant program.</p>
 
@@ -96,9 +106,22 @@ router.get('/preview/:taskId', async (req, res) => {
       repIds.length > 0 ? airtableFetchByIds('reps', repIds) : [],
     ]);
 
-    const acRecord = accountingContacts[0];
-    const acEmail = acRecord ? (acRecord.fields[ACCOUNTING_CONTACT_FIELDS.email] || '') : '';
-    const acName = acRecord ? (acRecord.fields[ACCOUNTING_CONTACT_FIELDS.name] || '') : '';
+    // Build contacts array from all accounting contacts
+    const contacts = accountingContacts.map(ac => {
+      const name = ac.fields[ACCOUNTING_CONTACT_FIELDS.name] || '';
+      const email = ac.fields[ACCOUNTING_CONTACT_FIELDS.email] || null;
+      return {
+        id: ac.id,
+        name,
+        firstName: getFirstName(name),
+        email,
+        hasEmail: !!email,
+      };
+    });
+
+    const defaultTo = contacts.filter(c => c.hasEmail).map(c => c.id);
+    const defaultCc = [];
+    const defaultSkip = contacts.filter(c => !c.hasEmail).map(c => c.id);
 
     const pcRecord = primaryContacts[0];
     const pcName = pcRecord ? (pcRecord.fields[CLIENT_BOOK_FIELDS.name] || '') : '';
@@ -106,11 +129,13 @@ router.get('/preview/:taskId', async (req, res) => {
     const repRecord = reps[0];
     const repName = repRecord ? (repRecord.fields[REP_FIELDS.name] || '') : '';
 
+    const greeting = buildGreeting(contacts);
+
     const mergeData = {
       organization,
       team,
       kickoff_date,
-      accounting_contact_name: acName,
+      greeting,
       primary_contact_name: pcName,
       rep_name: repName,
       product,
@@ -124,8 +149,10 @@ router.get('/preview/:taskId', async (req, res) => {
     const agreementFilename = hasAgreement ? agreementAttachments[0].filename : null;
 
     res.json({
-      to: acEmail,
-      toName: acName,
+      contacts,
+      defaultTo,
+      defaultCc,
+      defaultSkip,
       subject: template.subject(mergeData),
       body: template.body(mergeData),
       templateId,
@@ -146,10 +173,13 @@ router.get('/preview/:taskId', async (req, res) => {
 // POST /api/email/send
 router.post('/send', async (req, res) => {
   try {
-    const { to, subject, body, taskId, agreementUrl, agreementFilename } = req.body;
+    const { to, cc, subject, body, taskId, agreementUrl, agreementFilename } = req.body;
 
-    if (!to || !subject || !body) {
-      return res.status(400).json({ error: 'Missing required fields: to, subject, body' });
+    if (!to || !Array.isArray(to) || to.length === 0) {
+      return res.status(400).json({ error: 'At least one recipient is required in "to"' });
+    }
+    if (!subject || !body) {
+      return res.status(400).json({ error: 'Missing required fields: subject, body' });
     }
 
     // Build the full HTML body with signature
@@ -177,6 +207,7 @@ router.post('/send', async (req, res) => {
     // Send via Gmail API
     await sendEmail({
       to,
+      cc: cc && cc.length > 0 ? cc : undefined,
       subject,
       html: fullHtml,
       attachments: attachments.length > 0 ? attachments : undefined,

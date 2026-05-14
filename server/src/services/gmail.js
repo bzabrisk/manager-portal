@@ -6,13 +6,14 @@ import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 /**
  * Send an email via Gmail API.
  * @param {object} opts
- * @param {string} opts.to - recipient email
+ * @param {string|string[]} opts.to - recipient email(s)
+ * @param {string|string[]} [opts.cc] - CC recipient email(s)
  * @param {string} opts.subject - email subject
  * @param {string} opts.html - HTML body
  * @param {Array<{filename: string, content: string|Buffer}>} [opts.attachments] - content as base64 string or Buffer
  * @returns {Promise<{success: true, id: string}>}
  */
-export async function sendEmail({ to, subject, html, attachments }) {
+export async function sendEmail({ to, cc, subject, html, attachments }) {
   const required = {
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
@@ -35,6 +36,7 @@ export async function sendEmail({ to, subject, html, attachments }) {
   const from = required.GMAIL_SEND_AS;
 
   const mailOptions = { from, to, subject, html };
+  if (cc) mailOptions.cc = cc;
 
   if (attachments && attachments.length > 0) {
     mailOptions.attachments = attachments.map(att => ({

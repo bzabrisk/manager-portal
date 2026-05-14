@@ -1,11 +1,43 @@
 import { useState, useEffect, useRef } from 'react';
-import { Mail, Send, X, AlertTriangle, Paperclip } from 'lucide-react';
+import { Mail, Send, X, AlertTriangle, Paperclip, ArrowRight } from 'lucide-react';
 import { api } from '../api/client';
+
+function RecipientChip({ contact, status, onToggle, onRemove }) {
+  const isCc = status === 'cc';
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm ${
+        isCc
+          ? 'bg-slate-100 text-slate-700'
+          : 'bg-orange-50 text-orange-800 border border-orange-200'
+      }`}
+    >
+      <span className="font-medium">{contact.name}</span>
+      <span className="text-xs opacity-60">• {contact.email}</span>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="ml-1 text-xs opacity-50 hover:opacity-100 whitespace-nowrap"
+      >
+        <ArrowRight size={10} className="inline -mt-px mr-0.5" />
+        {isCc ? 'To' : 'CC'}
+      </button>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="ml-0.5 opacity-40 hover:opacity-100"
+      >
+        <X size={12} />
+      </button>
+    </span>
+  );
+}
 
 export default function EmailPreviewModal({ task, onClose, onRefresh }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [to, setTo] = useState('');
+  const [contacts, setContacts] = useState([]);
+  const [recipientStatus, setRecipientStatus] = useState({});
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
@@ -20,7 +52,12 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
   useEffect(() => {
     api.email.preview(task.id)
       .then(data => {
-        setTo(data.to || '');
+        setContacts(data.contacts || []);
+        const status = {};
+        (data.defaultTo || []).forEach(id => { status[id] = 'to'; });
+        (data.defaultCc || []).forEach(id => { status[id] = 'cc'; });
+        (data.defaultSkip || []).forEach(id => { status[id] = 'skip'; });
+        setRecipientStatus(status);
         setSubject(data.subject || '');
         setBody(data.body || '');
         setAgreementUrl(data.agreementUrl || null);
@@ -32,12 +69,23 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
       .finally(() => setLoading(false));
   }, [task.id]);
 
+  const setStatus = (id, status) => {
+    setRecipientStatus(prev => ({ ...prev, [id]: status }));
+  };
+
+  const toContacts = contacts.filter(c => recipientStatus[c.id] === 'to');
+  const ccContacts = contacts.filter(c => recipientStatus[c.id] === 'cc');
+  const skippedContacts = contacts.filter(c => recipientStatus[c.id] === 'skip');
+  const hasToRecipients = toContacts.length > 0;
+
   const handleSend = async () => {
     setSending(true);
     setSendError('');
     try {
       const currentBody = bodyRef.current ? bodyRef.current.innerHTML : body;
-      await api.email.send({ to, subject, body: currentBody, taskId: task.id, agreementUrl, agreementFilename });
+      const to = toContacts.map(c => c.email);
+      const cc = ccContacts.map(c => c.email);
+      await api.email.send({ to, cc, subject, body: currentBody, taskId: task.id, agreementUrl, agreementFilename });
       setSent(true);
       setTimeout(() => {
         onClose();
@@ -81,22 +129,74 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
 
         {!loading && !error && (
           <div className="space-y-4">
-            {/* To field */}
+            {/* To group */}
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">To</label>
-              <input
-                type="email"
-                value={to}
-                onChange={e => setTo(e.target.value)}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-smash"
-              />
-              {!to && (
-                <div className="flex items-center gap-1.5 mt-1.5 text-xs text-amber-600 bg-amber-50 rounded px-2 py-1.5">
-                  <AlertTriangle size={13} />
-                  No accounting contact email found — please add one in Airtable before sending.
+              <label className="block text-xs font-bold text-slate-600 mb-1.5">To</label>
+              {toContacts.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {toContacts.map(c => (
+                    <RecipientChip
+                      key={c.id}
+                      contact={c}
+                      status="to"
+                      onToggle={() => setStatus(c.id, 'cc')}
+                      onRemove={() => setStatus(c.id, 'skip')}
+                    />
+                  ))}
                 </div>
+              ) : (
+                <p className="text-sm text-slate-400 italic">No recipients selected — email cannot be sent.</p>
               )}
             </div>
+
+            {/* CC group */}
+            {ccContacts.length > 0 && (
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">CC</label>
+                <div className="flex flex-wrap gap-2">
+                  {ccContacts.map(c => (
+                    <RecipientChip
+                      key={c.id}
+                      contact={c}
+                      status="cc"
+                      onToggle={() => setStatus(c.id, 'to')}
+                      onRemove={() => setStatus(c.id, 'skip')}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Excluded group */}
+            {skippedContacts.length > 0 && (
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">Excluded</label>
+                <div className="space-y-1.5">
+                  {skippedContacts.map(c => (
+                    <div key={c.id} className="flex items-center gap-2 text-sm text-slate-500">
+                      {c.hasEmail ? (
+                        <>
+                          <span>{c.name} • {c.email}</span>
+                          <button
+                            type="button"
+                            onClick={() => setStatus(c.id, 'to')}
+                            className="text-xs text-[#ff5000] hover:underline"
+                          >
+                            Add back to To
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle size={13} className="text-amber-500 flex-shrink-0" />
+                          <span>{c.name}</span>
+                          <span className="text-xs text-slate-400">— no email on file</span>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Subject field */}
             <div>
@@ -167,7 +267,8 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
               </button>
               <button
                 onClick={handleSend}
-                disabled={!to || sending || sent}
+                disabled={!hasToRecipients || sending || sent}
+                title={!hasToRecipients ? 'Add at least one recipient to To' : undefined}
                 className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50"
                 style={{ backgroundColor: '#ff5000' }}
                 onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04800'; }}
