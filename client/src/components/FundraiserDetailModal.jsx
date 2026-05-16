@@ -123,6 +123,24 @@ function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerat
     );
   }
 
+  if (blocked) {
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 h-full flex flex-col justify-center">
+        <div className="flex items-start gap-2.5">
+          <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-amber-900 mb-1">
+              {label} — waiting on manual product split
+            </p>
+            <p className="text-xs text-amber-800 leading-relaxed">
+              This is a two-product fundraiser. Enter the product split in the form above before reports can be generated.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (polling) {
     return (
       <div className="border border-dashed border-amber-200 bg-amber-50 rounded-lg p-3 text-center">
@@ -234,7 +252,7 @@ function ManualProductSplitCallout({ data, onSaved }) {
   };
 
   return (
-    <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-3">
+    <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mt-3 mb-3">
       <div className="flex items-start gap-2.5 mb-3">
         <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
         <div>
@@ -244,11 +262,6 @@ function ManualProductSplitCallout({ data, onSaved }) {
           <p className="text-xs text-amber-800 leading-relaxed">
             The MD Payout Report combines product totals into one number, so the breakdown can't be detected automatically. Please enter how much of the combined total came from each product before generating reports.
           </p>
-          {referenceTotal != null && (
-            <p className="text-xs text-amber-800 mt-2">
-              Combined total from MD Payout Report: <strong>${Number(referenceTotal).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
-            </p>
-          )}
         </div>
       </div>
       <div className="space-y-2 ml-7">
@@ -288,6 +301,13 @@ function ManualProductSplitCallout({ data, onSaved }) {
             />
           </div>
         </div>
+        {referenceTotal != null && (
+          <p className="text-xs text-amber-800 mt-2 italic">
+            For reference, the combined gross from the MD Payout Report was{' '}
+            <strong>${Number(referenceTotal).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>.{' '}
+            Your split must add up to exactly this amount.
+          </p>
+        )}
         <button
           onClick={handleSave}
           disabled={saving}
@@ -378,8 +398,10 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       setData(result);
       setEdits(initEdits(result));
       setError('');
+      return result;
     } catch (err) {
       setError(err.message);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -502,30 +524,38 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
     const autoGenLikely = (data.product_primary_string || '').toLowerCase().includes('md')
       && !(data.fundraiser_profit_report?.length)
       && !(data.rep_commission_report?.length);
+
     setUploadingMdPayout(true);
     setMdPayoutError('');
+
     try {
       await api.fundraisers.uploadMdPayoutReport(data.id, file);
       await fetchDetail();
+
+      // Upload done — clear "Uploading..." immediately, before polling starts
+      setUploadingMdPayout(false);
+      if (mdPayoutFileInputRef.current) mdPayoutFileInputRef.current.value = '';
+
       if (autoGenLikely) {
         setMdPayoutToast('MD Payout uploaded. Reports will generate automatically in a few minutes.');
         setTimeout(() => setMdPayoutToast(''), 10000);
         setPollingForReports(true);
-        // Poll up to 15 minutes (180 x 5s), stop early when both reports appear
+
+        // Poll up to 15 minutes (180 × 5s), refreshing modal data each iteration
         for (let i = 0; i < 180; i++) {
           await new Promise(r => setTimeout(r, 5000));
-          const result = await api.fundraisers.getDetail(data.id);
-          if (result.fundraiser_profit_report?.length && result.rep_commission_report?.length) {
+          await fetchDetail();
+          const fresh = await api.fundraisers.getDetail(data.id);
+          if (fresh.fundraiser_profit_report?.length && fresh.rep_commission_report?.length) {
             await fetchDetail();
             break;
           }
         }
+
         setPollingForReports(false);
-        await fetchDetail();
       }
     } catch (err) {
       setMdPayoutError(err.message || 'Upload failed.');
-    } finally {
       setUploadingMdPayout(false);
       setPollingForReports(false);
       if (mdPayoutFileInputRef.current) mdPayoutFileInputRef.current.value = '';
@@ -544,6 +574,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+        if (err.code === 'MANUAL_SPLIT_REQUIRED') {
+          throw new Error('Please complete the product split above before generating.');
+        }
         throw new Error(err.error || 'Generation failed');
       }
       await fetchDetail();

@@ -110,6 +110,7 @@ const FUNDRAISER_FIELDS = {
   fpr_adj_team_to_rep: 'fldZBFkZCxhmxwNOj',
   fpr_adj_team_to_rep_label: 'fld1jNPQUhrowvwK8',
   fpr_adj_asbfee: 'fldiUPom1EC2MkI7j',
+  fpr_adj_discount_on_lost_cards: 'fldUTmqmr2bJKiFdF',
   cost_product: 'fldkYOO4LKa0dpDUV',
   // SMASH Profit breakdown
   gross_sales_calc: 'fldmj5wdfPK52CK13',
@@ -388,6 +389,20 @@ async function uploadAttachmentReplacing(recordId, fieldId, buffer, filename, mi
   return { id: newAttachment.id, url: newAttachment.url, filename: newAttachment.filename };
 }
 
+async function checkNeedsManualProductSplit(recordId) {
+  const record = await airtableGet('fundraisers', recordId);
+  const f = record.fields || {};
+  const F = FUNDRAISER_FIELDS;
+  const productPrimaryStr = f[F.product_primary_string] || '';
+  const isMd = productPrimaryStr.toLowerCase().includes('md');
+  if (!isMd) return false;
+  const hasSecondary = ((f[F.product_secondary] || []).length > 0);
+  if (!hasSecondary) return false;
+  const ppManual = f[F.pp_gross_manual];
+  const spGross = f[F.sp_gross];
+  return (ppManual == null || ppManual === 0) || (spGross == null || spGross === 0);
+}
+
 export {
   BASE_ID,
   TABLES,
@@ -409,4 +424,5 @@ export {
   getFundraisersList,
   getRepIds,
   uploadAttachmentReplacing,
+  checkNeedsManualProductSplit,
 };

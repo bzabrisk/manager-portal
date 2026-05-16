@@ -148,6 +148,9 @@ export default function FundraiserProfitReport({ data }) {
               <AdjustmentRow label="50% Prize Share" amount={data.fpr_adj_md_prize_share} />
               <AdjustmentRow label="Adjustment between team & rep" amount={data.fpr_adj_team_to_rep} />
               <AdjustmentRow label="ASB Fee" amount={data.fpr_adj_asbfee} />
+              {isTradNoRisk && (
+                <AdjustmentRow label="Discount on lost cards" amount={data.fpr_adj_discount_on_lost_cards} />
+              )}
 
               <FinalAmountBox label="FINAL PROFIT" amount={data.final_team_profit} />
             </View>
@@ -169,6 +172,26 @@ export default function FundraiserProfitReport({ data }) {
                   rateAsCurrency={isTradUpfront && i === 0}
                 />
               ))}
+              {/* Invoice adjustments — inverse of profit adjustments */}
+              <AdjustmentRow
+                label="50% Prize Share"
+                amount={data.fpr_adj_md_prize_share != null ? -data.fpr_adj_md_prize_share : null}
+              />
+              <AdjustmentRow
+                label="Adjustment between team & rep"
+                amount={data.fpr_adj_team_to_rep != null ? -data.fpr_adj_team_to_rep : null}
+              />
+              <AdjustmentRow
+                label="ASB Fee"
+                amount={data.fpr_adj_asbfee != null ? -data.fpr_adj_asbfee : null}
+              />
+              {isTradNoRisk && (
+                <AdjustmentRow
+                  label="Discount on lost cards"
+                  amount={data.fpr_adj_discount_on_lost_cards != null ? -data.fpr_adj_discount_on_lost_cards : null}
+                />
+              )}
+
               <FinalAmountBox label="FINAL INVOICE" amount={data.final_invoice_amount} />
             </View>
           )}

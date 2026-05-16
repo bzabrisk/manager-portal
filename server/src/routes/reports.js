@@ -9,6 +9,7 @@ import {
   airtableUpdate,
   airtableFetchByIds,
   uploadAttachmentReplacing,
+  checkNeedsManualProductSplit,
 } from '../services/airtable.js';
 import { renderFpr, renderRcr, renderAgreement } from '../services/pdf/render.js';
 import { getTierNotes } from '../constants/tieredProducts.js';
@@ -82,6 +83,7 @@ export async function fetchFundraiserDataForReports(recordId) {
     fpr_adj_md_prize_share: f[F.fpr_adj_md_prize_share] ?? null,
     fpr_adj_team_to_rep: f[F.fpr_adj_team_to_rep] ?? null,
     fpr_adj_asbfee: f[F.fpr_adj_asbfee] ?? null,
+    fpr_adj_discount_on_lost_cards: f[F.fpr_adj_discount_on_lost_cards] ?? null,
     fpr_comments: resolveLookup(f[F.fpr_comments]) || '',
     // RCR adjustments
     rcr_adj_team_to_rep: f[F.rcr_adj_team_to_rep] ?? null,
@@ -103,6 +105,25 @@ export async function fetchFundraiserDataForReports(recordId) {
 
 export async function generateFprForFundraiser(recordId) {
   const data = await fetchFundraiserDataForReports(recordId);
+
+  // Sanity check: profit + invoice should equal gross (for variants with an invoice section)
+  const isTradNoRisk = data.product_primary_string === 'Team Cards - Traditional No-Risk';
+  const isTradUpfront = data.product_primary_string === 'Team Cards - Traditional Upfront Purchase';
+  const showInvoice = data.asb_boosters === 'WA State ASB' || isTradNoRisk || isTradUpfront;
+  if (showInvoice && data.gross_sales_md && data.final_team_profit != null && data.final_invoice_amount != null) {
+    const sum = Number(data.final_team_profit) + Number(data.final_invoice_amount);
+    const gross = Number(data.gross_sales_md);
+    const diff = Math.abs(sum - gross);
+    if (diff > 0.05) {
+      console.warn(
+        `[FPR] Balance check failed for ${recordId}: ` +
+        `profit ($${data.final_team_profit}) + invoice ($${data.final_invoice_amount}) ` +
+        `= $${sum.toFixed(2)} but gross is $${gross.toFixed(2)}. ` +
+        `Difference: $${diff.toFixed(2)}. Report will still render.`
+      );
+    }
+  }
+
   const buffer = await renderFpr(data);
   const filename = `FPR - ${data.organization} - ${data.team}.pdf`;
   const result = await uploadAttachmentReplacing(
@@ -137,6 +158,12 @@ export async function generateRcrForFundraiser(recordId) {
 
 router.post('/fpr/:fundraiserId', async (req, res) => {
   try {
+    if (await checkNeedsManualProductSplit(req.params.fundraiserId)) {
+      return res.status(400).json({
+        error: 'Manual product split required before generating reports for this two-product fundraiser.',
+        code: 'MANUAL_SPLIT_REQUIRED',
+      });
+    }
     const result = await generateFprForFundraiser(req.params.fundraiserId);
     res.json({ success: true, attachment: result });
   } catch (err) {
@@ -147,6 +174,12 @@ router.post('/fpr/:fundraiserId', async (req, res) => {
 
 router.post('/rcr/:fundraiserId', async (req, res) => {
   try {
+    if (await checkNeedsManualProductSplit(req.params.fundraiserId)) {
+      return res.status(400).json({
+        error: 'Manual product split required before generating reports for this two-product fundraiser.',
+        code: 'MANUAL_SPLIT_REQUIRED',
+      });
+    }
     const result = await generateRcrForFundraiser(req.params.fundraiserId);
     res.json({ success: true, attachment: result });
   } catch (err) {

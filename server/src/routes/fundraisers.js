@@ -17,6 +17,7 @@ import {
   uploadAttachmentReplacing,
   getFundraisersList,
   getRepIds,
+  checkNeedsManualProductSplit,
 } from '../services/airtable.js';
 
 const router = Router();
@@ -895,6 +896,7 @@ router.get('/:recordId', async (req, res) => {
       fpr_adj_team_to_rep: f[FUNDRAISER_FIELDS.fpr_adj_team_to_rep] ?? null,
       fpr_adj_team_to_rep_label: f[FUNDRAISER_FIELDS.fpr_adj_team_to_rep_label] || '',
       fpr_adj_asbfee: f[FUNDRAISER_FIELDS.fpr_adj_asbfee] ?? null,
+      fpr_adj_discount_on_lost_cards: f[FUNDRAISER_FIELDS.fpr_adj_discount_on_lost_cards] ?? null,
       // SMASH Profit breakdown
       gross_sales_calc: f[FUNDRAISER_FIELDS.gross_sales_calc] ?? null,
       md_cut: f[FUNDRAISER_FIELDS.md_cut] ?? null,
@@ -1035,11 +1037,16 @@ router.post('/:id/upload-md-payout-report', upload.single('file'), async (req, r
 
     // Auto-generate reports once if both slots are empty (fire-and-forget)
     if (fprEmpty && rcrEmpty) {
-      import('../services/pdf/autoGenerate.js').then(({ scheduleAutoGenerate }) => {
-        scheduleAutoGenerate(recordId).catch(err =>
-          console.error('Auto-generate failed for', recordId, err)
-        );
-      });
+      const needsSplit = await checkNeedsManualProductSplit(recordId);
+      if (!needsSplit) {
+        import('../services/pdf/autoGenerate.js').then(({ scheduleAutoGenerate }) => {
+          scheduleAutoGenerate(recordId).catch(err =>
+            console.error('Auto-generate failed for', recordId, err)
+          );
+        });
+      } else {
+        console.log('[upload] Skipping auto-gen schedule for', recordId, '— manual product split required.');
+      }
     }
 
     return res.json({ success: true, attachment: result });

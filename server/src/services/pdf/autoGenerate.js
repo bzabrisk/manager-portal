@@ -1,4 +1,4 @@
-import { airtableGet, FUNDRAISER_FIELDS } from '../airtable.js';
+import { airtableGet, FUNDRAISER_FIELDS, checkNeedsManualProductSplit } from '../airtable.js';
 import { generateFprForFundraiser, generateRcrForFundraiser } from '../../routes/reports.js';
 
 const POLL_INTERVAL_MS = 5000;
@@ -24,6 +24,10 @@ export async function scheduleAutoGenerate(recordId) {
     if (!fprStillEmpty && !rcrStillEmpty) return;
 
     if (grossReady && profitReady && repReady) {
+      if (await checkNeedsManualProductSplit(recordId)) {
+        console.log('[autoGenerate] Skipping auto-gen for', recordId, '— manual product split required.');
+        return;
+      }
       if (fprStillEmpty) {
         await generateFprForFundraiser(recordId);
         console.log('Auto-generated FPR for', recordId);
