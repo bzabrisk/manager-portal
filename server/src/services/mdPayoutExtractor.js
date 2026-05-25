@@ -3,6 +3,12 @@
  * and return structured financial data.
  */
 
+import {
+  FUNDRAISER_FIELDS,
+  airtableUpdate,
+  uploadAttachmentReplacing,
+} from './airtable.js';
+
 const EXTRACTION_PROMPT = `You are extracting financial data from a MoneyDolly Pro Payout Report PDF. Read the document carefully and return ONLY a JSON object — no preamble, no explanation, no markdown code fences.
 
 Extract these fields. All money values must be plain numbers with no dollar sign and no commas (e.g. 7194.50).
@@ -225,4 +231,75 @@ export async function extractMdPayoutData(pdfBuffer) {
     console.error('[mdPayoutExtractor] Error:', err.message);
     return makeErrorResult('The AI extractor could not process this file: ' + err.message);
   }
+}
+
+// Maps extracted value keys to FUNDRAISER_FIELDS keys for the Airtable PATCH
+const VALUE_TO_FIELD = {
+  gross_sales_md: 'gross_sales_md',
+  md_payout: 'md_payout',
+  pp_gross_automated: 'pp_gross_automated',
+  mddonations_gross_automated: 'mddonations_gross_automated',
+  md_pro_platform_fee: 'md_pro_platform_fee',
+  md_product_fee: 'md_product_fee',
+  total_md_prize_fee: 'total_md_prize_fee',
+  md_product_api_admin_fee: 'md_product_api_admin_fee',
+  md_saas_tax: 'md_saas_tax',
+  md_payout_date: 'md_payout_date',
+};
+
+export async function saveMdPayoutData(recordId, pdfBuffer, filename, mimetype, values) {
+  console.log('[mdPayoutExtractor] Saving extracted data for', recordId);
+
+  // Step 1: Write extracted values to Airtable
+  const fields = {};
+  for (const [valueKey, fieldKey] of Object.entries(VALUE_TO_FIELD)) {
+    if (values[valueKey] != null) {
+      // md_payout_date is a date-only field — write bare YYYY-MM-DD string
+      fields[FUNDRAISER_FIELDS[fieldKey]] = values[valueKey];
+    }
+  }
+
+  console.log('[mdPayoutExtractor] Writing', Object.keys(fields).length, 'fields to Airtable...');
+  await airtableUpdate('fundraisers', recordId, fields);
+  console.log('[mdPayoutExtractor] Fields written successfully.');
+
+  // Step 2: Attach the PDF to the MD Payout Report slot
+  console.log('[mdPayoutExtractor] Attaching PDF...');
+  await uploadAttachmentReplacing(recordId, FUNDRAISER_FIELDS.md_payout_report, pdfBuffer, filename, mimetype);
+  console.log('[mdPayoutExtractor] PDF attached successfully.');
+
+  // Step 3: Generate reports (best-effort, each independent)
+  const reports = { fpr: 'failed', rcr: 'failed', errors: {} };
+
+  // Lazy import to avoid circular dependency
+  const { generateFprForFundraiser, generateRcrForFundraiser } = await import('../routes/reports.js');
+
+  try {
+    console.log('[mdPayoutExtractor] Generating FPR...');
+    await generateFprForFundraiser(recordId);
+    reports.fpr = 'generated';
+    console.log('[mdPayoutExtractor] FPR generated.');
+  } catch (err) {
+    reports.errors.fpr = err.message;
+    console.error('[mdPayoutExtractor] FPR generation failed:', err.message);
+  }
+
+  try {
+    console.log('[mdPayoutExtractor] Generating RCR...');
+    await generateRcrForFundraiser(recordId);
+    reports.rcr = 'generated';
+    console.log('[mdPayoutExtractor] RCR generated.');
+  } catch (err) {
+    reports.errors.rcr = err.message;
+    console.error('[mdPayoutExtractor] RCR generation failed:', err.message);
+  }
+
+  console.log('[mdPayoutExtractor] Save complete for', recordId, { reports });
+
+  return {
+    success: true,
+    valuesSaved: true,
+    pdfAttached: true,
+    reports,
+  };
 }

@@ -1013,6 +1013,48 @@ router.patch('/:recordId', async (req, res) => {
   }
 });
 
+// POST /api/fundraisers/:id/extract-md-payout — extract only, no Airtable write
+router.post('/:id/extract-md-payout', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided.' });
+    }
+    const { extractMdPayoutData } = await import('../services/mdPayoutExtractor.js');
+    const result = await extractMdPayoutData(req.file.buffer);
+    return res.json(result);
+  } catch (err) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'File is too large. Max 5 MB.' });
+    }
+    console.error('Error extracting MD Payout:', err);
+    return res.status(500).json({ error: err.message || 'Extraction failed.' });
+  }
+});
+
+// POST /api/fundraisers/:id/save-md-payout — write extracted values + attach PDF + generate reports
+router.post('/:id/save-md-payout', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided.' });
+    }
+    let parsedValues;
+    try {
+      parsedValues = JSON.parse(req.body.values);
+    } catch {
+      return res.status(400).json({ error: 'Invalid values payload.' });
+    }
+    const { saveMdPayoutData } = await import('../services/mdPayoutExtractor.js');
+    const result = await saveMdPayoutData(req.params.id, req.file.buffer, req.file.originalname, req.file.mimetype, parsedValues);
+    return res.json(result);
+  } catch (err) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'File is too large. Max 5 MB.' });
+    }
+    console.error('Error saving MD Payout:', err);
+    return res.status(500).json({ error: err.message || 'Save failed.' });
+  }
+});
+
 // POST /api/fundraisers/:id/upload-md-payout-report
 router.post('/:id/upload-md-payout-report', upload.single('file'), async (req, res) => {
   try {

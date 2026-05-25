@@ -18,6 +18,7 @@ import emailRoutes from './routes/email.js';
 import echeckRoutes from './routes/echeck.js';
 import costRoutes from './routes/cost.js';
 import reportsRoutes from './routes/reports.js';
+import automationsRoutes from './routes/automations.js';
 import { authMiddleware } from './middleware/auth.js';
 
 const app = express();
@@ -44,6 +45,7 @@ app.use(session({
 }));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/automations', automationsRoutes);  // No session auth — uses shared secret
 app.use('/api/tasks', authMiddleware, taskRoutes);
 app.use('/api/fundraisers', authMiddleware, fundraiserRoutes);
 app.use('/api/payouts', authMiddleware, payoutsRoutes);
