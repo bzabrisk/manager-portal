@@ -143,6 +143,15 @@ const FUNDRAISER_FIELDS = {
   fpr_md_payout_source_id: 'fldbs1SmxMPuGrlM6',
   rcr_md_payout_source_id: 'fld5heECP4bVaPKE8',
   fpr_comments: 'fldYbGDGqQ2G7xc4J',
+  // MD Payout raw extraction targets (AI-extracted)
+  pp_gross_automated: 'fldPA0s3g4bfSrHYR',          // same field as pp_gross_automd
+  mddonations_gross_automated: 'fldkbVwfY7f3POWcR',  // same field as mddonations_gross
+  md_pro_platform_fee: 'flddukN9cEZHauvrg',
+  md_product_fee: 'fldCHmAuUiSR1ycMA',
+  total_md_prize_fee: 'fldaTxoSLQDkfw86F',
+  md_product_api_admin_fee: 'fldXGtz1NAThbKwnZ',
+  md_saas_tax: 'fldIip9vNpcZOjMBs',
+  md_payout_date: 'fldWgHa5p9t8qzwF0',
 };
 
 // Client book (primary contact) field IDs
