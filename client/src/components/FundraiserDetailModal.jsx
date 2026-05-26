@@ -106,7 +106,7 @@ function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerat
               <span className="break-all">{files[0].filename}</span>
             </a>
             {isStale && (
-              <p className="text-xs text-amber-700 italic mt-1">MD Payout was replaced — regenerate to update.</p>
+              <p className="text-xs text-amber-700 italic mt-1">This report may be out of date — regenerate to apply recent changes.</p>
             )}
           </div>
           <button
@@ -187,12 +187,12 @@ function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerat
   );
 }
 
-function ManualProductSplitCallout({ data, onSaved }) {
+function ManualProductSplitCallout({ data, onSaved, mode }) {
   const [ppInput, setPpInput] = useState(data.pp_gross_manual ?? '');
   const [spInput, setSpInput] = useState(data.sp_gross ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-
+  const [editing, setEditing] = useState(false);
   const referenceTotal = data.pp_gross_automd;
 
   const handleSave = async () => {
@@ -207,6 +207,7 @@ function ManualProductSplitCallout({ data, onSaved }) {
     try {
       await api.fundraisers.update(data.id, { pp_gross_manual: pp, sp_gross: sp });
       await onSaved();
+      setEditing(false);
     } catch (err) {
       setError(err.message || 'Failed to save.');
     } finally {
@@ -214,72 +215,135 @@ function ManualProductSplitCallout({ data, onSaved }) {
     }
   };
 
+  const handleCancel = () => {
+    setPpInput(data.pp_gross_manual ?? '');
+    setSpInput(data.sp_gross ?? '');
+    setEditing(false);
+    setError('');
+  };
+
+  const fmt = (v) => v != null ? `$${Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '$0.00';
+
+  const formFields = (
+    <>
+      <div>
+        <label className="block text-xs font-medium text-slate-700 mb-1">
+          Primary — {data.product_primary_string || 'product'}
+        </label>
+        <div className="relative">
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={ppInput}
+            onChange={e => setPpInput(e.target.value)}
+            disabled={saving}
+            className="w-full pl-6 pr-2 py-1.5 text-sm border border-slate-300 rounded bg-white focus:outline-none focus:border-[#ff5000]"
+            placeholder="0.00"
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-slate-700 mb-1">
+          Secondary — {data.product_secondary_name || 'product'}
+        </label>
+        <div className="relative">
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={spInput}
+            onChange={e => setSpInput(e.target.value)}
+            disabled={saving}
+            className="w-full pl-6 pr-2 py-1.5 text-sm border border-slate-300 rounded bg-white focus:outline-none focus:border-[#ff5000]"
+            placeholder="0.00"
+          />
+        </div>
+      </div>
+      {referenceTotal != null && (
+        <p className="text-xs text-slate-500 mt-2 italic">
+          For reference, the combined gross from the MD Payout Report was{' '}
+          <strong>${Number(referenceTotal).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>.{' '}
+          Your split must add up to exactly this amount.
+        </p>
+      )}
+    </>
+  );
+
+  // Mode A: values missing — prominent amber blocking callout
+  if (mode === 'needed') {
+    return (
+      <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mt-3 mb-3">
+        <div className="flex items-start gap-2.5 mb-3">
+          <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-900 mb-1">
+              Two-product fundraiser — manual split needed
+            </p>
+            <p className="text-xs text-amber-800 leading-relaxed">
+              The MD Payout Report combines product totals into one number, so the breakdown can't be detected automatically. Please enter how much of the combined total came from each product before generating reports.
+            </p>
+          </div>
+        </div>
+        <div className="space-y-2 ml-7">
+          {formFields}
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="mt-2 px-4 py-1.5 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded shadow-sm disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save split'}
+          </button>
+          {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  // Mode B: values present — compact neutral summary with edit toggle
   return (
-    <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mt-3 mb-3">
-      <div className="flex items-start gap-2.5 mb-3">
-        <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+    <div className="border border-slate-200 rounded-lg p-3 mt-3 mb-3">
+      {!editing ? (
         <div>
-          <p className="text-sm font-semibold text-amber-900 mb-1">
-            Two-product fundraiser — manual split needed
-          </p>
-          <p className="text-xs text-amber-800 leading-relaxed">
-            The MD Payout Report combines product totals into one number, so the breakdown can't be detected automatically. Please enter how much of the combined total came from each product before generating reports.
-          </p>
-        </div>
-      </div>
-      <div className="space-y-2 ml-7">
-        <div>
-          <label className="block text-xs font-medium text-amber-900 mb-1">
-            Primary — {data.product_primary_string || 'product'}
-          </label>
-          <div className="relative">
-            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-amber-700 text-sm">$</span>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={ppInput}
-              onChange={e => setPpInput(e.target.value)}
-              disabled={saving}
-              className="w-full pl-6 pr-2 py-1.5 text-sm border border-amber-300 rounded bg-white focus:outline-none focus:border-amber-500"
-              placeholder="0.00"
-            />
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-slate-600">
+              <span className="font-medium text-slate-700">Product split:</span>{' '}
+              {data.product_primary_string || 'Primary'} {fmt(data.pp_gross_manual)}{' · '}
+              {data.product_secondary_name || 'Secondary'} {fmt(data.sp_gross)}
+            </p>
+            <button
+              onClick={() => setEditing(true)}
+              className="text-xs text-[#ff5000] hover:underline shrink-0 ml-3"
+            >
+              Edit split
+            </button>
           </div>
         </div>
-        <div>
-          <label className="block text-xs font-medium text-amber-900 mb-1">
-            Secondary — {data.product_secondary_name || 'product'}
-          </label>
-          <div className="relative">
-            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-amber-700 text-sm">$</span>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={spInput}
-              onChange={e => setSpInput(e.target.value)}
+      ) : (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-slate-600 mb-2">Edit product split</p>
+          {formFields}
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={handleSave}
               disabled={saving}
-              className="w-full pl-6 pr-2 py-1.5 text-sm border border-amber-300 rounded bg-white focus:outline-none focus:border-amber-500"
-              placeholder="0.00"
-            />
+              className="px-4 py-1.5 text-sm font-medium bg-[#ff5000] hover:bg-[#e04800] text-white rounded shadow-sm disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save changes'}
+            </button>
+            <button
+              onClick={handleCancel}
+              disabled={saving}
+              className="px-4 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded"
+            >
+              Cancel
+            </button>
           </div>
+          {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
         </div>
-        {referenceTotal != null && (
-          <p className="text-xs text-amber-800 mt-2 italic">
-            For reference, the combined gross from the MD Payout Report was{' '}
-            <strong>${Number(referenceTotal).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>.{' '}
-            Your split must add up to exactly this amount.
-          </p>
-        )}
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="mt-2 px-4 py-1.5 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded shadow-sm disabled:opacity-50"
-        >
-          {saving ? 'Saving...' : 'Save split'}
-        </button>
-        {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
-      </div>
+      )}
     </div>
   );
 }
@@ -607,14 +671,11 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   // Documents
   const isMdFundraiser = (data.product_primary_string || '').toLowerCase().includes('md');
   const isReportDataReady = !!(data.gross_sales_md && data.final_team_profit && data.rep_commission);
-  const hasFpr = data.fundraiser_profit_report?.length > 0;
-  const hasRcr = data.rep_commission_report?.length > 0;
-  const currentMdPayoutId = data.md_payout_report?.[0]?.id || null;
-  const fprStale = !!(hasFpr && currentMdPayoutId && data.fpr_md_payout_source_id && data.fpr_md_payout_source_id !== currentMdPayoutId);
-  const rcrStale = !!(hasRcr && currentMdPayoutId && data.rcr_md_payout_source_id && data.rcr_md_payout_source_id !== currentMdPayoutId);
+  const fprStale = data.fprStale;
+  const rcrStale = data.rcrStale;
   const hasSecondary = data.has_secondary;
-  const needsManualProductSplit = isMdFundraiser
-    && hasSecondary
+  const isTwoProduct = isMdFundraiser && hasSecondary;
+  const needsManualProductSplit = isTwoProduct
     && (!data.pp_gross_manual || data.pp_gross_manual === 0 || data.sp_gross == null || data.sp_gross === 0);
 
   return (
@@ -1341,9 +1402,13 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                 </div>
               )}
 
-              {/* Manual product split callout for two-product MD fundraisers */}
-              {needsManualProductSplit && (
-                <ManualProductSplitCallout data={data} onSaved={fetchDetail} />
+              {/* Manual product split for two-product MD fundraisers */}
+              {isTwoProduct && (
+                <ManualProductSplitCallout
+                  data={data}
+                  onSaved={fetchDetail}
+                  mode={needsManualProductSplit ? 'needed' : 'entered'}
+                />
               )}
 
               {/* Row 2: FPR and RCR */}

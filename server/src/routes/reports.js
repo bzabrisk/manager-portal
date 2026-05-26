@@ -10,6 +10,7 @@ import {
   airtableFetchByIds,
   uploadAttachmentReplacing,
   checkNeedsManualProductSplit,
+  computeReportFingerprint,
 } from '../services/airtable.js';
 import { renderFpr, renderRcr, renderAgreement } from '../services/pdf/render.js';
 import { getTierNotes } from '../constants/tieredProducts.js';
@@ -133,8 +134,11 @@ export async function generateFprForFundraiser(recordId) {
     filename,
     'application/pdf',
   );
+  // Write fingerprint so staleness can be detected on read
+  const fprRecord = await airtableGet('fundraisers', recordId);
+  const fprFingerprint = computeReportFingerprint(fprRecord.fields);
   await airtableUpdate('fundraisers', recordId, {
-    [FUNDRAISER_FIELDS.fpr_md_payout_source_id]: data.md_payout_attachment_id || '',
+    [FUNDRAISER_FIELDS.fpr_source_fingerprint]: fprFingerprint,
   });
   return result;
 }
@@ -150,8 +154,11 @@ export async function generateRcrForFundraiser(recordId) {
     filename,
     'application/pdf',
   );
+  // Write fingerprint so staleness can be detected on read
+  const rcrRecord = await airtableGet('fundraisers', recordId);
+  const rcrFingerprint = computeReportFingerprint(rcrRecord.fields);
   await airtableUpdate('fundraisers', recordId, {
-    [FUNDRAISER_FIELDS.rcr_md_payout_source_id]: data.md_payout_attachment_id || '',
+    [FUNDRAISER_FIELDS.rcr_source_fingerprint]: rcrFingerprint,
   });
   return result;
 }

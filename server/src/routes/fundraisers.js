@@ -18,6 +18,7 @@ import {
   getFundraisersList,
   getRepIds,
   checkNeedsManualProductSplit,
+  computeReportFingerprint,
 } from '../services/airtable.js';
 
 const router = Router();
@@ -901,9 +902,21 @@ router.get('/:recordId', async (req, res) => {
       gross_sales_calc: f[FUNDRAISER_FIELDS.gross_sales_calc] ?? null,
       md_cut: f[FUNDRAISER_FIELDS.md_cut] ?? null,
       cost_product: f[FUNDRAISER_FIELDS.cost_product] ?? null,
-      // Report stale tracking
-      fpr_md_payout_source_id: f[FUNDRAISER_FIELDS.fpr_md_payout_source_id] || null,
-      rcr_md_payout_source_id: f[FUNDRAISER_FIELDS.rcr_md_payout_source_id] || null,
+      // Report staleness (computed by comparing stored fingerprint to current)
+      fprStale: (() => {
+        const hasFile = (f[FUNDRAISER_FIELDS.fundraiser_profit_report] || []).length > 0;
+        if (!hasFile) return false;
+        const stored = f[FUNDRAISER_FIELDS.fpr_source_fingerprint] || '';
+        const current = computeReportFingerprint(f);
+        return stored === '' || stored !== current;
+      })(),
+      rcrStale: (() => {
+        const hasFile = (f[FUNDRAISER_FIELDS.rep_commission_report] || []).length > 0;
+        if (!hasFile) return false;
+        const stored = f[FUNDRAISER_FIELDS.rcr_source_fingerprint] || '';
+        const current = computeReportFingerprint(f);
+        return stored === '' || stored !== current;
+      })(),
       // Closeout
       md_payout_received: f[FUNDRAISER_FIELDS.md_payout_received] || false,
       check_invoice_sent: f[FUNDRAISER_FIELDS.check_invoice_sent] || false,

@@ -152,6 +152,9 @@ const FUNDRAISER_FIELDS = {
   md_product_api_admin_fee: 'fldXGtz1NAThbKwnZ',
   md_saas_tax: 'fldIip9vNpcZOjMBs',
   md_payout_date: 'fldWgHa5p9t8qzwF0',
+  // Report staleness fingerprints
+  fpr_source_fingerprint: 'fldrFTjfaCC5SVK1H',
+  rcr_source_fingerprint: 'fld1yLk2UEPDT5yKB',
 };
 
 // Client book (primary contact) field IDs
@@ -412,6 +415,21 @@ async function checkNeedsManualProductSplit(recordId) {
   return (ppManual == null || ppManual === 0) || (spGross == null || spGross === 0);
 }
 
+function computeReportFingerprint(fields) {
+  const F = FUNDRAISER_FIELDS;
+  const mdPayoutId = (fields[F.md_payout_report] || [])[0]?.id || '';
+  const parts = [
+    mdPayoutId,
+    fields[F.pp_gross_manual] ?? '',
+    fields[F.sp_gross] ?? '',
+    fields[F.gross_sales_md] ?? '',
+    fields[F.final_team_profit] ?? '',
+    fields[F.final_invoice_amount] ?? '',
+    fields[F.rep_commission] ?? '',
+  ];
+  return parts.join('|');
+}
+
 export {
   BASE_ID,
   TABLES,
@@ -434,4 +452,5 @@ export {
   getRepIds,
   uploadAttachmentReplacing,
   checkNeedsManualProductSplit,
+  computeReportFingerprint,
 };
