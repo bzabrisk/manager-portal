@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   X, Pencil, Mail, Phone, User, ExternalLink, ChevronRight, ChevronDown,
-  CheckCircle, Circle, FileText, Plus, AlertTriangle, Lock, Upload, Clock,
+  CheckCircle, Circle, FileText, Plus, AlertTriangle, Lock, Upload,
 } from 'lucide-react';
 import { api } from '../api/client';
 import TaskDetailModal from './TaskDetailModal';
@@ -87,7 +87,7 @@ function ProgressBar({ kickoff, end }) {
   );
 }
 
-function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerate, awaitingMdPayout, polling, isStale, airtableUrl, isMdFundraiser = true, blocked, blockedReason }) {
+function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerate, awaitingMdPayout, isStale, isMdFundraiser = true, blocked, blockedReason }) {
   const hasFile = files && files.length > 0;
 
   if (hasFile) {
@@ -141,15 +141,6 @@ function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerat
     );
   }
 
-  if (polling) {
-    return (
-      <div className="border border-dashed border-amber-200 bg-amber-50 rounded-lg p-3 text-center">
-        <p className="text-xs text-slate-500 mb-1">{label}</p>
-        <p className="text-xs text-amber-700">Reports will auto-generate after MD Payout data is processed — usually 5 minutes. Feel free to close this modal; reports will appear when ready.</p>
-      </div>
-    );
-  }
-
   if (awaitingMdPayout) {
     return (
       <div className="border border-dashed border-slate-200 rounded-lg p-3 text-center">
@@ -182,44 +173,16 @@ function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerat
 
   return (
     <div>
-      {!isDataReady && !awaitingMdPayout && !polling ? (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 h-full flex flex-col justify-center">
-          <div className="flex items-start gap-2.5">
-            <Clock size={16} className="text-amber-600 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-amber-900 mb-1">
-                {label} — waiting on Airtable
-              </p>
-              <p className="text-xs text-amber-800 leading-relaxed">
-                Airtable usually processes the MD Payout Report within ~5 minutes. If it's been longer, the AI field agents may have skipped. Open this fundraiser in Airtable and click Run agent on any empty AI field.
-              </p>
-              {airtableUrl && (
-                <a
-                  href={airtableUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block text-sm font-medium text-[#ff5000] hover:underline mt-2"
-                >
-                  Open in Airtable &rarr;
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <>
-          <button
-            onClick={onGenerate}
-            disabled={generating || !isDataReady || blocked}
-            title={blocked ? blockedReason : undefined}
-            className="w-full h-full bg-[#ff5000] hover:bg-[#e64600] active:bg-[#cc3f00] text-white font-semibold py-4 px-4 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <FileText size={18} />
-            {generating ? 'Generating...' : `Generate ${label}`}
-          </button>
-          {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
-        </>
-      )}
+      <button
+        onClick={onGenerate}
+        disabled={generating || !isDataReady || blocked}
+        title={blocked ? blockedReason : !isDataReady ? 'Financial data not yet available' : undefined}
+        className="w-full h-full bg-[#ff5000] hover:bg-[#e64600] active:bg-[#cc3f00] text-white font-semibold py-4 px-4 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        <FileText size={18} />
+        {generating ? 'Generating...' : `Generate ${label}`}
+      </button>
+      {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
     </div>
   );
 }
@@ -349,8 +312,6 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const [generatingRcr, setGeneratingRcr] = useState(false);
   const [generatingAgreement, setGeneratingAgreement] = useState(false);
   const [reportError, setReportError] = useState({ fpr: '', rcr: '', agreement: '' });
-  const [pollingForReports, setPollingForReports] = useState(false);
-  const [mdPayoutToast, setMdPayoutToast] = useState('');
 
   // Lookup data for edit mode dropdowns
   const [lookups, setLookups] = useState({ reps: [], contacts: [], accountingContacts: [], products: [] });
@@ -521,43 +482,27 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const handleMdPayoutFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const autoGenLikely = (data.product_primary_string || '').toLowerCase().includes('md')
-      && !(data.fundraiser_profit_report?.length)
-      && !(data.rep_commission_report?.length);
 
     setUploadingMdPayout(true);
     setMdPayoutError('');
 
     try {
-      await api.fundraisers.uploadMdPayoutReport(data.id, file);
-      await fetchDetail();
+      // Extract data from the PDF synchronously via Claude
+      const extraction = await api.fundraisers.extractMdPayout(data.id, file);
 
-      // Upload done — clear "Uploading..." immediately, before polling starts
-      setUploadingMdPayout(false);
-      if (mdPayoutFileInputRef.current) mdPayoutFileInputRef.current.value = '';
-
-      if (autoGenLikely) {
-        setMdPayoutToast('MD Payout uploaded. Reports will generate automatically in a few minutes.');
-        setTimeout(() => setMdPayoutToast(''), 10000);
-        setPollingForReports(true);
-
-        // Poll up to 15 minutes (180 × 5s), refreshing modal data each iteration
-        for (let i = 0; i < 180; i++) {
-          await new Promise(r => setTimeout(r, 5000));
-          await fetchDetail();
-          const fresh = await api.fundraisers.getDetail(data.id);
-          if (fresh.fundraiser_profit_report?.length && fresh.rep_commission_report?.length) {
-            await fetchDetail();
-            break;
-          }
-        }
-
-        setPollingForReports(false);
+      if (!extraction.success) {
+        throw new Error(extraction.warnings?.[0] || 'Could not read the payout report. Please check the file and try again.');
       }
+
+      // Save extracted values + attach PDF + generate reports (all synchronous)
+      await api.fundraisers.saveMdPayout(data.id, file, extraction.values);
+
+      // Refresh modal to show updated data, attached PDF, and generated reports
+      await fetchDetail();
     } catch (err) {
       setMdPayoutError(err.message || 'Upload failed.');
+    } finally {
       setUploadingMdPayout(false);
-      setPollingForReports(false);
       if (mdPayoutFileInputRef.current) mdPayoutFileInputRef.current.value = '';
     }
   };
@@ -744,12 +689,6 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
             </div>
           </div>
 
-          {/* Toast banner */}
-          {mdPayoutToast && (
-            <div className="mx-6 mt-3 px-4 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 font-medium">
-              &#10003; {mdPayoutToast}
-            </div>
-          )}
 
           {/* Scrollable Content */}
           <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6">
@@ -1373,7 +1312,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                           disabled={uploadingMdPayout}
                           className="text-xs font-medium px-3 py-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 shrink-0"
                         >
-                          {uploadingMdPayout ? 'Uploading...' : 'Replace'}
+                          {uploadingMdPayout ? 'Reading report...' : 'Replace'}
                         </button>
                       </div>
                     ) : (
@@ -1383,7 +1322,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                         className="w-full h-full bg-[#ff5000] hover:bg-[#e64600] active:bg-[#cc3f00] text-white font-semibold py-4 px-4 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         <Upload size={18} />
-                        {uploadingMdPayout ? 'Uploading...' : 'Attach MD Payout Report'}
+                        {uploadingMdPayout ? 'Reading report and generating documents\u2026' : 'Attach MD Payout Report'}
                       </button>
                     )}
 
@@ -1417,9 +1356,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                   isDataReady={isReportDataReady}
                   onGenerate={() => handleGenerateReport('fpr')}
                   awaitingMdPayout={isMdFundraiser && !data.md_payout_report?.length}
-                  polling={pollingForReports && !data.fundraiser_profit_report?.length}
                   isStale={fprStale}
-                  airtableUrl={`${AIRTABLE_FUNDRAISER_URL_BASE}/${data.id}`}
                   isMdFundraiser={isMdFundraiser}
                   blocked={needsManualProductSplit}
                   blockedReason="Enter the product split above first."
@@ -1432,9 +1369,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                   isDataReady={isReportDataReady}
                   onGenerate={() => handleGenerateReport('rcr')}
                   awaitingMdPayout={isMdFundraiser && !data.md_payout_report?.length}
-                  polling={pollingForReports && !data.rep_commission_report?.length}
                   isStale={rcrStale}
-                  airtableUrl={`${AIRTABLE_FUNDRAISER_URL_BASE}/${data.id}`}
                   isMdFundraiser={isMdFundraiser}
                   blocked={needsManualProductSplit}
                   blockedReason="Enter the product split above first."

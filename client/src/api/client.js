@@ -85,6 +85,17 @@ export const api = {
       formData.append('file', file);
       return uploadRequest(`/fundraisers/${recordId}/upload-md-payout-report`, formData);
     },
+    extractMdPayout: (recordId, file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return uploadRequest(`/fundraisers/${recordId}/extract-md-payout`, formData);
+    },
+    saveMdPayout: (recordId, file, values) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('values', JSON.stringify(values));
+      return uploadRequest(`/fundraisers/${recordId}/save-md-payout`, formData);
+    },
   },
   payouts: {
     today: () => request('/payouts/today'),
