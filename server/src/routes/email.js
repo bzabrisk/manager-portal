@@ -128,6 +128,19 @@ router.get('/preview/:taskId', async (req, res) => {
 
     const repRecord = reps[0];
     const repName = repRecord ? (repRecord.fields[REP_FIELDS.name] || '') : '';
+    const repEmail = repRecord ? (repRecord.fields[REP_FIELDS.email] || null) : null;
+
+    // For the ASB onboarding email, CC the fundraiser's rep automatically
+    if (templateId === 'asb-onboarding' && repRecord && repEmail) {
+      contacts.push({
+        id: repRecord.id,
+        name: repName,
+        firstName: getFirstName(repName),
+        email: repEmail,
+        hasEmail: true,
+      });
+      defaultCc.push(repRecord.id);
+    }
 
     const greeting = buildGreeting(contacts);
 
