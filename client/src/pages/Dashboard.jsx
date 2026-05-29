@@ -58,10 +58,6 @@ export default function Dashboard({ tasks, loading, error, refresh }) {
   today.setHours(0, 0, 0, 0);
   const todayStr = today.toISOString().split('T')[0];
 
-  const oneMonthFromNow = new Date(today);
-  oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
-  const oneMonthStr = oneMonthFromNow.toISOString().split('T')[0];
-
   const twoDaysAgo = new Date(today);
   twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
   const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
@@ -77,14 +73,9 @@ export default function Dashboard({ tasks, loading, error, refresh }) {
       return t.completed_at >= twoDaysAgoStr;
     }
 
-    // Non-done tasks: check visibility based on show_date or deadline
-    if (t.show_date) {
-      return t.show_date <= todayStr;
-    }
-
-    // No show_date: show if deadline is within 1 month from now, or in the past, or empty
-    if (!t.deadline) return true;
-    return t.deadline <= oneMonthStr;
+    // Non-done tasks: default to visible. Only hide if show_date is set in the future.
+    if (t.show_date && t.show_date > todayStr) return false;
+    return true;
   });
 
   // Cash's tasks for the separate section below
