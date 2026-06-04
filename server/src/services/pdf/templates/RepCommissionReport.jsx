@@ -89,7 +89,7 @@ export default function RepCommissionReport({ data }) {
           <AdjustmentRow label="Small fundraiser adj" amount={data.rcr_adj_smallfradj} />
           <AdjustmentRow label="Excess printing adj" amount={data.rcr_adj_excessprint} />
           <AdjustmentRow label={cdBoxesLabel} amount={data.rcr_adj_extra_cd_boxes} />
-          <AdjustmentRow label="Deduction misc" amount={data.rcr_adj_misc} comment={data.rcr_comment} />
+          <AdjustmentRow label="Misc adjustment" amount={data.rcr_adj_misc} comment={data.rcr_comment} />
 
           <FinalAmountBox label="FINAL PAYOUT" amount={data.rep_commission} />
 

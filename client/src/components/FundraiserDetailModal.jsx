@@ -1123,15 +1123,16 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                       </>
                     )}
 
-                    {/* Misc Deduction */}
+                    {/* Misc Adjustment */}
                     <div className="py-1.5">
                       {editMode ? (
                         <div className="flex justify-between items-start gap-3">
-                          <span className="text-sm text-slate-600 pt-1 shrink-0">Misc Deduction</span>
+                          <span className="text-sm text-slate-600 pt-1 shrink-0">Misc Adjustment</span>
                           <div className="flex items-start gap-2">
                             <div className="flex items-center gap-1 w-28">
                               <span className="text-sm text-slate-400">$</span>
-                              <input type="number" step="0.01" value={edits.rcr_adj_misc}
+                              <input type="number" step="0.01" placeholder="+/−" value={edits.rcr_adj_misc}
+                                title="Positive = extra commission, negative = deduction"
                                 onChange={e => setEdits(prev => ({...prev, rcr_adj_misc: e.target.value}))}
                                 className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
                             </div>
@@ -1144,7 +1145,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                       ) : (
                         <div className="flex justify-between">
                           <div>
-                            <span className="text-sm text-slate-600">Misc Deduction</span>
+                            <span className="text-sm text-slate-600">Misc Adjustment</span>
                             {data.rcr_comment && <p className="text-xs text-slate-400 mt-0.5">{data.rcr_comment}</p>}
                           </div>
                           <span className={`text-sm ${data.rcr_adj_misc ? 'text-slate-700' : 'text-slate-400'}`}>
