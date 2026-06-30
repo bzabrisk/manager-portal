@@ -73,7 +73,7 @@ export default function FundraiserProfitReport({ data }) {
   const showTierFootnote = isTradUpfront;
 
   const lineItems = [
-    data.pp_gross != null && {
+    data.pp_gross && {
       label: data.product_primary_string || 'Primary Product',
       qty: data.cards_sold,
       gross: data.pp_gross,

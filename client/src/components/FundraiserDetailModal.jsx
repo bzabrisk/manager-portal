@@ -669,7 +669,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   });
 
   // Documents
-  const isMdFundraiser = (data.product_primary_string || '').toLowerCase().includes('md');
+  const isMdFundraiser = (data.product_primary_string || '').toLowerCase().includes('md')
+    || data.md_payout_report?.length > 0
+    || data.include_md_donations;
   const isReportDataReady = !!(data.gross_sales_md && data.final_team_profit && data.rep_commission);
   const fprStale = data.fprStale;
   const rcrStale = data.rcrStale;
