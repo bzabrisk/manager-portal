@@ -19,6 +19,7 @@ import {
   getRepIds,
 } from '../services/airtable.js';
 import { searchFiles, readFileContent, getFileLink } from '../services/google-drive.js';
+import { ANTHROPIC_MODEL, isModelNotFoundError, notifyModelRetired } from '../services/modelHealth.js';
 
 const router = Router();
 
@@ -913,7 +914,7 @@ async function callClaude(messages, systemPrompt) {
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
+      model: ANTHROPIC_MODEL,
       max_tokens: 4096,
       system: systemPrompt,
       tools: TOOLS,
@@ -923,6 +924,12 @@ async function callClaude(messages, systemPrompt) {
 
   if (!response.ok) {
     const errText = await response.text();
+    if (isModelNotFoundError(response.status, errText)) {
+      notifyModelRetired({ source: 'Cash chatbot' });
+      const err = new Error('MODEL_RETIRED');
+      err.isModelRetired = true;
+      throw err;
+    }
     throw new Error(`Claude API error (${response.status}): ${errText}`);
   }
 
@@ -1097,6 +1104,9 @@ router.post('/', async (req, res) => {
 
     res.json({ response: textContent });
   } catch (err) {
+    if (err.isModelRetired) {
+      return res.json({ response: "\ud83e\udd8d My AI brain got retired and needs a quick one-line update \u2014 I've emailed Tahni the exact fix, and I'll be back online once it's done." });
+    }
     console.error('Chat error:', err.message);
     res.status(500).json({ error: 'Chat request failed' });
   }

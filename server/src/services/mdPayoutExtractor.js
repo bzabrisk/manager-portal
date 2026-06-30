@@ -8,6 +8,7 @@ import {
   airtableUpdate,
   uploadAttachmentReplacing,
 } from './airtable.js';
+import { ANTHROPIC_MODEL, isModelNotFoundError, notifyModelRetired } from './modelHealth.js';
 
 const EXTRACTION_PROMPT = `You are extracting financial data from a MoneyDolly Pro Payout Report PDF. Read the document carefully and return ONLY a JSON object — no preamble, no explanation, no markdown code fences.
 
@@ -90,7 +91,7 @@ export async function extractMdPayoutData(pdfBuffer) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: ANTHROPIC_MODEL,
         max_tokens: 1024,
         messages: [
           {
@@ -116,6 +117,10 @@ export async function extractMdPayoutData(pdfBuffer) {
 
     if (!response.ok) {
       const errText = await response.text();
+      if (isModelNotFoundError(response.status, errText)) {
+        notifyModelRetired({ source: 'MD Payout Report extraction' });
+        return makeErrorResult('The AI model has been retired and needs a one-line code update. Tahni has been emailed the exact fix.');
+      }
       throw new Error(`Claude API error (${response.status}): ${errText}`);
     }
 
