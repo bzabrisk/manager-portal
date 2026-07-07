@@ -125,18 +125,18 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]" onClick={onClose}>
       <div
-        className="bg-white rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto max-lg:h-full max-lg:max-h-full max-lg:rounded-none max-lg:overflow-hidden max-lg:flex max-lg:flex-col max-lg:p-4"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 max-lg:shrink-0">
           <h3 className="font-semibold text-slate-800 flex items-center gap-2">
             <Mail size={18} />
             Email Preview
           </h3>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded"
+            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded max-lg:p-2.5"
           >
             <X size={18} />
           </button>
@@ -153,7 +153,8 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
         )}
 
         {!loading && !error && (
-          <div className="space-y-4">
+          <>
+          <div className="space-y-4 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto">
             {/* To group */}
             <div>
               <label className="block text-xs font-bold text-slate-600 mb-1.5">To</label>
@@ -278,7 +279,7 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
                   <button
                     onClick={handleGenerateAgreement}
                     disabled={generatingAgreement}
-                    className="text-xs font-medium px-3 py-1.5 rounded bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 shrink-0"
+                    className="text-xs font-medium px-3 py-1.5 rounded bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 shrink-0 max-lg:py-2.5"
                   >
                     {generatingAgreement ? 'Generating...' : 'Generate Now'}
                   </button>
@@ -298,28 +299,30 @@ export default function EmailPreviewModal({ task, onClose, onRefresh }) {
               </div>
             )}
 
-            {/* Buttons */}
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSend}
-                disabled={!hasToRecipients || !hasAgreement || sending || sent}
-                title={!hasToRecipients ? 'Add at least one recipient to To' : !hasAgreement ? 'Generate the Fundraiser Agreement first' : undefined}
-                className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50"
-                style={{ backgroundColor: '#ff5000' }}
-                onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04800'; }}
-                onMouseLeave={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#ff5000'; }}
-              >
-                <Send size={14} />
-                {sending ? 'Sending...' : 'Send Email'}
-              </button>
-            </div>
           </div>
+
+          {/* Buttons */}
+          <div className="flex justify-end gap-2 pt-2 mt-4 max-lg:mt-3 max-lg:shrink-0 max-lg:border-t max-lg:border-slate-100 max-lg:pt-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg max-lg:py-2.5"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSend}
+              disabled={!hasToRecipients || !hasAgreement || sending || sent}
+              title={!hasToRecipients ? 'Add at least one recipient to To' : !hasAgreement ? 'Generate the Fundraiser Agreement first' : undefined}
+              className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50 max-lg:py-2.5"
+              style={{ backgroundColor: '#ff5000' }}
+              onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04800'; }}
+              onMouseLeave={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#ff5000'; }}
+            >
+              <Send size={14} />
+              {sending ? 'Sending...' : 'Send Email'}
+            </button>
+          </div>
+          </>
         )}
       </div>
     </div>

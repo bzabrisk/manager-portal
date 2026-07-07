@@ -49,9 +49,9 @@ export default function ProductCostModal({ task, onClose, onRefresh }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] max-lg:p-3" onClick={onClose}>
       <div
-        className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md"
+        className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md max-lg:max-h-full max-lg:overflow-y-auto max-lg:p-4"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -62,7 +62,7 @@ export default function ProductCostModal({ task, onClose, onRefresh }) {
           </h3>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded"
+            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded max-lg:p-2.5"
           >
             <X size={18} />
           </button>
@@ -141,14 +141,14 @@ export default function ProductCostModal({ task, onClose, onRefresh }) {
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg"
+                className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg max-lg:py-2.5"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={!isValid || saving || saved}
-                className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50"
+                className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50 max-lg:py-2.5"
                 style={{ backgroundColor: '#ff5000' }}
                 onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04800'; }}
                 onMouseLeave={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#ff5000'; }}

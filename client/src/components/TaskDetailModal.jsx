@@ -77,15 +77,15 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
   const fundraisers = task.fundraisers || (task.fundraiser ? [task.fundraiser] : []);
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[55] opacity-100" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[55] opacity-100 max-lg:p-3" onClick={onClose}>
       <div
-        className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto relative opacity-100"
+        className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto relative opacity-100 max-lg:max-h-full max-lg:p-4"
         onClick={e => e.stopPropagation()}
       >
         {/* Edit button - top right */}
         <button
           onClick={() => { onClose(); onEdit(); }}
-          className="absolute top-4 right-4 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg px-2 py-1 transition-colors"
+          className="absolute top-4 right-4 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg px-2 py-1 transition-colors max-lg:px-3 max-lg:py-2.5"
         >
           <Pencil size={14} />
           Edit
@@ -188,7 +188,7 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
             <button
               onClick={handleMarkDone}
               disabled={marking}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-green-500 hover:bg-green-600 disabled:opacity-60 px-4 py-2 rounded-lg transition-colors"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-green-500 hover:bg-green-600 disabled:opacity-60 px-4 py-2 rounded-lg transition-colors max-lg:py-2.5"
             >
               {marking ? (
                 'Marking...'

@@ -9,3 +9,14 @@
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+/* Mobile only: keep form controls at >=16px so iOS Safari doesn't auto-zoom on focus.
+   Desktop (lg and up) is untouched. */
+@media (max-width: 1023px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea,
+  [contenteditable="true"] {
+    font-size: 16px !important;
+  }
+}

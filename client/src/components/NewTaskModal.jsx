@@ -51,11 +51,12 @@ export default function NewTaskModal({ onClose, onRefresh, initialStatus = 'To d
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg" onClick={e => e.stopPropagation()}>
-        <h3 className="font-semibold text-slate-800 text-lg mb-4">New Task</h3>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 max-lg:p-3" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-lg:max-h-full max-lg:overflow-hidden max-lg:flex max-lg:flex-col max-lg:p-4" onClick={e => e.stopPropagation()}>
+        <h3 className="font-semibold text-slate-800 text-lg mb-4 max-lg:shrink-0">New Task</h3>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-3 max-lg:flex max-lg:flex-col max-lg:flex-1 max-lg:min-h-0">
+          <div className="space-y-3 max-lg:flex-1 max-lg:overflow-y-auto max-lg:min-h-0">
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Task Name *</label>
             <input
@@ -142,13 +143,14 @@ export default function NewTaskModal({ onClose, onRefresh, initialStatus = 'To d
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
+          </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+          <div className="flex justify-end gap-2 pt-2 max-lg:shrink-0 max-lg:border-t max-lg:border-slate-100 max-lg:pt-3">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg max-lg:py-2.5">Cancel</button>
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 text-sm bg-smash text-white rounded-lg hover:bg-smash-dark disabled:opacity-50"
+              className="px-4 py-2 text-sm bg-smash text-white rounded-lg hover:bg-smash-dark disabled:opacity-50 max-lg:py-2.5"
             >
               {saving ? 'Creating...' : 'Create Task'}
             </button>

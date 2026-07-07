@@ -610,7 +610,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
 
   if (loading && !data) {
     return (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" style={{ paddingLeft: '208px' }}>
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 lg:pl-[208px]">
         <div className="bg-white rounded-xl shadow-xl p-10 text-center">
           <p className="text-slate-400">Loading fundraiser details...</p>
         </div>
@@ -620,7 +620,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
 
   if (error && !data) {
     return (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" style={{ paddingLeft: '208px' }} onClick={onClose}>
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 lg:pl-[208px] max-lg:p-4" onClick={onClose}>
         <div className="bg-white rounded-xl shadow-xl p-10 text-center" onClick={e => e.stopPropagation()}>
           <p className="text-red-500 mb-2">Failed to load fundraiser</p>
           <p className="text-sm text-slate-400">{error}</p>
@@ -682,16 +682,16 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" style={{ paddingLeft: '208px' }} onClick={handleOverlayClick}>
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 lg:pl-[208px]" onClick={handleOverlayClick}>
         <div
-          className="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200"
+          className="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 max-lg:h-full max-lg:max-h-full max-lg:rounded-none"
           onClick={e => e.stopPropagation()}
         >
           {/* Sticky Header */}
-          <div className="sticky top-0 bg-white rounded-t-xl border-b border-slate-100 px-6 py-4 z-10 flex items-start justify-between gap-4">
+          <div className="sticky top-0 bg-white rounded-t-xl border-b border-slate-100 px-6 py-4 z-10 flex items-start justify-between gap-4 max-lg:px-4 max-lg:rounded-none shrink-0">
             {editMode ? (
               <div className="flex-1 min-w-0 space-y-2">
-                <div className="flex gap-2">
+                <div className="flex gap-2 max-lg:flex-col">
                   <input type="text" value={edits.organization} onChange={e => setEdits(prev => ({...prev, organization: e.target.value}))}
                     placeholder="Organization" className="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
                   <input type="text" value={edits.team} onChange={e => setEdits(prev => ({...prev, team: e.target.value}))}
@@ -745,7 +745,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
               )}
               <button
                 onClick={handleOverlayClick}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors max-lg:p-2.5"
               >
                 <X size={20} />
               </button>
@@ -754,7 +754,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
 
 
           {/* Scrollable Content */}
-          <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6">
+          <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6 max-lg:px-4">
             {/* Section 1: Key People */}
             <section>
               <SectionHeader>Key People</SectionHeader>
@@ -864,8 +864,8 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
             <section>
               <SectionHeader>Setup</SectionHeader>
               {editMode ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm">
-                  <div className="col-span-2 md:col-span-3 flex gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm max-sm:grid-cols-1">
+                  <div className="col-span-full flex gap-3 max-sm:flex-col">
                     <div className="flex-1">
                       <span className="text-slate-400 text-xs">Primary Product:</span>
                       <select value={edits.product_primary_id} onChange={e => setEdits(prev => ({...prev, product_primary_id: e.target.value}))}
@@ -884,7 +884,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                       </select>
                     </div>
                   </div>
-                  <div className="col-span-2 md:col-span-3">
+                  <div className="col-span-full">
                     <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-700">
                       <input type="checkbox" checked={edits.include_md_donations || false}
                         onChange={e => setEdits(prev => ({...prev, include_md_donations: e.target.checked}))}
@@ -931,8 +931,8 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm">
-                  <div className="col-span-2 md:col-span-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm max-sm:grid-cols-1">
+                  <div className="col-span-full">
                     <span className="text-slate-400">Products:</span>{' '}
                     <span className="inline-block align-middle ml-1"><ProductBadges products={data.products} /></span>
                   </div>
@@ -997,7 +997,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
 
               {/* Part A: Summary (all read-only) */}
               {financials.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-sm:grid-cols-1">
                   {financials.map(f => (
                     <div key={f.label} className="bg-slate-50 rounded-lg p-3">
                       <p className="text-xs text-slate-400">{f.label}</p>
@@ -1035,7 +1035,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                     <div className="py-1.5">
                       {editMode ? (
                         <>
-                          <div className="flex justify-between items-start gap-3">
+                          <div className="flex justify-between items-start gap-3 max-lg:flex-wrap">
                             <div>
                               <span className="text-sm text-slate-600">Adjustment between Team & Rep</span>
                               <p className="text-xs text-slate-400 mt-0.5">Positive = team gives rep &middot; Negative = rep gives team</p>
@@ -1128,7 +1128,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                     {/* Misc Adjustment */}
                     <div className="py-1.5">
                       {editMode ? (
-                        <div className="flex justify-between items-start gap-3">
+                        <div className="flex justify-between items-start gap-3 max-lg:flex-wrap">
                           <span className="text-sm text-slate-600 pt-1 shrink-0">Misc Adjustment</span>
                           <div className="flex items-start gap-2">
                             <div className="flex items-center gap-1 w-28">
@@ -1570,7 +1570,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
               <section>
                 <SectionHeader>Daily Payouts</SectionHeader>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm max-lg:min-w-[480px]">
                     <thead>
                       <tr className="text-left text-xs text-slate-400 border-b border-slate-100">
                         <th className="pb-2 pr-3 font-medium">Date</th>
@@ -1668,17 +1668,17 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
 
           {/* Sticky Save/Cancel Bar */}
           {editMode && (
-            <div className="sticky bottom-0 bg-white border-t border-slate-100 rounded-b-xl px-6 py-3 flex justify-end gap-2 z-10">
+            <div className="sticky bottom-0 bg-white border-t border-slate-100 rounded-b-xl px-6 py-3 flex justify-end gap-2 z-10 max-lg:px-4 max-lg:rounded-none shrink-0">
               <button
                 onClick={handleCancel}
-                className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors max-lg:py-2.5"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={!hasChanges || saving || cdBoxesInvalid || costProductInvalid}
-                className={`px-4 py-2 text-sm text-white rounded-lg transition-colors ${
+                className={`px-4 py-2 text-sm text-white rounded-lg transition-colors max-lg:py-2.5 ${
                   hasChanges && !cdBoxesInvalid && !costProductInvalid ? 'bg-[#ff5000] hover:bg-[#e04800]' : 'bg-slate-300 cursor-not-allowed'
                 }`}
               >
@@ -1768,8 +1768,8 @@ function EditTaskFromDetail({ task, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] max-lg:p-3" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto max-lg:max-h-full max-lg:p-4" onClick={e => e.stopPropagation()}>
         <h3 className="font-semibold text-slate-800 mb-4">Edit Task</h3>
         <div className="space-y-3">
           <div>
@@ -1819,9 +1819,9 @@ function EditTaskFromDetail({ task, onClose, onSave }) {
           </div>
         </div>
         <div className="flex justify-end gap-2 mt-5">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg max-lg:py-2.5">Cancel</button>
           <button onClick={handleSave} disabled={saving}
-            className="px-4 py-2 text-sm bg-[#ff5000] text-white rounded-lg hover:bg-[#e04800] disabled:opacity-50">
+            className="px-4 py-2 text-sm bg-[#ff5000] text-white rounded-lg hover:bg-[#e04800] disabled:opacity-50 max-lg:py-2.5">
             {saving ? 'Saving...' : 'Save'}
           </button>
         </div>

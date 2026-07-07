@@ -79,6 +79,9 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
   const [sendError, setSendError] = useState('');
   const [step, setStep] = useState(1);
   const [checkWasSent, setCheckWasSent] = useState(false);
+  const [zeroSending, setZeroSending] = useState(false);
+  const [zeroSent, setZeroSent] = useState(false);
+  const [zeroError, setZeroError] = useState('');
   // Step 2 state (team_profit only)
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
@@ -149,6 +152,22 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
     prepareStep2(preview);
   };
 
+  const handleZeroCommission = async () => {
+    setZeroSending(true);
+    setZeroError('');
+    try {
+      await api.echeck.zeroCommission({ taskId: preview.taskId });
+      setZeroSent(true);
+      setTimeout(() => {
+        onClose();
+        if (onRefresh) onRefresh();
+      }, 1500);
+    } catch (err) {
+      setZeroError(err.message || 'Failed to zero out commission');
+      setZeroSending(false);
+    }
+  };
+
   const finishAndClose = async () => {
     // Mark the team_profit task as Done now that step 2 is complete
     await markTaskDone();
@@ -192,11 +211,11 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]" onClick={onClose}>
       <div
-        className="bg-white rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto max-lg:h-full max-lg:max-h-full max-lg:rounded-none max-lg:overflow-hidden max-lg:flex max-lg:flex-col max-lg:p-4"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 max-lg:shrink-0">
           <h3 className="font-semibold text-slate-800 flex items-center gap-2">
             {step === 1 ? <DollarSign size={18} /> : <Mail size={18} />}
             {loading ? 'E-Check Preview' : title}
@@ -204,7 +223,7 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
           </h3>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded"
+            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded max-lg:p-2.5"
           >
             <X size={18} />
           </button>
@@ -222,7 +241,8 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
 
         {/* STEP 1 */}
         {!loading && !error && preview && step === 1 && (
-          <div className="space-y-4">
+          <>
+          <div className="space-y-4 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto">
             {/* Recipient */}
             <div className="bg-slate-50 rounded-lg p-3">
               <p className="text-xs font-medium text-slate-500 mb-1">Recipient</p>
@@ -240,7 +260,9 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
             <div>
               <p className="text-xs font-medium text-slate-500 mb-1">Amount</p>
               <p className="text-2xl font-bold text-slate-800">{formatCurrency(preview.amount || 0)}</p>
-              {(!preview.amount || preview.amount <= 0) && (
+              {preview.type === 'rep_commission' && preview.amount <= 0 ? (
+                <p className="text-sm text-slate-600 mt-1">No commission payout this time.</p>
+              ) : (!preview.amount || preview.amount <= 0) && (
                 <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600 bg-amber-50 rounded px-2 py-1.5">
                   <AlertTriangle size={13} />
                   Amount is $0.00 — please verify in Airtable before sending
@@ -249,13 +271,28 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
             </div>
 
             {/* Memo */}
+            {!(preview.type === 'rep_commission' && preview.amount <= 0) && (
             <div>
               <p className="text-xs font-medium text-slate-500 mb-1">Check memo</p>
               <p className="text-sm text-slate-700">{preview.description}</p>
             </div>
+            )}
 
-            {/* Companion email notice — rep_commission only (auto-sends) */}
-            {!isTeamProfit && (
+            {/* Zero commission info */}
+            {preview.type === 'rep_commission' && preview.amount <= 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Mail size={16} className="text-blue-600" />
+                  <p className="text-sm font-semibold text-blue-800">Zero out &amp; send report</p>
+                </div>
+                <p className="text-sm text-blue-700">
+                  This will adjust the misc line to bring the commission to $0, regenerate the commission report, email it to {preview.recipientName}, and mark the rep as paid.
+                </p>
+              </div>
+            )}
+
+            {/* Companion email notice — rep_commission only (auto-sends), positive amount */}
+            {!isTeamProfit && preview.amount > 0 && (
               preview.hasPdf ? (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
@@ -307,6 +344,11 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
               <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{sendError}</div>
             )}
 
+            {/* Zero commission error */}
+            {zeroError && (
+              <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{zeroError}</div>
+            )}
+
             {/* Sent success */}
             {sent && (
               <div className="text-sm text-green-700 bg-green-50 rounded-lg p-3 font-medium">
@@ -314,41 +356,65 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
               </div>
             )}
 
-            {/* Buttons */}
-            <div className="flex justify-end gap-2 pt-2">
+            {/* Zero commission success */}
+            {zeroSent && (
+              <div className="text-sm text-green-700 bg-green-50 rounded-lg p-3 font-medium">
+                Report sent to the rep, marked paid.
+              </div>
+            )}
+
+          </div>
+
+          {/* Buttons */}
+          <div className="flex justify-end gap-2 pt-2 mt-4 max-lg:mt-3 max-lg:shrink-0 max-lg:border-t max-lg:border-slate-100 max-lg:pt-3 max-lg:flex-wrap">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg"
+                className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg max-lg:py-2.5"
               >
                 Cancel
               </button>
               {isTeamProfit && !sending && !sent && (
                 <button
                   onClick={handleSkipToEmail}
-                  className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors max-lg:py-2.5"
                 >
                   <SkipForward size={14} />
                   Skip E-Check
                 </button>
               )}
-              <button
-                onClick={handleSend}
-                disabled={!canSend}
-                className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50"
-                style={{ backgroundColor: '#ff5000' }}
-                onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04800'; }}
-                onMouseLeave={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#ff5000'; }}
-              >
-                <Send size={14} />
-                {sending ? 'Sending...' : 'Send E-Check'}
-              </button>
-            </div>
+              {preview.type === 'rep_commission' && preview.amount <= 0 ? (
+                <button
+                  onClick={handleZeroCommission}
+                  disabled={zeroSending || zeroSent}
+                  className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50 max-lg:py-2.5"
+                  style={{ backgroundColor: '#ff5000' }}
+                  onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04800'; }}
+                  onMouseLeave={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#ff5000'; }}
+                >
+                  <Send size={14} />
+                  {zeroSending ? 'Processing...' : 'Zero out & send report to rep'}
+                </button>
+              ) : (
+                <button
+                  onClick={handleSend}
+                  disabled={!canSend}
+                  className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50 max-lg:py-2.5"
+                  style={{ backgroundColor: '#ff5000' }}
+                  onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04800'; }}
+                  onMouseLeave={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#ff5000'; }}
+                >
+                  <Send size={14} />
+                  {sending ? 'Sending...' : 'Send E-Check'}
+                </button>
+              )}
           </div>
+          </>
         )}
 
         {/* STEP 2 — team_profit email editor */}
         {!loading && !error && preview && step === 2 && (
-          <div className="space-y-4">
+          <>
+          <div className="space-y-4 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto">
             {/* Success banner — only if check was actually sent */}
             {checkWasSent && (
               <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
@@ -426,13 +492,15 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
               </div>
             )}
 
-            {/* Buttons */}
-            <div className="flex justify-end gap-2 pt-2">
+          </div>
+
+          {/* Buttons */}
+          <div className="flex justify-end gap-2 pt-2 mt-4 max-lg:mt-3 max-lg:shrink-0 max-lg:border-t max-lg:border-slate-100 max-lg:pt-3 max-lg:flex-wrap">
               {!checkWasSent && (
                 <button
                   onClick={() => setStep(1)}
                   disabled={emailSending || emailSent}
-                  className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 max-lg:py-2.5"
                 >
                   <ArrowLeft size={14} />
                   Back
@@ -441,7 +509,7 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
               <button
                 onClick={handleSkip}
                 disabled={emailSending || emailSent}
-                className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 max-lg:py-2.5"
               >
                 <SkipForward size={14} />
                 Skip
@@ -449,7 +517,7 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
               <button
                 onClick={handleSendEmail}
                 disabled={!emailSubject || emailSending || emailSent}
-                className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50"
+                className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50 max-lg:py-2.5"
                 style={{ backgroundColor: '#ff5000' }}
                 onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#e04800'; }}
                 onMouseLeave={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#ff5000'; }}
@@ -457,8 +525,8 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
                 <Send size={14} />
                 {emailSending ? 'Sending...' : 'Send Email'}
               </button>
-            </div>
           </div>
+          </>
         )}
       </div>
     </div>
