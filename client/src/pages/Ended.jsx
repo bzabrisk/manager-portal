@@ -48,7 +48,7 @@ function TaskBadge({ task, onClick }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
-      className="inline-flex items-center text-xs font-medium px-2 py-1 rounded-sm border bg-orange-50 text-[#ff5000] border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer"
+      className="inline-flex items-center text-xs font-medium px-2 py-1 max-lg:py-2 max-lg:px-2.5 rounded-sm border bg-orange-50 text-[#ff5000] border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer"
     >
       {task.name}
     </button>
@@ -108,7 +108,7 @@ function WaitingBadges({ fundraiser, waiting, onMarkReceived, markingReceived, o
         <button
           onClick={(e) => { e.stopPropagation(); onMarkReceived(); }}
           disabled={markingReceived}
-          className="ml-1 text-[10px] font-semibold bg-blue-200 hover:bg-blue-300 text-blue-800 px-1.5 py-0.5 rounded transition-colors disabled:opacity-50"
+          className="ml-1 text-[10px] font-semibold bg-blue-200 hover:bg-blue-300 text-blue-800 px-1.5 py-0.5 max-lg:px-2.5 max-lg:py-1.5 rounded transition-colors disabled:opacity-50"
         >
           {markingReceived ? '...' : 'Mark Received'}
         </button>
@@ -122,7 +122,7 @@ function WaitingBadges({ fundraiser, waiting, onMarkReceived, markingReceived, o
         <button
           onClick={(e) => { e.stopPropagation(); onMarkInvoiceReceived(); }}
           disabled={markingInvoiceReceived}
-          className="ml-1 text-[10px] font-semibold bg-purple-200 hover:bg-purple-300 text-purple-800 px-1.5 py-0.5 rounded transition-colors disabled:opacity-50"
+          className="ml-1 text-[10px] font-semibold bg-purple-200 hover:bg-purple-300 text-purple-800 px-1.5 py-0.5 max-lg:px-2.5 max-lg:py-1.5 rounded transition-colors disabled:opacity-50"
         >
           {markingInvoiceReceived ? '...' : 'Mark Received'}
         </button>
@@ -160,9 +160,9 @@ function EndedFundraiserCard({ fundraiser, section, onTaskClick, onFundraiserCli
   const isReady = section === 'ready';
 
   return (
-    <div className={`bg-white rounded-lg border shadow-sm p-5 w-full ${isReady ? 'border-l-4 border-l-green-400 border-slate-200' : 'border-slate-200'}`}>
+    <div className={`bg-white rounded-lg border shadow-sm p-5 max-lg:p-4 w-full ${isReady ? 'border-l-4 border-l-green-400 border-slate-200' : 'border-slate-200'}`}>
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3 max-lg:flex-wrap">
         <div>
           <button
             onClick={() => onFundraiserClick(fundraiser.id)}
@@ -379,13 +379,13 @@ export default function Ended() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-lg:p-4">
       <h1 className="text-2xl font-bold text-slate-800 mb-5">Ended Fundraisers</h1>
 
       {/* Section 1: Needs Action */}
       {needsAction.length > 0 && (
         <div>
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-4 max-lg:flex-wrap">
             <AlertTriangle size={20} className="text-amber-500" />
             <h2 className="text-lg font-semibold text-slate-800">Needs Action</h2>
             <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded">
@@ -421,7 +421,7 @@ export default function Ended() {
       {/* Section 2: Waiting */}
       {waitingOn.length > 0 && (
         <div>
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-4 max-lg:flex-wrap">
             <Hourglass size={20} className="text-slate-400" />
             <h2 className="text-lg font-semibold text-slate-800">Waiting</h2>
             <span className="bg-slate-200 text-slate-600 text-xs font-bold px-2 py-0.5 rounded">
@@ -457,7 +457,7 @@ export default function Ended() {
       {/* Section 3: Ready to Close Out */}
       {readyToClose.length > 0 && (
         <div>
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-4 max-lg:flex-wrap">
             <CheckCircle2 size={20} className="text-green-500" />
             <h2 className="text-lg font-semibold text-slate-800">Ready to Close Out</h2>
             <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded">

@@ -81,7 +81,7 @@ function TaskBadge({ task, onClick }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
-      className="inline-flex items-center text-xs font-medium px-2 py-1 rounded-sm border bg-orange-50 text-[#ff5000] border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer"
+      className="inline-flex items-center text-xs font-medium px-2 py-1 max-lg:py-2 max-lg:px-2.5 rounded-sm border bg-orange-50 text-[#ff5000] border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer"
     >
       {task.name}
     </button>
@@ -94,9 +94,9 @@ function ActiveFundraiserCard({ fundraiser, onTaskClick, onFundraiserClick }) {
   const openTasks = fundraiser.open_tasks || [];
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-5 w-full">
+    <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-5 max-lg:p-4 w-full">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3 max-lg:flex-wrap">
         <div>
           <button
             onClick={() => onFundraiserClick(fundraiser.id)}
@@ -165,7 +165,7 @@ function ActiveFundraiserCard({ fundraiser, onTaskClick, onFundraiserClick }) {
       </div>
 
       {/* Key info row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 mt-4 text-sm">
+      <div className="grid grid-cols-2 md:grid-cols-4 max-sm:grid-cols-1 gap-x-6 gap-y-2 mt-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="text-slate-400">Rep:</span>
           <span className="font-medium text-slate-700">{fundraiser.rep_name || '\u2014'}</span>
@@ -253,7 +253,7 @@ function CheckNumberCell({ payout }) {
         onBlur={handleSave}
         onKeyDown={e => { if (e.key === 'Enter') handleSave(); }}
         disabled={saving}
-        className="w-20 px-1.5 py-0.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-[#ff5000]"
+        className="w-20 max-lg:w-28 px-1.5 py-0.5 max-lg:py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-[#ff5000]"
       />
     );
   }
@@ -261,7 +261,7 @@ function CheckNumberCell({ payout }) {
   return (
     <button
       onClick={() => setEditing(true)}
-      className="text-xs text-slate-500 hover:text-slate-800 hover:bg-slate-50 px-1.5 py-0.5 rounded min-w-[3rem] text-left transition-colors"
+      className="text-xs text-slate-500 hover:text-slate-800 hover:bg-slate-50 px-1.5 py-0.5 max-lg:py-1.5 max-lg:px-2 rounded min-w-[3rem] text-left transition-colors"
     >
       {saving ? '...' : value || '\u2014'}
     </button>
@@ -304,7 +304,45 @@ function PayoutsTable({ payouts, displayLabel, onFundraiserClick }) {
       {payouts.length === 0 ? (
         <p className="text-slate-400 text-sm py-4">No payouts scheduled for today</p>
       ) : (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+        <>
+        {/* Mobile: stacked mini-cards */}
+        <div className="lg:hidden space-y-3">
+          {payouts.map(p => {
+            const isZero = !p.payout_amount || p.payout_amount === 0;
+            return (
+              <div key={p.id} className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
+                <div className="flex items-start justify-between gap-2">
+                  {p.fundraiser_id ? (
+                    <button
+                      onClick={() => onFundraiserClick(p.fundraiser_id)}
+                      className="text-slate-800 font-medium hover:text-[#ff5000] transition-colors text-left text-sm"
+                    >
+                      {p.organization} — {p.team}
+                    </button>
+                  ) : (
+                    <span className="text-slate-800 font-medium text-sm">{p.organization} — {p.team}</span>
+                  )}
+                  <span className={`text-sm font-medium shrink-0 ${isZero ? 'text-slate-300' : 'text-slate-800'}`}>
+                    {formatCurrency(p.payout_amount)}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">{p.accounting_contact_name || '\u2014'}</p>
+                <div className="flex items-center justify-between gap-2 mt-2.5">
+                  <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded ${PAYOUT_STATUS_COLORS[p.status] || 'bg-gray-100 text-gray-600'}`}>
+                    {p.status === 'awaiting_data' ? 'Awaiting Data' : p.status ? p.status.charAt(0).toUpperCase() + p.status.slice(1) : '\u2014'}
+                  </span>
+                  <span className="flex items-center gap-1 text-xs text-slate-400">
+                    Check #
+                    <CheckNumberCell payout={p} />
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="max-lg:hidden bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
           <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
@@ -350,6 +388,7 @@ function PayoutsTable({ payouts, displayLabel, onFundraiserClick }) {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );
@@ -406,7 +445,7 @@ export default function Active() {
   const payouts = payoutData?.payouts || [];
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-lg:p-4">
       <h1 className="text-2xl font-bold text-slate-800 mb-5">Active Fundraisers</h1>
 
       {/* Active Fundraisers List */}

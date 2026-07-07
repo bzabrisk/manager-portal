@@ -76,7 +76,7 @@ function TaskBadge({ task, onClick }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
-      className="inline-flex items-center text-xs font-medium px-2 py-1 rounded-sm border bg-orange-50 text-[#ff5000] border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer"
+      className="inline-flex items-center text-xs font-medium px-2 py-1 max-lg:py-2 max-lg:px-2.5 rounded-sm border bg-orange-50 text-[#ff5000] border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer"
     >
       {task.name}
     </button>
@@ -88,9 +88,9 @@ function FundraiserCard({ fundraiser, ready, onTaskClick, onFundraiserClick }) {
   const openTasks = fundraiser.open_tasks || [];
 
   return (
-    <div className={`bg-white rounded-lg border border-slate-200 shadow-sm p-5 w-full ${ready ? 'border-l-4 border-l-green-400' : ''}`}>
+    <div className={`bg-white rounded-lg border border-slate-200 shadow-sm p-5 max-lg:p-4 w-full ${ready ? 'border-l-4 border-l-green-400' : ''}`}>
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3 max-lg:flex-wrap">
         <div>
           <button
             onClick={() => onFundraiserClick(fundraiser.id)}
@@ -118,7 +118,7 @@ function FundraiserCard({ fundraiser, ready, onTaskClick, onFundraiserClick }) {
       </div>
 
       {/* Key Info */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 mt-4 text-sm">
+      <div className="grid grid-cols-2 md:grid-cols-3 max-sm:grid-cols-1 gap-x-6 gap-y-2 mt-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="text-slate-400">Rep:</span>
           <span className="font-medium text-slate-700">{fundraiser.rep_name || '\u2014'}</span>
@@ -160,7 +160,7 @@ function FundraiserCard({ fundraiser, ready, onTaskClick, onFundraiserClick }) {
       {/* Readiness Checklist */}
       <div className={`mt-4 rounded-lg border p-3 ${ready ? 'bg-green-50 border-green-100' : 'bg-slate-50 border-slate-100'}`}>
         <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Readiness</h4>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-2">
           <ReadinessCheck passed={fundraiser.readiness.accounting_contact_assigned} label="Accounting contact" />
           <ReadinessCheck passed={fundraiser.readiness.md_portal_url_set} label="MD Portal URL" />
           {fundraiser.readiness.asb_intro_email_sent !== null && (
@@ -263,7 +263,7 @@ export default function Upcoming() {
   const readyToLaunch = fundraisers.filter(f => isReady(f));
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-lg:p-4">
       <h1 className="text-2xl font-bold text-slate-800 mb-5">Upcoming Fundraisers</h1>
 
       {/* Needs Attention Section */}
@@ -361,11 +361,11 @@ function EditTaskModalInline({ task, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <h3 className="font-semibold text-slate-800 mb-4">Edit Task</h3>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 max-lg:p-3" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto max-lg:max-h-full max-lg:overflow-hidden max-lg:flex max-lg:flex-col max-lg:p-4" onClick={e => e.stopPropagation()}>
+        <h3 className="font-semibold text-slate-800 mb-4 max-lg:shrink-0">Edit Task</h3>
 
-        <div className="space-y-3">
+        <div className="space-y-3 max-lg:flex-1 max-lg:overflow-y-auto max-lg:min-h-0">
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Task Name</label>
             <input
@@ -448,12 +448,12 @@ function EditTaskModalInline({ task, onClose, onSave }) {
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 mt-5">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+        <div className="flex justify-end gap-2 mt-5 max-lg:mt-3 max-lg:shrink-0 max-lg:border-t max-lg:border-slate-100 max-lg:pt-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg max-lg:py-2.5">Cancel</button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 text-sm bg-smash text-white rounded-lg hover:bg-smash-dark disabled:opacity-50"
+            className="px-4 py-2 text-sm bg-smash text-white rounded-lg hover:bg-smash-dark disabled:opacity-50 max-lg:py-2.5"
           >
             {saving ? 'Saving...' : 'Save'}
           </button>
