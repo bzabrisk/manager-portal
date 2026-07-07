@@ -254,14 +254,14 @@ export default function CashChat() {
     <>
       {/* Chat panel */}
       <div
-        className={`fixed bottom-24 right-6 w-[380px] h-[500px] bg-white rounded-xl shadow-2xl border border-slate-200 flex flex-col z-50 transition-all duration-200 origin-bottom-right ${
+        className={`fixed bottom-24 right-6 w-[380px] h-[500px] max-lg:inset-0 max-lg:w-auto max-lg:h-auto max-lg:rounded-none bg-white rounded-xl shadow-2xl border border-slate-200 flex flex-col z-50 transition-all duration-200 origin-bottom-right ${
           open
             ? 'opacity-100 scale-100 translate-y-0'
             : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
         }`}
       >
         {/* Header */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 bg-slate-50 rounded-t-xl shrink-0">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 bg-slate-50 rounded-t-xl max-lg:rounded-none shrink-0">
           <div className="relative">
             <img
               src="/cash-avatar.png"
@@ -276,7 +276,7 @@ export default function CashChat() {
           </div>
           <button
             onClick={() => setOpen(false)}
-            className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-1 max-lg:p-2.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           >
             <X size={18} />
           </button>
@@ -373,7 +373,7 @@ export default function CashChat() {
         onClick={() => setOpen((prev) => !prev)}
         className={`fixed bottom-6 right-6 z-50 w-[60px] h-[60px] rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 flex items-center justify-center ${
           open
-            ? 'bg-slate-700 border-3 border-[#ff5000]'
+            ? 'bg-slate-700 border-3 border-[#ff5000] max-lg:hidden'
             : 'border-[3px] border-[#ff5000] bg-white'
         }`}
       >

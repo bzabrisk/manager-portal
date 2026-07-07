@@ -22,7 +22,7 @@ export default function AuthGate({ onLogin }) {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-slate-900">
+    <div className="flex items-center justify-center h-screen bg-slate-900 max-lg:px-4">
       <div className="bg-[#1e293b] border border-slate-700 rounded-xl shadow-lg p-8 w-full max-w-sm">
         <div className="flex flex-col items-center mb-6">
           <img src="/smash-logo.png" alt="SMASH" className="max-w-[200px] mb-4" />

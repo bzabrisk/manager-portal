@@ -76,7 +76,7 @@ function AuthenticatedApp({ onLogout }) {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-slate-50">
+    <div className="flex flex-col lg:flex-row h-screen max-lg:h-dvh bg-slate-50">
       {/* Mobile top bar */}
       <header className="lg:hidden flex items-center gap-2 bg-slate-800 px-3 h-14 shrink-0">
         <button
