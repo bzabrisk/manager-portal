@@ -113,20 +113,20 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
         {/* Edit button - top right, visible on hover */}
         <button
           onClick={(e) => { e.stopPropagation(); setEditing(true); }}
-          className="absolute top-2 right-2 p-1 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-2 right-2 p-1 max-lg:top-1 max-lg:right-1 max-lg:p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded opacity-0 group-hover:opacity-100 max-lg:opacity-100 transition-opacity"
           title="Edit task"
         >
           <Pencil size={13} />
         </button>
 
         {/* Row 1: Task name */}
-        <h4 className="font-semibold text-slate-800 text-sm leading-snug pr-6">{task.name}</h4>
+        <h4 className="font-semibold text-slate-800 text-sm leading-snug pr-6 max-lg:pr-8 break-words">{task.name}</h4>
 
         {/* Row 2: Fundraiser tag */}
         {fundraiserLabel && (
           <div className="mt-1.5">
-            <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded border ${getFundraiserColor(fundraiserLabel)}`}>
-              {fundraiserLabel}
+            <span className={`inline-flex items-center max-w-full text-xs font-medium px-2 py-0.5 rounded border ${getFundraiserColor(fundraiserLabel)}`}>
+              <span className="truncate">{fundraiserLabel}</span>
             </span>
           </div>
         )}
@@ -182,7 +182,7 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
             ) : (
               <button
                 onClick={(e) => { e.stopPropagation(); if (isEmailTask) { setShowEmail(true); } else if (isBulkECheckTask) { setShowBulkECheck(true); } else if (isSingleECheckTask) { setShowECheck(true); } else if (isCostTask) { setShowCost(true); } else if (isPortalDeepLink(task.action_url)) { setDeepLinkFundraiserId(extractFundraiserIdFromUrl(task.action_url)); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
-                className="inline-flex items-center text-xs font-bold text-white px-3 py-1.5 rounded-lg transition-colors shadow-md hover:shadow-lg"
+                className="inline-flex items-center text-xs font-bold text-white px-3 py-1.5 max-lg:py-2.5 rounded-lg transition-colors shadow-md hover:shadow-lg"
                 style={{ backgroundColor: '#ff5000' }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
                 onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ff5000'}
@@ -317,11 +317,11 @@ function EditTaskModal({ task, onClose, onRefresh }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <h3 className="font-semibold text-slate-800 mb-4">Edit Task</h3>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 max-lg:p-3" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto max-lg:max-h-full max-lg:overflow-hidden max-lg:flex max-lg:flex-col max-lg:p-4" onClick={e => e.stopPropagation()}>
+        <h3 className="font-semibold text-slate-800 mb-4 max-lg:shrink-0">Edit Task</h3>
 
-        <div className="space-y-3">
+        <div className="space-y-3 max-lg:flex-1 max-lg:overflow-y-auto max-lg:min-h-0">
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Task Name</label>
             <input
@@ -405,12 +405,12 @@ function EditTaskModal({ task, onClose, onRefresh }) {
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 mt-5">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+        <div className="flex justify-end gap-2 mt-5 max-lg:mt-3 max-lg:shrink-0 max-lg:border-t max-lg:border-slate-100 max-lg:pt-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg max-lg:py-2.5">Cancel</button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 text-sm bg-smash text-white rounded-lg hover:bg-smash-dark disabled:opacity-50"
+            className="px-4 py-2 text-sm bg-smash text-white rounded-lg hover:bg-smash-dark disabled:opacity-50 max-lg:py-2.5"
           >
             {saving ? 'Saving...' : 'Save'}
           </button>

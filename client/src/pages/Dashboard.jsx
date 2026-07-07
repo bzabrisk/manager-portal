@@ -161,7 +161,7 @@ export default function Dashboard({ tasks, loading, error, refresh }) {
 
       {/* Kanban Board */}
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 w-full pb-4">
+        <div className="flex max-lg:flex-col gap-4 w-full pb-4">
           {COLUMNS.map(col => {
             const kristaColTasks = getKristaColumnTasks(col.id);
             const isDoneColumn = col.id === 'Done';
@@ -181,7 +181,7 @@ export default function Dashboard({ tasks, loading, error, refresh }) {
                     </span>
                     <button
                       onClick={() => openNewTask(col.id)}
-                      className="p-0.5 text-slate-400 hover:text-smash rounded transition-colors"
+                      className="p-0.5 max-lg:p-2 text-slate-400 hover:text-smash rounded transition-colors"
                       title={`New ${col.label} task`}
                     >
                       <Plus size={14} />
@@ -242,7 +242,7 @@ export default function Dashboard({ tasks, loading, error, refresh }) {
         ) : (
           <div>
             {/* Header row */}
-            <div className="flex items-center gap-3 px-3 py-1.5 text-xs font-medium text-slate-400 uppercase tracking-wide">
+            <div className="max-lg:hidden flex items-center gap-3 px-3 py-1.5 text-xs font-medium text-slate-400 uppercase tracking-wide">
               <span style={{ width: '27%', flexShrink: 0 }}>Task</span>
               <span style={{ width: '43%', flexShrink: 0 }}>Fundraiser</span>
               <span style={{ width: '15%', flexShrink: 0 }}>Run Date</span>
@@ -254,14 +254,14 @@ export default function Dashboard({ tasks, loading, error, refresh }) {
               {filteredCashTasks.map(task => {
                 const taskFundraisers = task.fundraisers || (task.fundraiser ? [task.fundraiser] : []);
                 return (
-                  <div key={task.id} className="flex items-center gap-3 px-3 py-2 bg-white rounded border border-gray-100">
-                    <span style={{ width: '27%', flexShrink: 0 }} className="text-sm font-medium text-slate-700 truncate">{task.name}</span>
-                    <span style={{ width: '43%', flexShrink: 0 }} className="flex flex-wrap gap-1">
+                  <div key={task.id} className="flex items-center max-lg:flex-col max-lg:items-start max-lg:gap-1.5 gap-3 px-3 py-2 bg-white rounded border border-gray-100">
+                    <span className="lg:w-[27%] lg:shrink-0 max-lg:w-full text-sm font-medium text-slate-700 truncate">{task.name}</span>
+                    <span className="lg:w-[43%] lg:shrink-0 max-lg:max-w-full flex flex-wrap gap-1">
                       {taskFundraisers.length > 0 ? (
                         taskFundraisers.map((fr, i) => {
                           const label = `${fr.organization} — ${fr.team}`;
                           return (
-                            <span key={i} className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded border truncate ${getFundraiserColor(label)}`}>
+                            <span key={i} className={`inline-flex items-center max-w-full text-xs font-medium px-2 py-0.5 rounded border truncate ${getFundraiserColor(label)}`}>
                               {label}
                             </span>
                           );
@@ -270,9 +270,14 @@ export default function Dashboard({ tasks, loading, error, refresh }) {
                         <span className="text-xs text-slate-300">&mdash;</span>
                       )}
                     </span>
-                    <span style={{ width: '15%', flexShrink: 0 }} className="text-xs text-slate-500">{formatDate(task.deadline)}</span>
-                    <span style={{ width: '15%', flexShrink: 0 }}>
+                    <span className="lg:w-[15%] lg:shrink-0 max-lg:hidden text-xs text-slate-500">{formatDate(task.deadline)}</span>
+                    <span className="lg:w-[15%] lg:shrink-0 max-lg:hidden">
                       <StatusChip status={task.status} />
+                    </span>
+                    {/* Mobile-only combined date + status line */}
+                    <span className="lg:hidden flex items-center gap-2">
+                      <StatusChip status={task.status} />
+                      <span className="text-xs text-slate-500">{formatDate(task.deadline)}</span>
                     </span>
                   </div>
                 );
@@ -292,7 +297,7 @@ export default function Dashboard({ tasks, loading, error, refresh }) {
 
       {/* Toast */}
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm ${toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-slate-800 text-white'}`}>
+        <div className={`fixed bottom-6 right-6 max-lg:left-4 max-lg:right-4 max-lg:bottom-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm ${toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-slate-800 text-white'}`}>
           <span>{toast.message}</span>
           <button onClick={() => setToast(null)} className="hover:opacity-80">
             <X size={14} />

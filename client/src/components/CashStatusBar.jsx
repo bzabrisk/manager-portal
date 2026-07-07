@@ -31,9 +31,9 @@ export default function CashStatusBar({ tasks, onNewTask }) {
   const message = parts.join(' ');
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-4 max-lg:flex-wrap max-lg:gap-2">
       {/* Slim status strip */}
-      <div className="flex-1 bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5 flex items-center gap-2 text-sm text-blue-800">
+      <div className="flex-1 max-lg:basis-full bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5 flex items-center gap-2 text-sm text-blue-800">
         <Sparkles size={14} className="text-blue-500 shrink-0" />
         <span>{message}</span>
       </div>
@@ -41,7 +41,7 @@ export default function CashStatusBar({ tasks, onNewTask }) {
       {/* Prominent + Task button — outside the status bar */}
       <button
         onClick={onNewTask}
-        className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-1.5 rounded-lg transition-colors shrink-0 shadow-md hover:shadow-lg"
+        className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-1.5 max-lg:py-2.5 max-lg:ml-auto rounded-lg transition-colors shrink-0 shadow-md hover:shadow-lg"
         style={{ backgroundColor: '#ff5000' }}
         onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
         onMouseLeave={e => e.currentTarget.style.backgroundColor = '#ff5000'}
