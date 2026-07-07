@@ -9,7 +9,7 @@ const navItems = [
   { to: '/ended', label: 'Ended', icon: Flag, badgeKey: 'ended' },
 ];
 
-export default function Sidebar({ activeTaskCount, upcomingCount, activeCount, endedCount, failedPayouts, onLogout }) {
+export default function Sidebar({ activeTaskCount, upcomingCount, activeCount, endedCount, failedPayouts, onLogout, onNavigate }) {
   const handleLogout = async () => {
     await api.auth.logout();
     onLogout();
@@ -34,8 +34,9 @@ export default function Sidebar({ activeTaskCount, upcomingCount, activeCount, e
               key={to}
               to={to}
               end={to === '/'}
+              onClick={onNavigate}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-5 py-2.5 text-sm font-medium transition-colors border-l-[3px] ${
+                `flex items-center gap-3 px-5 py-2.5 min-h-11 lg:min-h-0 text-sm font-medium transition-colors border-l-[3px] ${
                   isActive
                     ? 'border-smash bg-slate-700 text-white'
                     : 'border-transparent text-slate-300 hover:bg-slate-700/50 hover:text-white'
@@ -68,7 +69,7 @@ export default function Sidebar({ activeTaskCount, upcomingCount, activeCount, e
       <div className="border-t border-slate-700 p-3">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 w-full text-sm font-medium text-slate-400 hover:bg-slate-700/50 hover:text-white rounded-lg transition-colors"
+          className="flex items-center gap-3 px-3 py-2.5 min-h-11 lg:min-h-0 w-full text-sm font-medium text-slate-400 hover:bg-slate-700/50 hover:text-white rounded-lg transition-colors"
         >
           <LogOut size={18} />
           <span>Log out</span>
