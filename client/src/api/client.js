@@ -141,5 +141,9 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+    zeroCommission: (data) => request('/echeck/zero-commission', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   },
 };

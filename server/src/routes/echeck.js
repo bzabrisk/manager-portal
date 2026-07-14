@@ -14,6 +14,7 @@ import {
   FUNDRAISER_PAYOUT_FIELDS,
 } from '../services/airtable.js';
 import { sendEmail } from '../services/gmail.js';
+import { generateRcrForFundraiser } from './reports.js';
 
 const router = Router();
 
@@ -394,6 +395,19 @@ router.post('/send', async (req, res) => {
       });
     }
 
+    // Best-effort: update the fundraiser closeout checkbox so the Ended page reflects this payment
+    const closeoutField = type === 'team_profit'
+      ? FUNDRAISER_FIELDS.check_invoice_sent
+      : (type === 'rep_commission' ? FUNDRAISER_FIELDS.rep_paid : null);
+    if (fundraiserId && closeoutField) {
+      try {
+        await airtableUpdate('fundraisers', fundraiserId, { [closeoutField]: true });
+      } catch (closeoutErr) {
+        console.error('Warning: E-check sent successfully but failed to update fundraiser closeout checkbox:', closeoutErr.message);
+        // Don't fail the whole request — the check was already sent successfully
+      }
+    }
+
     // Create fundraiser_payouts record to track this payment
     const payoutPurpose = type === 'team_profit' ? 'Team Profit' : 'Rep Commission';
 
@@ -488,6 +502,98 @@ router.post('/send-report-email', async (req, res) => {
   } catch (err) {
     console.error('Report email send error:', err);
     res.status(500).json({ success: false, error: err.message || 'Failed to send report email' });
+  }
+});
+
+// POST /api/echeck/zero-commission
+router.post('/zero-commission', async (req, res) => {
+  try {
+    const { taskId } = req.body;
+    if (!taskId) {
+      return res.status(400).json({ error: 'taskId is required' });
+    }
+
+    // Resolve the linked fundraiser the same way /preview/:taskId does
+    const taskRecord = await airtableGet('tasks', taskId);
+    const taskFields = taskRecord.fields;
+    const fundraiserIds = taskFields[TASK_FIELDS.fundraisers] || [];
+    if (fundraiserIds.length === 0) {
+      return res.status(400).json({ error: 'Task has no linked fundraiser' });
+    }
+    const fundraiserId = fundraiserIds[0];
+
+    // Read current rep_commission and rcr_adj_misc
+    const fundraiserRecord = await airtableGet('fundraisers', fundraiserId);
+    const fr = fundraiserRecord.fields;
+    const currentRepCommission = fr[FUNDRAISER_FIELDS.rep_commission] || 0;
+    const currentMisc = fr[FUNDRAISER_FIELDS.rcr_adj_misc] || 0;
+    const organization = fr[FUNDRAISER_FIELDS.organization] || '';
+    const team = fr[FUNDRAISER_FIELDS.team] || '';
+
+    if (currentRepCommission > 0) {
+      return res.status(400).json({ error: 'Rep commission is positive — use the normal e-check flow' });
+    }
+
+    // Zero out: set rcr_adj_misc so rep_commission becomes $0
+    const newMisc = currentMisc - currentRepCommission;
+    await airtableUpdate('fundraisers', fundraiserId, {
+      [FUNDRAISER_FIELDS.rcr_adj_misc]: newMisc,
+    });
+
+    // Regenerate the RCR so the PDF reflects the adjustment
+    await generateRcrForFundraiser(fundraiserId);
+
+    // Re-fetch to get the fresh rep_commission_report attachment
+    const updatedRecord = await airtableGet('fundraisers', fundraiserId);
+    const uf = updatedRecord.fields;
+    const pdfAttachments = uf[FUNDRAISER_FIELDS.rep_commission_report] || [];
+
+    // Resolve rep email and business name
+    const repIds = fr[FUNDRAISER_FIELDS.rep] || [];
+    let repEmail = '';
+    let repBusinessName = '';
+    if (repIds.length > 0) {
+      const reps = await airtableFetchByIds('reps', repIds);
+      const rep = reps[0];
+      if (rep) {
+        repEmail = rep.fields[REP_FIELDS.email] || '';
+        repBusinessName = rep.fields[REP_FIELDS.business_name] || '';
+      }
+    }
+
+    // Email the report to the rep
+    if (repEmail && pdfAttachments.length > 0) {
+      const pdfResponse = await fetch(pdfAttachments[0].url);
+      if (!pdfResponse.ok) {
+        throw new Error(`Failed to download PDF: HTTP ${pdfResponse.status}`);
+      }
+      const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
+
+      await sendEmail({
+        to: repEmail,
+        subject: `Your SMASH Fundraising Commission Report — ${organization} ${team}`,
+        html: `Hi ${repBusinessName},<br><br>Here's your commission report for ${organization} ${team}. This was a smaller fundraiser, so there's no commission payout this time — your report is attached for your records.<br><br>Thank you,<br>Krista McGaughy<br>SMASH Fundraising` + KRISTA_SIGNATURE,
+        attachments: [{ filename: pdfAttachments[0].filename, content: pdfBuffer }],
+      });
+
+      console.log(`Zero-commission report email sent to ${repEmail} for ${organization} ${team}`);
+    }
+
+    // Mark rep_paid on the fundraiser
+    await airtableUpdate('fundraisers', fundraiserId, {
+      [FUNDRAISER_FIELDS.rep_paid]: true,
+    });
+
+    // Mark the task Done (same as /send does for rep_commission)
+    await airtableUpdate('tasks', taskId, {
+      [TASK_FIELDS.status]: 'Done',
+      [TASK_FIELDS.completed_at]: new Date().toISOString().split('T')[0],
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Zero-commission error:', err);
+    res.status(500).json({ success: false, error: err.message || 'Failed to process zero commission' });
   }
 });
 

@@ -181,10 +181,16 @@ async function getUpcomingFundraisers() {
       accounting_contact_assigned: accountingLinked.length > 0,
       md_portal_url_set: !!md_portal_url,
       asb_intro_email_sent: asb_boosters === 'WA State ASB'
-        ? linkedTasks.some(t => t.name.includes('ASB Onboarding Email') && t.status === 'Done')
+        ? linkedTasks.some(t =>
+            ((t.action_url || '') === 'email:asb-onboarding' || t.name.toLowerCase().includes('asb onboarding email'))
+            && t.status === 'Done'
+          )
         : null,
       cookie_dough_presale_submitted: product_primary_string.toLowerCase().includes('cookie dough')
-        ? linkedTasks.some(t => t.name.toLowerCase().includes('presale') && t.status === 'Done')
+        ? linkedTasks.some(t =>
+            (t.name.toLowerCase().includes('presale') || t.name.toLowerCase().includes('pre-sale'))
+            && t.status === 'Done'
+          )
         : null,
     };
 
