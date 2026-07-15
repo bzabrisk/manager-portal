@@ -76,6 +76,10 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
+    updateAccountingContact: (contactId, data) => request(`/fundraisers/accounting-contact/${contactId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
     lookupReps: () => request('/fundraisers/lookup/reps'),
     lookupContacts: () => request('/fundraisers/lookup/contacts'),
     lookupAccountingContacts: () => request('/fundraisers/lookup/accounting-contacts'),
@@ -129,6 +133,10 @@ export const api = {
   echeck: {
     preview: (taskId) => request(`/echeck/preview/${taskId}`),
     send: (data) => request('/echeck/send', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    sendPhysical: (data) => request('/echeck/send-physical', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
