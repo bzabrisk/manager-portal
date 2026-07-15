@@ -61,6 +61,56 @@ function buildProfitReportHtml(preview) {
 <p>Thank you for fundraising with SMASH — it was a pleasure working with your team!</p>`;
 }
 
+function buildPaperCheckReportHtml(preview, address) {
+  const amount = formatCurrency(preview.amount || 0);
+  const grossSales = formatCurrency(preview.grossSales || 0);
+  const endDate = preview.endDate || '';
+  const repName = preview.repName || '';
+  const addressLines = [
+    preview.organization,
+    address.line1,
+    address.line2,
+    `${address.city}, ${address.state} ${address.zip}`,
+  ].filter(Boolean).join('\n');
+
+  return `<p>Hi ${preview.organization},</p>
+
+<p>Great news, your ${preview.team} fundraiser is officially wrapped up!</p>
+
+<p>Here's a summary of your fundraiser:</p>
+
+<table style="border-collapse: collapse; margin: 16px 0; font-size: 14px;">
+  <tr>
+    <td style="padding: 6px 16px 6px 0; color: #64748b;">Team</td>
+    <td style="padding: 6px 0; font-weight: 600;">${preview.organization} ${preview.team}</td>
+  </tr>
+  <tr>
+    <td style="padding: 6px 16px 6px 0; color: #64748b;">Fundraiser Ended</td>
+    <td style="padding: 6px 0; font-weight: 600;">${endDate}</td>
+  </tr>
+  <tr>
+    <td style="padding: 6px 16px 6px 0; color: #64748b;">Total Sales</td>
+    <td style="padding: 6px 0; font-weight: 600;">${grossSales}</td>
+  </tr>
+  <tr>
+    <td style="padding: 6px 16px 6px 0; color: #64748b;">Your Team Profit</td>
+    <td style="padding: 6px 0; font-weight: 600; color: #16a34a;">${amount}</td>
+  </tr>
+  <tr>
+    <td style="padding: 6px 16px 6px 0; color: #64748b;">Your Rep</td>
+    <td style="padding: 6px 0; font-weight: 600;">${repName}</td>
+  </tr>
+</table>
+
+<p>Your team profit is on its way as a <strong>paper check mailed via USPS</strong>. Please allow about 1&ndash;5 business days for it to arrive. We mailed it to:</p>
+
+<p style="white-space: pre-line;">${addressLines}</p>
+
+<p>Your detailed profit report is attached to this email for your records.</p>
+
+<p>Thank you for fundraising with SMASH — it was a pleasure working with your team!</p>`;
+}
+
 function StepIndicator({ current }) {
   return (
     <div className="flex items-center gap-2 ml-3">
@@ -82,6 +132,10 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
   const [zeroSending, setZeroSending] = useState(false);
   const [zeroSent, setZeroSent] = useState(false);
   const [zeroError, setZeroError] = useState('');
+  // Paper check state (team_profit only)
+  const [paperCheck, setPaperCheck] = useState(false);
+  const [paperMode, setPaperMode] = useState(false);
+  const [address, setAddress] = useState({ line1: '', line2: '', city: '', state: '', zip: '' });
   // Step 2 state (team_profit only)
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
@@ -92,16 +146,28 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
 
   useEffect(() => {
     api.echeck.preview(task.id)
-      .then(data => setPreview(data))
+      .then(data => {
+        setPreview(data);
+        if (data?.type === 'team_profit') {
+          setPaperCheck(!!data.prefersPaperCheck);
+          setAddress({
+            line1: data.checkAddress?.line1 || '',
+            line2: data.checkAddress?.line2 || '',
+            city: data.checkAddress?.city || '',
+            state: data.checkAddress?.state || '',
+            zip: data.checkAddress?.zip || '',
+          });
+        }
+      })
       .catch(err => setError(err.message || 'Failed to load e-check preview'))
       .finally(() => setLoading(false));
   }, [task.id]);
 
   const isTeamProfit = preview?.type === 'team_profit';
 
-  const prepareStep2 = (p) => {
+  const prepareStep2 = (p, isPaper = false) => {
     setEmailSubject(`Your Team Profit Report — ${p.organization} ${p.team}`);
-    setEmailBody(buildProfitReportHtml(p));
+    setEmailBody(isPaper ? buildPaperCheckReportHtml(p, address) : buildProfitReportHtml(p));
     setStep(2);
   };
 
@@ -148,8 +214,40 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
     }
   };
 
+  const handleSendPhysical = async () => {
+    setSending(true);
+    setSendError('');
+    try {
+      await api.echeck.sendPhysical({
+        taskId: preview.taskId,
+        fundraiserId: preview.fundraiserId,
+        type: preview.type,
+        payeeName: preview.organization,
+        recipientAddress: address,
+        amount: preview.amount,
+        description: preview.description,
+        pdfUrl: preview.pdfUrl,
+        pdfFilename: preview.pdfFilename,
+        organization: preview.organization,
+        team: preview.team,
+        accountingContactId: preview.accountingContactId,
+        saveAddress: true,
+        prefersPaperCheck: true,
+      });
+      setSent(true);
+      setCheckWasSent(true);
+      setPaperMode(true);
+      setTimeout(() => prepareStep2(preview, true), 800);
+    } catch (err) {
+      setSendError(err.message || 'Failed to mail paper check');
+      setSending(false);
+    }
+  };
+
   const handleSkipToEmail = () => {
-    prepareStep2(preview);
+    const isPaper = paperCheck && addressComplete;
+    setPaperMode(isPaper);
+    prepareStep2(preview, isPaper);
   };
 
   const handleZeroCommission = async () => {
@@ -206,7 +304,10 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
         : (preview?.type === 'rep_commission' ? 'Send rep commission e-check' : 'E-Check Preview'))
     : 'Step 2 of 2: Send Profit Report';
 
-  const canSend = preview && preview.recipientEmail && preview.amount > 0 && !sending && !sent;
+  const addressComplete = !!(address.line1.trim() && address.city.trim() && address.state.trim() && address.zip.trim());
+  const paperActive = isTeamProfit && paperCheck;
+  const canSend = preview && preview.amount > 0 && !sending && !sent
+    && (paperActive ? addressComplete : !!preview.recipientEmail);
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]" onClick={onClose}>
@@ -248,13 +349,97 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
               <p className="text-xs font-medium text-slate-500 mb-1">Recipient</p>
               <p className="text-sm font-medium text-slate-800">{preview.recipientName || '\u2014'}</p>
               <p className="text-xs text-slate-500 mt-0.5">{preview.recipientEmail || '\u2014'}</p>
-              {!preview.recipientEmail && (
+              {!preview.recipientEmail && !paperActive && (
                 <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600 bg-amber-50 rounded px-2 py-1.5">
                   <AlertTriangle size={13} />
                   No email found — cannot send
                 </div>
               )}
             </div>
+
+            {/* Paper check option (team_profit only) */}
+            {isTeamProfit && (
+              <div className="bg-slate-50 rounded-lg p-3">
+                <label className="flex items-start gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={paperCheck}
+                    onChange={e => setPaperCheck(e.target.checked)}
+                    disabled={sending || sent}
+                    className="mt-0.5 accent-[#ff5000]"
+                  />
+                  <span className="text-sm font-medium text-slate-800">
+                    Send as a mailed paper check instead of a digital e-check
+                  </span>
+                </label>
+                {paperCheck && (
+                  <div className="mt-3 space-y-2">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Address Line 1</label>
+                      <input
+                        type="text"
+                        value={address.line1}
+                        onChange={e => setAddress(a => ({ ...a, line1: e.target.value }))}
+                        disabled={sending || sent}
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Address Line 2 <span className="text-slate-400 font-normal">(optional)</span></label>
+                      <input
+                        type="text"
+                        value={address.line2}
+                        onChange={e => setAddress(a => ({ ...a, line2: e.target.value }))}
+                        disabled={sending || sent}
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]"
+                      />
+                    </div>
+                    <div className="flex gap-2 max-lg:flex-wrap">
+                      <div className="flex-1 min-w-[120px]">
+                        <label className="block text-xs font-medium text-slate-600 mb-1">City</label>
+                        <input
+                          type="text"
+                          value={address.city}
+                          onChange={e => setAddress(a => ({ ...a, city: e.target.value }))}
+                          disabled={sending || sent}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]"
+                        />
+                      </div>
+                      <div className="w-20">
+                        <label className="block text-xs font-medium text-slate-600 mb-1">State</label>
+                        <input
+                          type="text"
+                          value={address.state}
+                          onChange={e => setAddress(a => ({ ...a, state: e.target.value }))}
+                          disabled={sending || sent}
+                          maxLength={2}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-[#ff5000]"
+                        />
+                      </div>
+                      <div className="w-28">
+                        <label className="block text-xs font-medium text-slate-600 mb-1">ZIP</label>
+                        <input
+                          type="text"
+                          value={address.zip}
+                          onChange={e => setAddress(a => ({ ...a, zip: e.target.value }))}
+                          disabled={sending || sent}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500 pt-1">
+                      Checkbook mails this via USPS (arrives ~1–5 business days). Submit before 1:00 PM PT to mail today. Physical checks cost more than e-checks.
+                    </p>
+                    {!addressComplete && (
+                      <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 rounded px-2 py-1.5">
+                        <AlertTriangle size={13} />
+                        Line 1, City, State, and ZIP are required to mail a paper check
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Amount */}
             <div>
@@ -352,7 +537,7 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
             {/* Sent success */}
             {sent && (
               <div className="text-sm text-green-700 bg-green-50 rounded-lg p-3 font-medium">
-                E-check sent!{isTeamProfit && ' Loading email preview...'}
+                {paperMode ? 'Paper check mailed!' : 'E-check sent!'}{isTeamProfit && ' Loading email preview...'}
               </div>
             )}
 
@@ -396,7 +581,7 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
                 </button>
               ) : (
                 <button
-                  onClick={handleSend}
+                  onClick={paperActive ? handleSendPhysical : handleSend}
                   disabled={!canSend}
                   className="inline-flex items-center gap-2 text-sm font-bold text-white px-4 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50 max-lg:py-2.5"
                   style={{ backgroundColor: '#ff5000' }}
@@ -404,7 +589,9 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
                   onMouseLeave={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#ff5000'; }}
                 >
                   <Send size={14} />
-                  {sending ? 'Sending...' : 'Send E-Check'}
+                  {sending
+                    ? (paperActive ? 'Mailing...' : 'Sending...')
+                    : (paperActive ? 'Mail Paper Check' : 'Send E-Check')}
                 </button>
               )}
           </div>
@@ -420,7 +607,9 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
               <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
                 <CheckCircle size={18} className="text-green-600 flex-shrink-0" />
                 <p className="text-sm font-medium text-green-800">
-                  E-check sent successfully to {preview.recipientName}!
+                  {paperMode
+                    ? `Paper check mailed to ${preview.recipientName}!`
+                    : `E-check sent successfully to ${preview.recipientName}!`}
                 </p>
               </div>
             )}
