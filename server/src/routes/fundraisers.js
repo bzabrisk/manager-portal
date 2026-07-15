@@ -757,8 +757,13 @@ router.get('/:recordId', async (req, res) => {
       accounting_contact = {
         name: a.fields[ACCOUNTING_CONTACT_FIELDS.name] || '',
         email: a.fields[ACCOUNTING_CONTACT_FIELDS.email] || '',
-        payment_method: a.fields[ACCOUNTING_CONTACT_FIELDS.payment_method] || '',
         status: a.fields[ACCOUNTING_CONTACT_FIELDS.status] || '',
+        prefers_paper_check: !!a.fields[ACCOUNTING_CONTACT_FIELDS.prefers_paper_check],
+        check_addr_line1: a.fields[ACCOUNTING_CONTACT_FIELDS.check_addr_line1] || '',
+        check_addr_line2: a.fields[ACCOUNTING_CONTACT_FIELDS.check_addr_line2] || '',
+        check_addr_city: a.fields[ACCOUNTING_CONTACT_FIELDS.check_addr_city] || '',
+        check_addr_state: a.fields[ACCOUNTING_CONTACT_FIELDS.check_addr_state] || '',
+        check_addr_zip: a.fields[ACCOUNTING_CONTACT_FIELDS.check_addr_zip] || '',
       };
     }
 
@@ -956,6 +961,28 @@ router.get('/:recordId', async (req, res) => {
   } catch (err) {
     console.error('Error fetching fundraiser detail:', err.message);
     res.status(500).json({ error: 'Failed to fetch fundraiser detail' });
+  }
+});
+
+// PATCH /api/fundraisers/accounting-contact/:contactId — update paper-check preference/address
+// NOTE: Must come before /:recordId so Express doesn't match "accounting-contact" as a recordId.
+router.patch('/accounting-contact/:contactId', async (req, res) => {
+  try {
+    const { contactId } = req.params;
+    const u = req.body;
+    const fields = {};
+    if (u.prefers_paper_check !== undefined) fields[ACCOUNTING_CONTACT_FIELDS.prefers_paper_check] = !!u.prefers_paper_check;
+    if (u.check_addr_line1 !== undefined) fields[ACCOUNTING_CONTACT_FIELDS.check_addr_line1] = u.check_addr_line1 || '';
+    if (u.check_addr_line2 !== undefined) fields[ACCOUNTING_CONTACT_FIELDS.check_addr_line2] = u.check_addr_line2 || '';
+    if (u.check_addr_city !== undefined) fields[ACCOUNTING_CONTACT_FIELDS.check_addr_city] = u.check_addr_city || '';
+    if (u.check_addr_state !== undefined) fields[ACCOUNTING_CONTACT_FIELDS.check_addr_state] = u.check_addr_state || '';
+    if (u.check_addr_zip !== undefined) fields[ACCOUNTING_CONTACT_FIELDS.check_addr_zip] = u.check_addr_zip || '';
+    if (Object.keys(fields).length === 0) return res.status(400).json({ error: 'No valid fields to update' });
+    const result = await airtableUpdate('accounting_contact', contactId, fields);
+    res.json({ success: true, id: result.id });
+  } catch (err) {
+    console.error('Error updating accounting contact:', err.message);
+    res.status(500).json({ error: 'Failed to update accounting contact' });
   }
 });
 
