@@ -125,6 +125,7 @@ router.get('/preview/:taskId', async (req, res) => {
     let amount, recipientName, recipientEmail, pdfAttachments, description;
 
     let endDate, grossSales, repName, productName, primaryContactName;
+    let prefersPaperCheck, checkAddress, accountingContactId;
 
     if (type === 'team_profit') {
       amount = fr[FUNDRAISER_FIELDS.final_team_profit] || 0;
@@ -160,6 +161,16 @@ router.get('/preview/:taskId', async (req, res) => {
 
       const pc = primaryContacts[0];
       primaryContactName = pc ? (pc.fields[CLIENT_BOOK_FIELDS.name] || '') : '';
+
+      prefersPaperCheck = contact ? !!contact.fields[ACCOUNTING_CONTACT_FIELDS.prefers_paper_check] : false;
+      checkAddress = contact ? {
+        line1: contact.fields[ACCOUNTING_CONTACT_FIELDS.check_addr_line1] || '',
+        line2: contact.fields[ACCOUNTING_CONTACT_FIELDS.check_addr_line2] || '',
+        city: contact.fields[ACCOUNTING_CONTACT_FIELDS.check_addr_city] || '',
+        state: contact.fields[ACCOUNTING_CONTACT_FIELDS.check_addr_state] || '',
+        zip: contact.fields[ACCOUNTING_CONTACT_FIELDS.check_addr_zip] || '',
+      } : { line1: '', line2: '', city: '', state: '', zip: '' };
+      accountingContactId = accountingContactIds[0] || null;
     } else {
       // rep_commission
       amount = fr[FUNDRAISER_FIELDS.rep_commission] || 0;
@@ -203,6 +214,9 @@ router.get('/preview/:taskId', async (req, res) => {
       previewData.repName = repName;
       previewData.productName = productName;
       previewData.primaryContactName = primaryContactName;
+      previewData.prefersPaperCheck = prefersPaperCheck;
+      previewData.checkAddress = checkAddress;
+      previewData.accountingContactId = accountingContactId;
     }
 
     res.json(previewData);

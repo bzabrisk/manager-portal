@@ -654,8 +654,8 @@ async function getFundraiserDetails(input) {
     accounting_contact = {
       name: a.fields[ACCOUNTING_CONTACT_FIELDS.name] || '',
       email: a.fields[ACCOUNTING_CONTACT_FIELDS.email] || '',
-      payment_method: a.fields[ACCOUNTING_CONTACT_FIELDS.payment_method] || '',
       status: a.fields[ACCOUNTING_CONTACT_FIELDS.status] || '',
+      prefers_paper_check: !!a.fields[ACCOUNTING_CONTACT_FIELDS.prefers_paper_check],
     };
   }
 

@@ -168,8 +168,13 @@ const CLIENT_BOOK_FIELDS = {
 const ACCOUNTING_CONTACT_FIELDS = {
   name: 'fld1R6r9N9ZujMo3i',
   email: 'fldhRKFgMo43Dlu6p',
-  payment_method: 'fldY6ZQ7Vj7mPvCGN',
   status: 'fldEfiwZg7hZW57BP',
+  prefers_paper_check: 'fldHDV7KoidMX2zYl',
+  check_addr_line1: 'fldrhuOMnd4TqwI5c',
+  check_addr_line2: 'fldkKjKzdnRp2yaNr',
+  check_addr_city: 'fldTMGd2aeCcCeu1S',
+  check_addr_state: 'fldTo6di7BxdGpBD4',
+  check_addr_zip: 'fldvxZk6Kz4ukg8sg',
 };
 
 // Daily payout field IDs
