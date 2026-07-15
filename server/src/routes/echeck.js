@@ -475,6 +475,210 @@ router.post('/send', async (req, res) => {
   }
 });
 
+// POST /api/echeck/send-physical
+// Mails a real paper check via Checkbook.io (team_profit only). Digital stays the default;
+// this is the opt-in paper-check path. Best-effort attaches the FPR PDF to the mailed check.
+router.post('/send-physical', async (req, res) => {
+  try {
+    const {
+      taskId, fundraiserId, type, payeeName, recipientAddress,
+      amount, description, pdfUrl, pdfFilename,
+      accountingContactId, saveAddress, prefersPaperCheck,
+    } = req.body;
+
+    if (type !== 'team_profit') {
+      return res.status(400).json({ error: 'Paper checks are only supported for Team Profit payments' });
+    }
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Amount must be greater than 0' });
+    }
+    if (!payeeName) {
+      return res.status(400).json({ error: 'Payee name is required' });
+    }
+    const addr = recipientAddress || {};
+    if (!addr.line1 || !addr.city || !addr.state || !addr.zip) {
+      return res.status(400).json({ error: 'Mailing address requires Line 1, City, State, and ZIP' });
+    }
+
+    const idempotencyKey = `physical-echeck-${taskId}`;
+
+    // Persist preference + address onto the accounting contact BEFORE sending,
+    // so it sticks even if the send fails or the user tweaked the address inline.
+    if (accountingContactId && (saveAddress || prefersPaperCheck !== undefined)) {
+      try {
+        await airtableUpdate('accounting_contact', accountingContactId, {
+          [ACCOUNTING_CONTACT_FIELDS.prefers_paper_check]: !!prefersPaperCheck,
+          [ACCOUNTING_CONTACT_FIELDS.check_addr_line1]: addr.line1 || '',
+          [ACCOUNTING_CONTACT_FIELDS.check_addr_line2]: addr.line2 || '',
+          [ACCOUNTING_CONTACT_FIELDS.check_addr_city]: addr.city || '',
+          [ACCOUNTING_CONTACT_FIELDS.check_addr_state]: addr.state || '',
+          [ACCOUNTING_CONTACT_FIELDS.check_addr_zip]: addr.zip || '',
+        });
+      } catch (saveErr) {
+        console.error('Warning: failed to save paper-check preference/address to accounting contact:', saveErr.message);
+      }
+    }
+
+    const recipient = {
+      line_1: addr.line1,
+      ...(addr.line2 ? { line_2: addr.line2 } : {}),
+      city: addr.city,
+      state: addr.state,
+      zip: addr.zip,
+    };
+    const authHeader = `${process.env.CHECKBOOK_API_KEY}:${process.env.CHECKBOOK_API_SECRET}`;
+    const physicalUrl = `${getCheckbookBaseUrl()}/check/physical`;
+
+    // Download the FPR PDF for the on-check attachment (best-effort; 7 MB Checkbook limit)
+    let pdfBuffer = null;
+    if (pdfUrl) {
+      try {
+        const pdfResponse = await fetch(pdfUrl);
+        if (!pdfResponse.ok) throw new Error(`Failed to download PDF: HTTP ${pdfResponse.status}`);
+        const buf = Buffer.from(await pdfResponse.arrayBuffer());
+        if (buf.length > 7 * 1024 * 1024) {
+          console.warn(`FPR PDF is ${buf.length} bytes (> 7 MB Checkbook limit) — mailing check without attachment`);
+        } else {
+          pdfBuffer = buf;
+        }
+      } catch (pdfErr) {
+        console.error('Warning: could not download FPR PDF for check attachment:', pdfErr.message);
+      }
+    }
+
+    // Attempt multipart send with the FPR attached; never let attachment problems block the check.
+    let response = null;
+    let attachmentIncluded = false;
+
+    if (pdfBuffer) {
+      const buildForm = (recipientMode) => {
+        const form = new FormData();
+        form.append('name', payeeName);
+        form.append('amount', String(amount));
+        form.append('description', description || '');
+        if (recipientMode === 'json') {
+          form.append('recipient', JSON.stringify(recipient));
+        } else {
+          form.append('recipient[line_1]', recipient.line_1);
+          if (recipient.line_2) form.append('recipient[line_2]', recipient.line_2);
+          form.append('recipient[city]', recipient.city);
+          form.append('recipient[state]', recipient.state);
+          form.append('recipient[zip]', recipient.zip);
+        }
+        form.append('attachment', new Blob([pdfBuffer], { type: 'application/pdf' }), pdfFilename || 'report.pdf');
+        return form;
+      };
+
+      for (const recipientMode of ['json', 'bracketed']) {
+        try {
+          const attempt = await fetch(physicalUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': authHeader,
+              'Idempotency-Key': idempotencyKey,
+              // No Content-Type — fetch sets the multipart boundary from FormData
+            },
+            body: buildForm(recipientMode),
+          });
+          if (attempt.ok) {
+            response = attempt;
+            attachmentIncluded = true;
+            break;
+          }
+          const errBody = await attempt.json().catch(() => ({}));
+          console.warn(`Multipart physical check attempt (recipient as ${recipientMode}) failed: HTTP ${attempt.status}`, errBody.message || errBody.error || '');
+          // Only retry with bracketed fields on a 4xx that looks recipient-related; otherwise fall through to JSON fallback
+          if (!(attempt.status >= 400 && attempt.status < 500)) break;
+        } catch (multipartErr) {
+          console.warn(`Multipart physical check attempt (recipient as ${recipientMode}) errored:`, multipartErr.message);
+          break;
+        }
+      }
+    }
+
+    // Fallback (or no attachment to begin with): plain JSON POST so the check still mails
+    if (!response) {
+      attachmentIncluded = false;
+      response = await fetch(physicalUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
+        },
+        body: JSON.stringify({
+          name: payeeName,
+          recipient,
+          amount,
+          description,
+        }),
+      });
+    }
+
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+
+      // Record the failed attempt in fundraiser_payouts
+      try {
+        await airtableCreate('fundraiser_payouts', {
+          [FUNDRAISER_PAYOUT_FIELDS.fundraiser]: [fundraiserId],
+          [FUNDRAISER_PAYOUT_FIELDS.payout_purpose]: 'Team Profit',
+          [FUNDRAISER_PAYOUT_FIELDS.status]: 'failed',
+          [FUNDRAISER_PAYOUT_FIELDS.error_message]: errBody.message || errBody.error || `HTTP ${response.status}`,
+          [FUNDRAISER_PAYOUT_FIELDS.idempotency_key]: idempotencyKey,
+          [FUNDRAISER_PAYOUT_FIELDS.sent_at]: new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }),
+        });
+      } catch (payoutErr) {
+        console.error('Warning: Failed to create fundraiser_payouts record for failed physical send:', payoutErr.message);
+      }
+
+      throw new Error(errBody.message || errBody.error || `Checkbook API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // NOTE: do not mark the task Done here — the frontend marks it Done after Step 2 (same as digital team_profit)
+
+    // Best-effort: update the fundraiser closeout checkbox so the Ended page reflects this payment
+    if (fundraiserId) {
+      try {
+        await airtableUpdate('fundraisers', fundraiserId, { [FUNDRAISER_FIELDS.check_invoice_sent]: true });
+      } catch (closeoutErr) {
+        console.error('Warning: Physical check sent but failed to update fundraiser closeout checkbox:', closeoutErr.message);
+      }
+    }
+
+    // Create fundraiser_payouts record to track this payment
+    const addressLines = [addr.line1, addr.line2, `${addr.city}, ${addr.state} ${addr.zip}`].filter(Boolean).join(', ');
+    try {
+      await airtableCreate('fundraiser_payouts', {
+        [FUNDRAISER_PAYOUT_FIELDS.fundraiser]: [fundraiserId],
+        [FUNDRAISER_PAYOUT_FIELDS.payout_purpose]: 'Team Profit',
+        [FUNDRAISER_PAYOUT_FIELDS.status]: 'sent',
+        [FUNDRAISER_PAYOUT_FIELDS.reference_number]: String(data.id),
+        [FUNDRAISER_PAYOUT_FIELDS.check_number]: data.number || null,
+        [FUNDRAISER_PAYOUT_FIELDS.sent_at]: new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }),
+        [FUNDRAISER_PAYOUT_FIELDS.idempotency_key]: idempotencyKey,
+        [FUNDRAISER_PAYOUT_FIELDS.notes]: `Paper check (mailed) — ${addressLines}`,
+      });
+    } catch (payoutErr) {
+      console.error('Warning: Physical check sent successfully but failed to create fundraiser_payouts record:', payoutErr.message);
+      // Don't fail the whole request — the check was already mailed
+    }
+
+    res.json({
+      success: true,
+      checkId: data.id,
+      checkNumber: data.number || null,
+      status: data.status || 'MAILED',
+      attachmentIncluded,
+    });
+  } catch (err) {
+    console.error('Physical check send error:', err);
+    res.status(500).json({ success: false, error: err.message || 'Failed to send paper check' });
+  }
+});
+
 // POST /api/echeck/send-report-email
 router.post('/send-report-email', async (req, res) => {
   try {
