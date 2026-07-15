@@ -413,6 +413,13 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       rcr_comment: result.rcr_comment || '',
       extra_cd_boxes_ordered: result.extra_cd_boxes_ordered ?? '',
       cost_product: result.cost_product ?? '',
+      // Accounting-contact paper-check fields (live on the accounting_contact record)
+      ac_prefers_paper_check: result.accounting_contact?.prefers_paper_check || false,
+      ac_check_addr_line1: result.accounting_contact?.check_addr_line1 || '',
+      ac_check_addr_line2: result.accounting_contact?.check_addr_line2 || '',
+      ac_check_addr_city: result.accounting_contact?.check_addr_city || '',
+      ac_check_addr_state: result.accounting_contact?.check_addr_state || '',
+      ac_check_addr_zip: result.accounting_contact?.check_addr_zip || '',
     };
   }
 
@@ -467,6 +474,12 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       edits.rcr_comment !== (data.rcr_comment || ''),
       edits.extra_cd_boxes_ordered !== (data.extra_cd_boxes_ordered ?? ''),
       edits.cost_product !== (data.cost_product ?? ''),
+      edits.ac_prefers_paper_check !== (data.accounting_contact?.prefers_paper_check || false),
+      edits.ac_check_addr_line1 !== (data.accounting_contact?.check_addr_line1 || ''),
+      edits.ac_check_addr_line2 !== (data.accounting_contact?.check_addr_line2 || ''),
+      edits.ac_check_addr_city !== (data.accounting_contact?.check_addr_city || ''),
+      edits.ac_check_addr_state !== (data.accounting_contact?.check_addr_state || ''),
+      edits.ac_check_addr_zip !== (data.accounting_contact?.check_addr_zip || ''),
     ];
     return checks.some(Boolean);
   })();
@@ -523,8 +536,23 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       if (edits.extra_cd_boxes_ordered !== (data.extra_cd_boxes_ordered ?? '')) payload.extra_cd_boxes_ordered = edits.extra_cd_boxes_ordered;
       if (edits.cost_product !== (data.cost_product ?? '')) payload.cost_product = edits.cost_product;
 
+      // Accounting-contact paper-check fields save to the accounting_contact record, not the fundraiser
+      const ac = data.accounting_contact;
+      const acPayload = {};
+      if (ac && data.accounting_contact_id && edits.accounting_contact_id === (data.accounting_contact_id || '')) {
+        if (edits.ac_prefers_paper_check !== (ac.prefers_paper_check || false)) acPayload.prefers_paper_check = edits.ac_prefers_paper_check;
+        if (edits.ac_check_addr_line1 !== (ac.check_addr_line1 || '')) acPayload.check_addr_line1 = edits.ac_check_addr_line1;
+        if (edits.ac_check_addr_line2 !== (ac.check_addr_line2 || '')) acPayload.check_addr_line2 = edits.ac_check_addr_line2;
+        if (edits.ac_check_addr_city !== (ac.check_addr_city || '')) acPayload.check_addr_city = edits.ac_check_addr_city;
+        if (edits.ac_check_addr_state !== (ac.check_addr_state || '')) acPayload.check_addr_state = edits.ac_check_addr_state;
+        if (edits.ac_check_addr_zip !== (ac.check_addr_zip || '')) acPayload.check_addr_zip = edits.ac_check_addr_zip;
+      }
+
       if (Object.keys(payload).length > 0) {
         await api.fundraisers.update(recordId, payload);
+      }
+      if (Object.keys(acPayload).length > 0) {
+        await api.fundraisers.updateAccountingContact(data.accounting_contact_id, acPayload);
       }
       await fetchDetail();
       setEditMode(false);
@@ -832,6 +860,40 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                         {lookups.accountingContacts.map(a => <option key={a.id} value={a.id}>{a.name}{a.email ? ` (${a.email})` : ''}{a.status ? ` [${a.status}]` : ''}</option>)}
                       </select>
                       {lookupsLoading && <p className="text-xs text-slate-400 mt-1">Loading options...</p>}
+                      {data.accounting_contact && edits.accounting_contact_id === (data.accounting_contact_id || '') && (
+                        <div className="mt-2 space-y-1.5">
+                          <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={edits.ac_prefers_paper_check}
+                              onChange={e => setEdits(prev => ({...prev, ac_prefers_paper_check: e.target.checked}))}
+                              className="accent-[#ff5000]"
+                            />
+                            Prefers paper check
+                          </label>
+                          {edits.ac_prefers_paper_check && (
+                            <>
+                              <input type="text" placeholder="Address Line 1" value={edits.ac_check_addr_line1}
+                                onChange={e => setEdits(prev => ({...prev, ac_check_addr_line1: e.target.value}))}
+                                className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                              <input type="text" placeholder="Address Line 2 (optional)" value={edits.ac_check_addr_line2}
+                                onChange={e => setEdits(prev => ({...prev, ac_check_addr_line2: e.target.value}))}
+                                className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                              <div className="flex gap-1.5">
+                                <input type="text" placeholder="City" value={edits.ac_check_addr_city}
+                                  onChange={e => setEdits(prev => ({...prev, ac_check_addr_city: e.target.value}))}
+                                  className="flex-1 min-w-0 border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                                <input type="text" placeholder="ST" maxLength={2} value={edits.ac_check_addr_state}
+                                  onChange={e => setEdits(prev => ({...prev, ac_check_addr_state: e.target.value}))}
+                                  className="w-12 border border-slate-300 rounded-lg px-2 py-1.5 text-xs uppercase focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                                <input type="text" placeholder="ZIP" value={edits.ac_check_addr_zip}
+                                  onChange={e => setEdits(prev => ({...prev, ac_check_addr_zip: e.target.value}))}
+                                  className="w-20 border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </>
                   ) : data.accounting_contact ? (
                     <div className="min-w-0">
@@ -841,8 +903,19 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                           <Mail size={10} /> {data.accounting_contact.email}
                         </a>
                       )}
-                      {data.accounting_contact.payment_method && (
-                        <p className="text-xs text-slate-500 mt-0.5">Payment: {data.accounting_contact.payment_method}</p>
+                      {data.accounting_contact.prefers_paper_check && (
+                        <div className="mt-0.5">
+                          <p className="text-xs text-slate-500">Payment: Paper check (mailed)</p>
+                          {data.accounting_contact.check_addr_line1 && (
+                            <p className="text-xs text-slate-500 whitespace-pre-line">
+                              {[
+                                data.accounting_contact.check_addr_line1,
+                                data.accounting_contact.check_addr_line2,
+                                `${data.accounting_contact.check_addr_city}, ${data.accounting_contact.check_addr_state} ${data.accounting_contact.check_addr_zip}`,
+                              ].filter(Boolean).join('\n')}
+                            </p>
+                          )}
+                        </div>
                       )}
                       {data.accounting_contact.status && (
                         <span className="inline-flex text-xs mt-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
