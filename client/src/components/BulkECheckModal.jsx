@@ -28,6 +28,9 @@ export default function BulkECheckModal({ task, onClose, onRefresh }) {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState('');
   const [sent, setSent] = useState(false);
+  // After a failed send we can't be sure Checkbook didn't process it — require the
+  // user to confirm they checked Checkbook before the send button re-enables.
+  const [retryConfirmed, setRetryConfirmed] = useState(false);
 
   // Extract repKey from action_url: echeck:bulk_rep_commission:dravin → "dravin"
   const repKey = useMemo(() => {
@@ -109,11 +112,13 @@ export default function BulkECheckModal({ task, onClose, onRefresh }) {
       }, 2000);
     } catch (err) {
       setSendError(err.message || 'Failed to send bulk e-check');
+      setRetryConfirmed(false);
       setSending(false);
     }
   };
 
-  const canSend = !loading && !error && selectedIds.size > 0 && totalAmount > 0 && !sending && !sent;
+  const canSend = !loading && !error && selectedIds.size > 0 && totalAmount > 0 && !sending && !sent
+    && (!sendError || retryConfirmed);
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60]" onClick={onClose}>
@@ -244,6 +249,29 @@ export default function BulkECheckModal({ task, onClose, onRefresh }) {
             {/* Send error */}
             {sendError && (
               <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{sendError}</div>
+            )}
+
+            {/* Retry guard — after a failure, require confirmation before allowing a resend */}
+            {sendError && !sent && (
+              <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle size={16} className="text-red-600 flex-shrink-0 mt-0.5" />
+                  <p>
+                    The send failed, but we can't be certain Checkbook didn't process it. Before retrying,
+                    log in to Checkbook and confirm no payment to {rep?.name || 'the rep'} went through.
+                    Retrying a payment that already succeeded could pay them twice.
+                  </p>
+                </div>
+                <label className="flex items-start gap-2 cursor-pointer select-none font-medium">
+                  <input
+                    type="checkbox"
+                    checked={retryConfirmed}
+                    onChange={e => setRetryConfirmed(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 text-[#ff5000] rounded border-red-300 focus:ring-[#ff5000]"
+                  />
+                  I checked Checkbook — no payment went through
+                </label>
+              </div>
             )}
 
             {/* Sent success */}

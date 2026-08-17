@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { createHash } from 'crypto';
 import {
   airtableGet,
   airtableFetch,
@@ -246,11 +247,25 @@ router.post('/bulk-send', async (req, res) => {
       return res.status(400).json({ error: 'description is required' });
     }
 
-    // Re-fetch fundraisers to validate amount
+    // Re-fetch fundraisers to validate amount and re-check paid status
     const fundraiserRecords = await airtableFetchByIds('fundraisers', fundraiserIds);
     if (fundraiserRecords.length !== fundraiserIds.length) {
       return res.status(400).json({ error: 'Some fundraiser IDs were not found' });
     }
+
+    // The preview excludes rep_paid fundraisers, but state can change between preview
+    // and send (or a retry after a partial success). Never send money for a fundraiser
+    // that is already marked paid.
+    const alreadyPaid = fundraiserRecords.filter(r => r.fields[FUNDRAISER_FIELDS.rep_paid]);
+    if (alreadyPaid.length > 0) {
+      const names = alreadyPaid
+        .map(r => `${r.fields[FUNDRAISER_FIELDS.organization] || ''} — ${r.fields[FUNDRAISER_FIELDS.team] || ''}`.trim())
+        .join(', ');
+      return res.status(400).json({
+        error: `One or more of these fundraisers is already marked as paid: ${names}. Refresh and try again — do not resend.`,
+      });
+    }
+
     const computedTotal = fundraiserRecords.reduce(
       (sum, r) => sum + (r.fields[FUNDRAISER_FIELDS.rep_commission] || 0),
       0
@@ -261,7 +276,18 @@ router.post('/bulk-send', async (req, res) => {
       });
     }
 
-    const idempotencyKey = `bulk-rep-${repKey}-${Date.now()}`;
+    // The idempotency key MUST be deterministic: the same batch (rep + included
+    // fundraisers + amount) must always produce the same key, so if a send fails
+    // ambiguously (Checkbook processed it but the response was lost) a retry hits
+    // Checkbook with the SAME key and cannot pay the rep twice. Do not "improve"
+    // this with a timestamp or randomness — that is exactly what would reintroduce
+    // the double-pay risk.
+    const amountCents = Math.round(totalAmount * 100);
+    const batchDigest = createHash('sha256')
+      .update(`${repKey}|${[...fundraiserIds].sort().join(',')}|${amountCents}`)
+      .digest('hex')
+      .slice(0, 16);
+    const idempotencyKey = `bulk-rep-${repKey}-${batchDigest}`;
 
     // Send the e-check via Checkbook.io
     const response = await fetch(`${getCheckbookBaseUrl()}/check/digital`, {
