@@ -20,6 +20,7 @@ import costRoutes from './routes/cost.js';
 import reportsRoutes from './routes/reports.js';
 import automationsRoutes from './routes/automations.js';
 import { authMiddleware } from './middleware/auth.js';
+import { checkFailedPayouts } from './services/payoutHealth.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -69,3 +70,15 @@ if (process.env.NODE_ENV === 'production') {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
 });
+
+// Failed daily-payout alerting: check shortly after startup, then every 30 minutes.
+// Errors are logged and never allowed to crash the server.
+const PAYOUT_CHECK_INTERVAL_MS = 30 * 60 * 1000;
+const PAYOUT_CHECK_STARTUP_DELAY_MS = 60 * 1000;
+function runPayoutCheck() {
+  checkFailedPayouts().catch(err =>
+    console.error('[payoutHealth] Scheduled check failed:', err.message)
+  );
+}
+setTimeout(runPayoutCheck, PAYOUT_CHECK_STARTUP_DELAY_MS);
+setInterval(runPayoutCheck, PAYOUT_CHECK_INTERVAL_MS);

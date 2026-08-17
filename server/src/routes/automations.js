@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import express from 'express';
 import { airtableFetch, FUNDRAISER_FIELDS } from '../services/airtable.js';
+import { checkFailedPayouts } from '../services/payoutHealth.js';
 
 const router = Router();
 
@@ -22,6 +23,22 @@ function automationAuth(req, res, next) {
 }
 
 router.use(automationAuth);
+
+// POST /api/automations/check-failed-payouts
+// TEMPORARY test hook: manually run the failed-payout check without waiting for the
+// 30-minute interval. Protected by the same x-automation-secret header as every
+// route on this router. Add ?force=true to bypass the weekend skip, the 6-hour
+// throttle, and the already-alerted dedupe so the email can be re-tested repeatedly.
+router.post('/check-failed-payouts', async (req, res) => {
+  try {
+    const force = req.query.force === 'true' || req.body?.force === true;
+    const result = await checkFailedPayouts({ force });
+    return res.json({ ok: true, force, result });
+  } catch (err) {
+    console.error('[automations/check-failed-payouts] Error:', err);
+    return res.status(500).json({ error: err.message || 'Check failed.' });
+  }
+});
 
 // POST /api/automations/md-payout-report
 router.post('/md-payout-report', async (req, res) => {
