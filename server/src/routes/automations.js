@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import express from 'express';
 import { airtableFetch, FUNDRAISER_FIELDS } from '../services/airtable.js';
-import { checkFailedPayouts } from '../services/payoutHealth.js';
+import { checkFailedPayouts, ALERT_RECIPIENTS } from '../services/payoutHealth.js';
+import { sendEmail } from '../services/gmail.js';
 
 const router = Router();
 
@@ -109,7 +110,31 @@ router.post('/md-payout-report', async (req, res) => {
 
     console.log(`[automations/md-payout] Complete for ${recordId} — FPR: ${saveResult.reports.fpr}, RCR: ${saveResult.reports.rcr}`);
 
-    // 5. Respond success
+    // 5. No human is present on this path — email any sanity-check warnings so
+    // mismatched numbers don't get filed silently. Best-effort; never fails the request.
+    // Deliberately unthrottled: these are rare and each one needs eyes on it.
+    const reviewWarnings = [
+      ...(extractResult.warnings || []),
+      ...(saveResult?.reports?.fprBalanceWarning ? [saveResult.reports.fprBalanceWarning] : []),
+    ];
+    if (reviewWarnings.length > 0) {
+      const org = record.fields[FUNDRAISER_FIELDS.organization] || '';
+      const team = record.fields[FUNDRAISER_FIELDS.team] || '';
+      try {
+        await sendEmail({
+          to: ALERT_RECIPIENTS,
+          subject: `⚠️ SMASH — Payout report numbers need review: ${org} ${team}`,
+          html: `<p>The MoneyDolly payout report for <strong>${fundraiserName}</strong> was processed automatically, but these numbers didn't check out:</p>
+<ul>${reviewWarnings.map(w => `<li style="margin-bottom: 8px;">${w}</li>`).join('')}</ul>
+<p>The report was still filed and the documents generated. Open the fundraiser in the Manager Portal and check these numbers against the MD payout report PDF before sending anything to the school.</p>`,
+        });
+        console.log(`[automations/md-payout] Review-warning email sent for ${recordId} (${reviewWarnings.length} warning(s)).`);
+      } catch (emailErr) {
+        console.error('[automations/md-payout] Failed to send review-warning email:', emailErr.message);
+      }
+    }
+
+    // 6. Respond success
     return res.json({
       matched: true,
       recordId,

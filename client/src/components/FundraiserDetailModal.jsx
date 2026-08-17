@@ -87,13 +87,14 @@ function ProgressBar({ kickoff, end }) {
   );
 }
 
-function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerate, awaitingMdPayout, isStale, isMdFundraiser = true, blocked, blockedReason }) {
+function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerate, awaitingMdPayout, isStale, isMdFundraiser = true, blocked, blockedReason, balanceDiff = null }) {
   const hasFile = files && files.length > 0;
+  const hasWarning = isStale || balanceDiff != null;
 
   if (hasFile) {
     return (
       <div>
-        <div className={`rounded-lg p-3 flex items-center justify-between gap-3 border ${isStale ? 'bg-amber-50 border-amber-300' : 'border-slate-200'}`}>
+        <div className={`rounded-lg p-3 flex items-center justify-between gap-3 border ${hasWarning ? 'bg-amber-50 border-amber-300' : 'border-slate-200'}`}>
           <div className="min-w-0 flex-1">
             <p className="text-xs text-slate-400 mb-1">{label}</p>
             <a
@@ -108,12 +109,17 @@ function ReportDocSlot({ label, files, generating, error, isDataReady, onGenerat
             {isStale && (
               <p className="text-xs text-amber-700 italic mt-1">This report may be out of date — regenerate to apply recent changes.</p>
             )}
+            {balanceDiff != null && (
+              <p className="text-xs text-amber-700 italic mt-1">
+                Profit + invoice doesn't equal gross (off by ${Number(balanceDiff).toFixed(2)}). This should balance — check the adjustments before sending this report out.
+              </p>
+            )}
           </div>
           <button
             onClick={onGenerate}
             disabled={generating || blocked}
             title={blocked ? blockedReason : undefined}
-            className={`text-xs font-medium px-3 py-1.5 rounded border disabled:opacity-50 disabled:cursor-not-allowed shrink-0 ${isStale ? 'border-amber-300 text-amber-700 hover:bg-amber-100' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            className={`text-xs font-medium px-3 py-1.5 rounded border disabled:opacity-50 disabled:cursor-not-allowed shrink-0 ${hasWarning ? 'border-amber-300 text-amber-700 hover:bg-amber-100' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
           >
             {generating ? 'Regenerating...' : 'Regenerate'}
           </button>
@@ -370,6 +376,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const [uploadingMdPayout, setUploadingMdPayout] = useState(false);
   const [mdPayoutError, setMdPayoutError] = useState('');
   const mdPayoutFileInputRef = useRef(null);
+  // Sanity-check warnings from the last MD upload (extraction cross-checks + FPR
+  // balance check). Never blocks anything; persists until dismissed or modal closes.
+  const [uploadWarnings, setUploadWarnings] = useState([]);
 
   // Report generation
   const [generatingFpr, setGeneratingFpr] = useState(false);
@@ -587,7 +596,13 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       }
 
       // Save extracted values + attach PDF + generate reports (all synchronous)
-      await api.fundraisers.saveMdPayout(data.id, file, extraction.values);
+      const saveResult = await api.fundraisers.saveMdPayout(data.id, file, extraction.values);
+
+      // Surface any sanity-check warnings (extraction cross-checks succeed-with-warnings;
+      // FPR balance check) instead of saving silently.
+      const warnings = [...(extraction.warnings || [])];
+      if (saveResult?.reports?.fprBalanceWarning) warnings.push(saveResult.reports.fprBalanceWarning);
+      setUploadWarnings(warnings);
 
       // Refresh modal to show updated data, attached PDF, and generated reports
       await fetchDetail();
@@ -1064,6 +1079,29 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
               )}
             </section>
 
+            {/* Sanity-check warnings from the last MD Payout Report upload */}
+            {uploadWarnings.length > 0 && (
+              <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-amber-900 mb-1">
+                      Please verify these numbers against the PDF
+                    </p>
+                    {uploadWarnings.map((w, i) => (
+                      <p key={i} className="text-xs text-amber-800 leading-relaxed mb-1">{w}</p>
+                    ))}
+                    <button
+                      onClick={() => setUploadWarnings([])}
+                      className="mt-2 text-xs font-medium px-3 py-1.5 rounded bg-amber-600 hover:bg-amber-700 text-white"
+                    >
+                      I verified these — dismiss
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Section 3: Financials */}
             <section>
               <SectionHeader>Financials</SectionHeader>
@@ -1501,6 +1539,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                   isMdFundraiser={isMdFundraiser}
                   blocked={needsManualProductSplit}
                   blockedReason="Enter the product split above first."
+                  balanceDiff={data.fprBalanceDiff}
                 />
                 <ReportDocSlot
                   label="Rep Commission Report"

@@ -104,25 +104,33 @@ export async function fetchFundraiserDataForReports(recordId) {
   };
 }
 
-export async function generateFprForFundraiser(recordId) {
-  const data = await fetchFundraiserDataForReports(recordId);
-
-  // Sanity check: profit + invoice should equal gross (for variants with an invoice section)
+// Sanity check: profit + invoice should equal gross (for variants with an invoice
+// section — WA State ASB and the two Traditional products). Returns { diff, message }
+// when the numbers are off by more than $0.05, or null when balanced / not applicable.
+// Never blocks anything — callers surface the warning but the report still renders.
+export function computeFprBalanceWarning(data) {
   const isTradNoRisk = data.product_primary_string === 'Team Cards - Traditional No-Risk';
   const isTradUpfront = data.product_primary_string === 'Team Cards - Traditional Upfront Purchase';
   const showInvoice = data.asb_boosters === 'WA State ASB' || isTradNoRisk || isTradUpfront;
-  if (showInvoice && data.gross_sales_md && data.final_team_profit != null && data.final_invoice_amount != null) {
-    const sum = Number(data.final_team_profit) + Number(data.final_invoice_amount);
-    const gross = Number(data.gross_sales_md);
-    const diff = Math.abs(sum - gross);
-    if (diff > 0.05) {
-      console.warn(
-        `[FPR] Balance check failed for ${recordId}: ` +
-        `profit ($${data.final_team_profit}) + invoice ($${data.final_invoice_amount}) ` +
-        `= $${sum.toFixed(2)} but gross is $${gross.toFixed(2)}. ` +
-        `Difference: $${diff.toFixed(2)}. Report will still render.`
-      );
-    }
+  if (!showInvoice || !data.gross_sales_md || data.final_team_profit == null || data.final_invoice_amount == null) {
+    return null;
+  }
+  const sum = Number(data.final_team_profit) + Number(data.final_invoice_amount);
+  const gross = Number(data.gross_sales_md);
+  const diff = Math.abs(sum - gross);
+  if (diff <= 0.05) return null;
+  return {
+    diff,
+    message: `Team profit ($${Number(data.final_team_profit).toFixed(2)}) + invoice ($${Number(data.final_invoice_amount).toFixed(2)}) = $${sum.toFixed(2)}, but gross is $${gross.toFixed(2)} — off by $${diff.toFixed(2)}. Profit + invoice should equal gross; check the adjustments.`,
+  };
+}
+
+export async function generateFprForFundraiser(recordId) {
+  const data = await fetchFundraiserDataForReports(recordId);
+
+  const balance = computeFprBalanceWarning(data);
+  if (balance) {
+    console.warn(`[FPR] Balance check failed for ${recordId}: ${balance.message} Report will still render.`);
   }
 
   const buffer = await renderFpr(data);
@@ -140,7 +148,11 @@ export async function generateFprForFundraiser(recordId) {
   await airtableUpdate('fundraisers', recordId, {
     [FUNDRAISER_FIELDS.fpr_source_fingerprint]: fprFingerprint,
   });
-  return result;
+  return {
+    attachment: result,
+    balanceWarning: balance ? balance.message : null,
+    balanceDiff: balance ? balance.diff : null,
+  };
 }
 
 export async function generateRcrForFundraiser(recordId) {
@@ -171,8 +183,8 @@ router.post('/fpr/:fundraiserId', async (req, res) => {
         code: 'MANUAL_SPLIT_REQUIRED',
       });
     }
-    const result = await generateFprForFundraiser(req.params.fundraiserId);
-    res.json({ success: true, attachment: result });
+    const { attachment, balanceWarning } = await generateFprForFundraiser(req.params.fundraiserId);
+    res.json({ success: true, attachment, balanceWarning: balanceWarning || undefined });
   } catch (err) {
     console.error('Error generating FPR:', err);
     res.status(500).json({ error: err.message || 'Failed to generate FPR.' });

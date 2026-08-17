@@ -281,8 +281,10 @@ export async function saveMdPayoutData(recordId, pdfBuffer, filename, mimetype, 
 
   try {
     console.log('[mdPayoutExtractor] Generating FPR...');
-    await generateFprForFundraiser(recordId);
+    const fprResult = await generateFprForFundraiser(recordId);
     reports.fpr = 'generated';
+    // Surface the profit + invoice = gross check to callers instead of only logging it
+    if (fprResult?.balanceWarning) reports.fprBalanceWarning = fprResult.balanceWarning;
     console.log('[mdPayoutExtractor] FPR generated.');
   } catch (err) {
     reports.errors.fpr = err.message;

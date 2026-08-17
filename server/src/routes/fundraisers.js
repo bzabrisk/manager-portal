@@ -20,6 +20,7 @@ import {
   checkNeedsManualProductSplit,
   computeReportFingerprint,
 } from '../services/airtable.js';
+import { computeFprBalanceWarning } from './reports.js';
 
 const router = Router();
 const upload = multer({
@@ -927,6 +928,17 @@ router.get('/:recordId', async (req, res) => {
         const stored = f[FUNDRAISER_FIELDS.rcr_source_fingerprint] || '';
         const current = computeReportFingerprint(f);
         return stored === '' || stored !== current;
+      })(),
+      // Profit + invoice = gross sanity check (null when balanced or not applicable)
+      fprBalanceDiff: (() => {
+        const balance = computeFprBalanceWarning({
+          product_primary_string,
+          asb_boosters: f[FUNDRAISER_FIELDS.asb_boosters] || '',
+          gross_sales_md: f[FUNDRAISER_FIELDS.gross_sales_md] ?? null,
+          final_team_profit: f[FUNDRAISER_FIELDS.final_team_profit] ?? null,
+          final_invoice_amount: f[FUNDRAISER_FIELDS.final_invoice_amount] ?? null,
+        });
+        return balance ? balance.diff : null;
       })(),
       // Closeout
       md_payout_received: f[FUNDRAISER_FIELDS.md_payout_received] || false,
