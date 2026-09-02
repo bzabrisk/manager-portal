@@ -7,6 +7,7 @@ import { api } from '../api/client';
 import TaskDetailModal from './TaskDetailModal';
 import NewTaskModal from './NewTaskModal';
 import { formatAsbType, getAsbColor } from '../utils/asb';
+import { isUpfrontCards } from '../utils/products';
 
 const AIRTABLE_FUNDRAISER_URL_BASE = 'https://airtable.com/appxDlniu6IPMVIVp/tbl7aH2mtkAGC9jk9';
 
@@ -680,7 +681,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const hasMdProduct = data.product_primary_string?.toLowerCase().includes('md');
   const requiresInvoice = data.asb_boosters === 'WA State ASB'
     || data.product_primary_string?.toLowerCase().includes('traditional no-risk')
-    || data.product_primary_string?.toLowerCase().includes('traditional upfront');
+    || isUpfrontCards(data.product_primary_string);
   const showDailyPayouts = data.asb_boosters === 'WA State ASB';
   const isCookieDough = data.product_primary_string?.toLowerCase().includes('cookie dough');
   const cdBoxesInvalid = edits.extra_cd_boxes_ordered !== '' && (isNaN(edits.extra_cd_boxes_ordered) || Number(edits.extra_cd_boxes_ordered) < 0 || !Number.isInteger(Number(edits.extra_cd_boxes_ordered)));

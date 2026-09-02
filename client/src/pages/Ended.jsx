@@ -5,6 +5,7 @@ import { usePolling } from '../hooks/usePolling';
 import TaskDetailModal from '../components/TaskDetailModal';
 import FundraiserDetailModal from '../components/FundraiserDetailModal';
 import { formatAsbType, getAsbColor } from '../utils/asb';
+import { isUpfrontCards } from '../utils/products';
 
 const PRODUCT_BADGE_COLORS = {
   primary: 'bg-indigo-50 text-indigo-700 border-indigo-200',
@@ -59,7 +60,7 @@ function CloseoutChecklist({ closeout, greenTint, fundraiser }) {
   const hasMdProduct = (fundraiser.product_primary_string || '').toLowerCase().includes('md');
   const requiresInvoice = fundraiser.asb_boosters === 'WA State ASB'
     || (fundraiser.product_primary_string || '').toLowerCase().includes('traditional no-risk')
-    || (fundraiser.product_primary_string || '').toLowerCase().includes('traditional upfront');
+    || isUpfrontCards(fundraiser.product_primary_string);
 
   const items = [
     ...(hasMdProduct ? [{ key: 'md_payout_received', label: 'MD Payout received', value: closeout.md_payout_received }] : []),
@@ -354,7 +355,7 @@ export default function Ended() {
     // Invoice payment only required if applicable
     const requiresInvoice = f.asb_boosters === 'WA State ASB'
       || (f.product_primary_string || '').toLowerCase().includes('traditional no-risk')
-      || (f.product_primary_string || '').toLowerCase().includes('traditional upfront');
+      || isUpfrontCards(f.product_primary_string);
     if (requiresInvoice && !f.closeout.invoice_payment_received) return false;
     const w = f.waiting;
     if (w.waiting_on_md_payout || w.waiting_on_invoice_payment || w.needs_accounting_contact || w.org_name_needs_follow_up || w.needs_card_count) return false;

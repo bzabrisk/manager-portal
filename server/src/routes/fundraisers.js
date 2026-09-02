@@ -21,6 +21,7 @@ import {
   computeReportFingerprint,
 } from '../services/airtable.js';
 import { computeFprBalanceWarning } from './reports.js';
+import { isUpfrontCards } from '../constants/products.js';
 
 const router = Router();
 const upload = multer({
@@ -551,7 +552,7 @@ async function getEndedFundraisers() {
     // Invoice required for WA State ASB, Traditional No-Risk, or Traditional Upfront
     const requires_invoice = asb_boosters === 'WA State ASB'
       || product_primary_string.toLowerCase().includes('traditional no-risk')
-      || product_primary_string.toLowerCase().includes('traditional upfront');
+      || isUpfrontCards(product_primary_string);
 
     // Waiting badge logic
     const waiting_on_md_payout = !md_payout_received && has_md_product;

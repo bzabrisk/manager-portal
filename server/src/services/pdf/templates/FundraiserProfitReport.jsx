@@ -8,6 +8,7 @@ import LineItemRow, { LineItemHeader, SubtotalRow, InvoiceHeader } from '../comp
 import AdjustmentRow from '../components/AdjustmentRow.jsx';
 import FinalAmountBox from '../components/FinalAmountBox.jsx';
 import Footer from '../components/Footer.jsx';
+import { isUpfrontCards } from '../../../constants/products.js';
 
 const fmt = (v) => v != null ? `$${Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '\u2014';
 
@@ -62,7 +63,7 @@ const s = StyleSheet.create({
 
 export default function FundraiserProfitReport({ data }) {
   const isTradNoRisk = data.product_primary_string === 'Team Cards - Traditional No-Risk';
-  const isTradUpfront = data.product_primary_string === 'Team Cards - Traditional Upfront Purchase';
+  const isTradUpfront = isUpfrontCards(data.product_primary_string);
   const isWaAsb = data.asb_boosters === 'WA State ASB';
   const hasSecondary = data.has_secondary;
   const hasTpDonations = data.has_tp_donations && data.product_primary_string !== 'MD Donations - Digital';

@@ -14,6 +14,7 @@ import {
 } from '../services/airtable.js';
 import { renderFpr, renderRcr, renderAgreement } from '../services/pdf/render.js';
 import { getTierNotes } from '../constants/tieredProducts.js';
+import { isUpfrontCards } from '../constants/products.js';
 
 const router = Router();
 
@@ -110,7 +111,7 @@ export async function fetchFundraiserDataForReports(recordId) {
 // Never blocks anything — callers surface the warning but the report still renders.
 export function computeFprBalanceWarning(data) {
   const isTradNoRisk = data.product_primary_string === 'Team Cards - Traditional No-Risk';
-  const isTradUpfront = data.product_primary_string === 'Team Cards - Traditional Upfront Purchase';
+  const isTradUpfront = isUpfrontCards(data.product_primary_string);
   const showInvoice = data.asb_boosters === 'WA State ASB' || isTradNoRisk || isTradUpfront;
   if (!showInvoice || !data.gross_sales_md || data.final_team_profit == null || data.final_invoice_amount == null) {
     return null;
