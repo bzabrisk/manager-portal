@@ -68,6 +68,9 @@ export async function fetchFundraiserDataForReports(recordId) {
     pp_actual_comm_rate: resolveLookup(f[F.pp_actual_comm_rate]),
     pp_invoice_rate: f[F.pp_invoice_rate] ?? null,
     cards_sold: f[F.cards_sold] ?? null,
+    cards_ordered: f[F.cards_ordered] ?? null,
+    upfront_smash_price_per_card: f[F.upfront_smash_price_per_card] ?? null,
+    card_retail_price: f[F.card_retail_price] ?? null,
     // Secondary product
     sp_gross: f[F.sp_gross] ?? null,
     sp_team_profit: f[F.sp_team_profit] ?? null,
@@ -84,6 +87,7 @@ export async function fetchFundraiserDataForReports(recordId) {
     // FPR adjustments
     fpr_adj_md_prize_share: f[F.fpr_adj_md_prize_share] ?? null,
     fpr_adj_team_to_rep: f[F.fpr_adj_team_to_rep] ?? null,
+    fpr_adj_team_to_rep_label: f[F.fpr_adj_team_to_rep_label] || '',
     fpr_adj_asbfee: f[F.fpr_adj_asbfee] ?? null,
     fpr_adj_discount_on_lost_cards: f[F.fpr_adj_discount_on_lost_cards] ?? null,
     fpr_comments: resolveLookup(f[F.fpr_comments]) || '',

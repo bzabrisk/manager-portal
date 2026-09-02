@@ -31,21 +31,6 @@ const s = StyleSheet.create({
     color: COLORS.inkSoft,
     marginBottom: 4,
   },
-  footnoteBox: {
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.orange,
-    paddingLeft: 10,
-    paddingVertical: 8,
-    marginTop: 12,
-    backgroundColor: COLORS.orangeLight,
-  },
-  footnoteText: {
-    fontFamily: FONTS.body,
-    fontWeight: 400,
-    fontSize: 8,
-    color: COLORS.inkSoft,
-    lineHeight: 1.5,
-  },
   commentsBox: {
     marginTop: 12,
     paddingTop: 8,
@@ -71,12 +56,11 @@ export default function FundraiserProfitReport({ data }) {
   const showInvoiceSection = isWaAsb || isTradNoRisk || isTradUpfront;
   const showQtyColumn = isTradNoRisk || isTradUpfront;
   const showGrossTotalCollected = !isTradUpfront;
-  const showTierFootnote = isTradUpfront;
 
   const lineItems = [
     data.pp_gross && {
       label: data.product_primary_string || 'Primary Product',
-      qty: data.cards_sold,
+      qty: isTradUpfront ? data.cards_ordered : data.cards_sold,
       gross: data.pp_gross,
       percent: data.pp_actual_team_rate,
       amount: data.pp_team_profit,
@@ -103,9 +87,12 @@ export default function FundraiserProfitReport({ data }) {
     },
   ].filter(Boolean);
 
-  // For Traditional Upfront, the per-unit dollar amount is more meaningful than a percentage
-  const upfrontPerCardAmount = isTradUpfront && data.cards_sold
-    ? (data.pp_invoice_amount / data.cards_sold)
+  // For Traditional Upfront, the per-unit dollar amount is more meaningful than a
+  // percentage. The price comes from Airtable's tier formula (US and Canada each
+  // have their own ladder) — never re-derive it here.
+  const upfrontPerCardAmount = isTradUpfront
+    ? (data.upfront_smash_price_per_card
+        ?? (data.cards_ordered ? data.pp_invoice_amount / data.cards_ordered : null))
     : null;
 
   const profitSubtotal = lineItems.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
@@ -173,35 +160,38 @@ export default function FundraiserProfitReport({ data }) {
                   rateAsCurrency={isTradUpfront && i === 0}
                 />
               ))}
-              {/* Invoice adjustments — inverse of profit adjustments */}
-              <AdjustmentRow
-                label="50% Prize Share"
-                amount={data.fpr_adj_md_prize_share != null ? -data.fpr_adj_md_prize_share : null}
-              />
-              <AdjustmentRow
-                label="Adjustment between team & rep"
-                amount={data.fpr_adj_team_to_rep != null ? -data.fpr_adj_team_to_rep : null}
-              />
-              <AdjustmentRow
-                label="ASB Fee"
-                amount={data.fpr_adj_asbfee != null ? -data.fpr_adj_asbfee : null}
-              />
-              {isTradNoRisk && (
+              {/* Invoice adjustments — inverse of profit adjustments. Upfront shows a
+                  single labeled discount line so the school sees why the invoice
+                  differs from cards × price. */}
+              {isTradUpfront ? (
                 <AdjustmentRow
-                  label="Discount on lost cards"
-                  amount={data.fpr_adj_discount_on_lost_cards != null ? -data.fpr_adj_discount_on_lost_cards : null}
+                  label={data.fpr_adj_team_to_rep_label || 'Discount'}
+                  amount={data.fpr_adj_team_to_rep ? -data.fpr_adj_team_to_rep : null}
                 />
+              ) : (
+                <>
+                  <AdjustmentRow
+                    label="50% Prize Share"
+                    amount={data.fpr_adj_md_prize_share != null ? -data.fpr_adj_md_prize_share : null}
+                  />
+                  <AdjustmentRow
+                    label="Adjustment between team & rep"
+                    amount={data.fpr_adj_team_to_rep != null ? -data.fpr_adj_team_to_rep : null}
+                  />
+                  <AdjustmentRow
+                    label="ASB Fee"
+                    amount={data.fpr_adj_asbfee != null ? -data.fpr_adj_asbfee : null}
+                  />
+                  {isTradNoRisk && (
+                    <AdjustmentRow
+                      label="Discount on lost cards"
+                      amount={data.fpr_adj_discount_on_lost_cards != null ? -data.fpr_adj_discount_on_lost_cards : null}
+                    />
+                  )}
+                </>
               )}
 
               <FinalAmountBox label="FINAL INVOICE" amount={data.final_invoice_amount} />
-            </View>
-          )}
-
-          {showTierFootnote && (
-            <View style={s.footnoteBox}>
-              <Text style={s.footnoteText}>
-                {'Comments: Please send payment in USD only.\n\nTiers are converted to USD for payment using live USD/CAD conversion.\n1000 ct = $8 CAD/card\n1500 ct = $7 CAD/card\n2000+ ct = $6 CAD/card'}
-              </Text>
             </View>
           )}
 

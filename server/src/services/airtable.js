@@ -434,6 +434,11 @@ function computeReportFingerprint(fields) {
     fields[F.final_team_profit] ?? '',
     fields[F.final_invoice_amount] ?? '',
     fields[F.rep_commission] ?? '',
+    // Upfront purchase inputs — editing any of these must trigger the stale-report warning
+    fields[F.cards_ordered] ?? '',
+    fields[F.upfront_smash_price_per_card] ?? '',
+    fields[F.card_retail_price] ?? '',
+    fields[F.fpr_adj_team_to_rep] ?? '',
   ];
   return parts.join('|');
 }
