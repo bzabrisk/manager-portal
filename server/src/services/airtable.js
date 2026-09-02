@@ -74,6 +74,9 @@ const FUNDRAISER_FIELDS = {
   cards_sold_manual: 'fldqhwtTuxnNHfsCp',
   cards_sold: 'fldfqPmHKccZr6QEb',
   cards_lost: 'fldWpLdiGIKxPQwCa',
+  // Upfront purchase pricing (formulas — read-only)
+  card_retail_price: 'flddKO0oaWF6J6Qg8',
+  upfront_smash_price_per_card: 'fldNJx7wVBxWmL8PV',
   team_size: 'fldbQKlx5bpBBHCiL',
   admin_notes: 'fldyB1gmXNXtM2ymV',
   rep_notes: 'fldbcDRWd7AHtdkh9',

@@ -418,6 +418,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       agreement_notes: result.agreement_notes || '',
       // Rep Commission breakdown editable fields
       rcr_adj_team_to_rep: result.rcr_adj_team_to_rep ?? '',
+      fpr_adj_team_to_rep: result.fpr_adj_team_to_rep ?? '',
       fpr_adj_team_to_rep_label: result.fpr_adj_team_to_rep_label || '',
       rcr_adj_misc: result.rcr_adj_misc ?? '',
       rcr_comment: result.rcr_comment || '',
@@ -479,6 +480,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       edits.admin_notes !== data.admin_notes,
       edits.agreement_notes !== (data.agreement_notes || ''),
       edits.rcr_adj_team_to_rep !== (data.rcr_adj_team_to_rep ?? ''),
+      edits.fpr_adj_team_to_rep !== (data.fpr_adj_team_to_rep ?? ''),
       edits.fpr_adj_team_to_rep_label !== (data.fpr_adj_team_to_rep_label || ''),
       edits.rcr_adj_misc !== (data.rcr_adj_misc ?? ''),
       edits.rcr_comment !== (data.rcr_comment || ''),
@@ -540,6 +542,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       if (edits.admin_notes !== data.admin_notes) payload.admin_notes = edits.admin_notes;
       if (edits.agreement_notes !== (data.agreement_notes || '')) payload.agreement_notes = edits.agreement_notes;
       if (edits.rcr_adj_team_to_rep !== (data.rcr_adj_team_to_rep ?? '')) payload.rcr_adj_team_to_rep = edits.rcr_adj_team_to_rep;
+      if (edits.fpr_adj_team_to_rep !== (data.fpr_adj_team_to_rep ?? '')) payload.fpr_adj_team_to_rep = edits.fpr_adj_team_to_rep;
       if (edits.fpr_adj_team_to_rep_label !== (data.fpr_adj_team_to_rep_label || '')) payload.fpr_adj_team_to_rep_label = edits.fpr_adj_team_to_rep_label;
       if (edits.rcr_adj_misc !== (data.rcr_adj_misc ?? '')) payload.rcr_adj_misc = edits.rcr_adj_misc;
       if (edits.rcr_comment !== (data.rcr_comment || '')) payload.rcr_comment = edits.rcr_comment;
@@ -690,7 +693,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
 
   // Financials
   const financials = [
-    { label: 'Gross Sales', value: data.gross_sales_md },
+    // gross_sales_md is blank on upfront fundraisers — their retail gross auto-calculates
+    // into gross_sales_calc (cards_ordered × card_retail_price)
+    { label: 'Gross Sales', value: data.gross_sales_md ?? (isUpfront ? data.gross_sales_calc : null) },
     { label: isUpfront ? 'Potential team profit (if all cards sell)' : 'Team Profit', value: data.final_team_profit },
     { label: 'Invoice Amount', value: data.final_invoice_amount },
     { label: 'Rep Commission', value: data.rep_commission },
@@ -722,7 +727,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const rcrStale = data.rcrStale;
   const hasSecondary = data.has_secondary;
   const isTwoProduct = isMdFundraiser && hasSecondary;
-  const needsManualProductSplit = isTwoProduct
+  const needsManualProductSplit = isTwoProduct && !isUpfront
     && (!data.pp_gross_manual || data.pp_gross_manual === 0 || data.sp_gross == null || data.sp_gross === 0);
 
   return (
@@ -1003,17 +1008,36 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                     <span className="text-slate-400 text-xs">Cards ordered:</span>
                     <input type="number" value={edits.cards_ordered} onChange={e => setEdits(prev => ({...prev, cards_ordered: e.target.value}))}
                       className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                    {isUpfront && <p className="text-xs text-slate-400 mt-1">Drives gross, invoice, and the price tier.</p>}
                   </div>
-                  <div>
-                    <span className="text-slate-400 text-xs">Cards sold:</span>
-                    <input type="number" value={edits.cards_sold_manual} onChange={e => setEdits(prev => ({...prev, cards_sold_manual: e.target.value}))}
-                      className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
-                  </div>
-                  <div>
-                    <span className="text-slate-400 text-xs">Cards lost:</span>
-                    <input type="number" value={edits.cards_lost} onChange={e => setEdits(prev => ({...prev, cards_lost: e.target.value}))}
-                      className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
-                  </div>
+                  {isUpfront ? (
+                    <div>
+                      <span className="text-slate-400 text-xs">Cards sold:</span>
+                      <p className="text-sm font-medium text-slate-700 mt-1.5">{data.cards_sold ?? '—'}</p>
+                      <p className="text-xs text-slate-400 mt-1">Auto: equals cards ordered for upfront purchases.</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="text-slate-400 text-xs">Cards sold:</span>
+                      <input type="number" value={edits.cards_sold_manual} onChange={e => setEdits(prev => ({...prev, cards_sold_manual: e.target.value}))}
+                        className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                    </div>
+                  )}
+                  {!isUpfront && (
+                    <div>
+                      <span className="text-slate-400 text-xs">Cards lost:</span>
+                      <input type="number" value={edits.cards_lost} onChange={e => setEdits(prev => ({...prev, cards_lost: e.target.value}))}
+                        className="w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                    </div>
+                  )}
+                  {isUpfront && data.upfront_smash_price_per_card != null && (
+                    <div>
+                      <span className="text-slate-400 text-xs">Price per card:</span>
+                      <p className="text-sm font-medium text-slate-700 mt-1.5">
+                        {formatCurrency(data.upfront_smash_price_per_card)} / card{data.card_retail_price != null ? ` · $${Number(data.card_retail_price)} retail` : ''}
+                      </p>
+                    </div>
+                  )}
                   <div>
                     <span className="text-slate-400 text-xs">MD Portal URL:</span>
                     <input type="text" value={edits.md_portal_url} onChange={e => setEdits(prev => ({...prev, md_portal_url: e.target.value}))}
@@ -1054,10 +1078,18 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                           <span className="font-medium text-slate-700">{data.cards_sold}</span>
                         </div>
                       )}
-                      {data.cards_lost != null && (
+                      {data.cards_lost != null && !isUpfront && (
                         <div>
                           <span className="text-slate-400">Cards lost:</span>{' '}
                           <span className="font-medium text-slate-700">{data.cards_lost}</span>
+                        </div>
+                      )}
+                      {isUpfront && data.upfront_smash_price_per_card != null && (
+                        <div>
+                          <span className="text-slate-400">Price per card:</span>{' '}
+                          <span className="font-medium text-slate-700">
+                            {formatCurrency(data.upfront_smash_price_per_card)} / card{data.card_retail_price != null ? ` · $${Number(data.card_retail_price)} retail` : ''}
+                          </span>
                         </div>
                       )}
                     </>
@@ -1077,6 +1109,14 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                       <span className="text-slate-400">Not set</span>
                     )}
                   </div>
+                </div>
+              )}
+              {isUpfront && data.pp_gross_manual != null && (
+                <div className="mt-3 bg-amber-50 border border-amber-300 rounded-lg p-3 flex items-start gap-2.5">
+                  <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    pp_gross_manual is set on an upfront fundraiser — this overrides the auto-calculated gross and will break the numbers. Clear it in Airtable.
+                  </p>
                 </div>
               )}
             </section>
@@ -1157,14 +1197,27 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                           <div className="flex justify-between items-start gap-3 max-lg:flex-wrap">
                             <div>
                               <span className="text-sm text-slate-600">Adjustment between Team & Rep</span>
-                              <p className="text-xs text-slate-400 mt-0.5">Positive = team gives rep &middot; Negative = rep gives team</p>
+                              {isUpfront ? (
+                                <p className="text-xs text-slate-400 mt-0.5">Rep promised a lower price than the tier? Enter (standard price &minus; promised price) &times; cards ordered as a positive number. Example: $8 standard, $7 promised, 600 cards &rarr; 600.</p>
+                              ) : (
+                                <p className="text-xs text-slate-400 mt-0.5">Positive = team gives rep &middot; Negative = rep gives team</p>
+                              )}
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="flex items-center gap-1 w-28">
                                 <span className="text-sm text-slate-400">$</span>
-                                <input type="number" step="0.01" value={edits.rcr_adj_team_to_rep}
-                                  onChange={e => setEdits(prev => ({...prev, rcr_adj_team_to_rep: e.target.value}))}
-                                  className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                                {/* Upfront edits the FPR-side value directly (positive = discount that
+                                    lowers invoice and rep commission); others edit the rep-side view,
+                                    which the server negates into fpr_adj_team_to_rep. */}
+                                {isUpfront ? (
+                                  <input type="number" step="0.01" value={edits.fpr_adj_team_to_rep}
+                                    onChange={e => setEdits(prev => ({...prev, fpr_adj_team_to_rep: e.target.value}))}
+                                    className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                                ) : (
+                                  <input type="number" step="0.01" value={edits.rcr_adj_team_to_rep}
+                                    onChange={e => setEdits(prev => ({...prev, rcr_adj_team_to_rep: e.target.value}))}
+                                    className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                                )}
                               </div>
                               <input type="text" placeholder="Label" value={edits.fpr_adj_team_to_rep_label}
                                 onChange={e => setEdits(prev => ({...prev, fpr_adj_team_to_rep_label: e.target.value}))}
@@ -1524,8 +1577,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                 </div>
               )}
 
-              {/* Manual product split for two-product MD fundraisers */}
-              {isTwoProduct && (
+              {/* Manual product split for two-product MD fundraisers (never for upfront —
+                  pp_gross_manual would override the auto-calculated retail gross) */}
+              {isTwoProduct && !isUpfront && (
                 <ManualProductSplitCallout
                   data={data}
                   onSaved={fetchDetail}

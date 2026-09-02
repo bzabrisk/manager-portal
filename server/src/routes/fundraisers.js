@@ -877,6 +877,8 @@ router.get('/:recordId', async (req, res) => {
       cards_ordered: f[FUNDRAISER_FIELDS.cards_ordered] || null,
       cards_sold: f[FUNDRAISER_FIELDS.cards_sold] || null,
       cards_lost: f[FUNDRAISER_FIELDS.cards_lost] || null,
+      card_retail_price: f[FUNDRAISER_FIELDS.card_retail_price] ?? null,
+      upfront_smash_price_per_card: f[FUNDRAISER_FIELDS.upfront_smash_price_per_card] ?? null,
       rep,
       rep_photo,
       primary_contact,
@@ -1049,6 +1051,9 @@ router.patch('/:recordId', async (req, res) => {
       const val = updates.rcr_adj_team_to_rep !== null && updates.rcr_adj_team_to_rep !== '' ? Number(updates.rcr_adj_team_to_rep) : null;
       fields[FUNDRAISER_FIELDS.fpr_adj_team_to_rep] = val !== null ? -val : null;
     }
+    // Direct FPR-side write, used by upfront fundraisers where positive = discount
+    // (lowers invoice and rep commission). The rcr_adj_team_to_rep mapping above negates.
+    if (updates.fpr_adj_team_to_rep !== undefined) fields[FUNDRAISER_FIELDS.fpr_adj_team_to_rep] = updates.fpr_adj_team_to_rep !== null && updates.fpr_adj_team_to_rep !== '' ? Number(updates.fpr_adj_team_to_rep) : null;
     if (updates.rcr_adj_misc !== undefined) fields[FUNDRAISER_FIELDS.rcr_adj_misc] = updates.rcr_adj_misc !== null && updates.rcr_adj_misc !== '' ? Number(updates.rcr_adj_misc) : null;
     if (updates.rcr_comment !== undefined) fields[FUNDRAISER_FIELDS.rcr_comment] = updates.rcr_comment || null;
     if (updates.fpr_adj_team_to_rep_label !== undefined) fields[FUNDRAISER_FIELDS.fpr_adj_team_to_rep_label] = updates.fpr_adj_team_to_rep_label || null;
