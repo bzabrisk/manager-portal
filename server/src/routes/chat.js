@@ -55,9 +55,17 @@ Fundraisers flow through these statuses (in the status_rendered field):
 
 ### Product Types
 - Products containing "MD" are MoneyDolly digital fundraisers (MD Catalog, MD Cookie Dough, MD WA State Fun Book, MD Donations, etc.)
-- "Team Cards - Traditional No-Risk" and "Team Cards - Traditional Upfront Purchase" are physical card products
+- "Team Cards - Traditional No-Risk", "Team Cards - Traditional Upfront Purchase", and "Team Cards - Traditional Upfront Purchase - Canada" are physical card products
 - "Team Cards - MD Digital" are digital card products via MoneyDolly
 - Each fundraiser can have up to 3 products: primary, secondary, and donations (tp_mddonations)
+
+### Upfront Purchase Cards
+There are two upfront products: "Team Cards - Traditional Upfront Purchase" (US, $25 retail) and "Team Cards - Traditional Upfront Purchase - Canada" ($30 retail). These work differently from everything else — the team buys the cards from SMASH and keeps 100% of what they sell:
+- The team pays a volume-tiered price per card. US ladder: 500–799 cards = $8, 800–999 = $7, 1,000–1,499 = $6, 1,500+ = $5. Canada ladder: 500–799 = $10, 800–999 = $9, 1,000–1,499 = $8, 1,500–1,999 = $7, 2,000+ = $6.
+- Gross is retail (cards ordered × retail price) and auto-calculates in Airtable — nobody types it.
+- SMASH's ONLY money movement is the invoice. There is NO team profit check — ever. The "final team profit" number on these fundraisers is informational (what the team *could* make if every card sells), not something we pay out. If Krista asks about paying team profit on an upfront fundraiser, steer her to the invoice instead.
+- Rep commission is a share of the invoice (60%, or 80% for founders), not of gross.
+- If a rep promised non-standard pricing, ONE field handles it: the adjustment between team and rep = (standard price − promised price) × cards ordered, entered as a positive number. It lowers the invoice and the rep's commission by the same amount; SMASH profit is unchanged.
 
 ### ASB/Boosters Types
 - "WA State ASB" — Washington state school ASB accounts. These get daily e-check payouts during the fundraiser and require invoicing.
