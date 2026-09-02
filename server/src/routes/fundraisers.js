@@ -938,6 +938,7 @@ router.get('/:recordId', async (req, res) => {
           product_primary_string,
           asb_boosters: f[FUNDRAISER_FIELDS.asb_boosters] || '',
           gross_sales_md: f[FUNDRAISER_FIELDS.gross_sales_md] ?? null,
+          gross_sales_calc: f[FUNDRAISER_FIELDS.gross_sales_calc] ?? null,
           final_team_profit: f[FUNDRAISER_FIELDS.final_team_profit] ?? null,
           final_invoice_amount: f[FUNDRAISER_FIELDS.final_invoice_amount] ?? null,
         });

@@ -56,6 +56,7 @@ export async function fetchFundraiserDataForReports(recordId) {
     asb_boosters: f[F.asb_boosters] || '',
     // Financials
     gross_sales_md: f[F.gross_sales_md] ?? null,
+    gross_sales_calc: f[F.gross_sales_calc] ?? null,
     final_team_profit: f[F.final_team_profit] ?? null,
     final_invoice_amount: f[F.final_invoice_amount] ?? null,
     rep_commission: f[F.rep_commission] ?? null,
@@ -117,11 +118,14 @@ export function computeFprBalanceWarning(data) {
   const isTradNoRisk = data.product_primary_string === 'Team Cards - Traditional No-Risk';
   const isTradUpfront = isUpfrontCards(data.product_primary_string);
   const showInvoice = data.asb_boosters === 'WA State ASB' || isTradNoRisk || isTradUpfront;
-  if (!showInvoice || !data.gross_sales_md || data.final_team_profit == null || data.final_invoice_amount == null) {
+  // gross_sales_md only populates for MoneyDolly fundraisers — card products carry
+  // their gross in gross_sales_calc, so fall back to it when md is blank or zero.
+  const grossValue = data.gross_sales_md || data.gross_sales_calc;
+  if (!showInvoice || !grossValue || data.final_team_profit == null || data.final_invoice_amount == null) {
     return null;
   }
   const sum = Number(data.final_team_profit) + Number(data.final_invoice_amount);
-  const gross = Number(data.gross_sales_md);
+  const gross = Number(grossValue);
   const diff = Math.abs(sum - gross);
   if (diff <= 0.05) return null;
   return {
