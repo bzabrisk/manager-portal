@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { DollarSign, Send, X, AlertTriangle, Paperclip, Mail, CheckCircle, SkipForward, ArrowLeft } from 'lucide-react';
 import { api } from '../api/client';
+import { isUpfrontCards } from '../utils/products';
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -164,6 +165,9 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
   }, [task.id]);
 
   const isTeamProfit = preview?.type === 'team_profit';
+  // Upfront purchase fundraisers keep their own card sales — there is no team profit
+  // payout, so the wizard never shows a payment form for them.
+  const isUpfrontBlocked = isTeamProfit && isUpfrontCards(preview?.productName);
 
   const prepareStep2 = (p, isPaper = false) => {
     setEmailSubject(`Your Team Profit Report — ${p.organization} ${p.team}`);
@@ -340,8 +344,28 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
           <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{error}</div>
         )}
 
+        {/* Upfront purchase — no team profit payout, ever */}
+        {!loading && !error && preview && isUpfrontBlocked && (
+          <>
+            <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 flex items-start gap-2.5">
+              <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-900 leading-relaxed">
+                Upfront purchase fundraisers have no team profit payout — the team keeps their own card sales. Send the invoice instead.
+              </p>
+            </div>
+            <div className="flex justify-end pt-2 mt-4">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg max-lg:py-2.5"
+              >
+                Close
+              </button>
+            </div>
+          </>
+        )}
+
         {/* STEP 1 */}
-        {!loading && !error && preview && step === 1 && (
+        {!loading && !error && preview && !isUpfrontBlocked && step === 1 && (
           <>
           <div className="space-y-4 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto">
             {/* Recipient */}

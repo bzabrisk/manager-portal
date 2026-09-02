@@ -677,6 +677,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   if (!data) return null;
 
   const isTraditional = data.product_primary_string?.toLowerCase().includes('traditional');
+  const isUpfront = isUpfrontCards(data.product_primary_string);
   const showCloseout = ['Campaign Ended', 'Ready to Close', 'Closed Out'].includes(data.status);
   const hasMdProduct = data.product_primary_string?.toLowerCase().includes('md');
   const requiresInvoice = data.asb_boosters === 'WA State ASB'
@@ -690,7 +691,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   // Financials
   const financials = [
     { label: 'Gross Sales', value: data.gross_sales_md },
-    { label: 'Team Profit', value: data.final_team_profit },
+    { label: isUpfront ? 'Potential team profit (if all cards sell)' : 'Team Profit', value: data.final_team_profit },
     { label: 'Invoice Amount', value: data.final_invoice_amount },
     { label: 'Rep Commission', value: data.rep_commission },
     { label: 'SMASH Profit', value: data.smash_profit },
@@ -1117,6 +1118,12 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                     </div>
                   ))}
                 </div>
+              )}
+
+              {isUpfront && (
+                <p className="text-xs text-slate-400 italic mt-2">
+                  Upfront purchase: the team keeps their card sales. SMASH only invoices — there is no team profit check.
+                </p>
               )}
 
               {/* Part B: Rep Commission Breakdown */}

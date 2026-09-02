@@ -16,8 +16,21 @@ import {
 } from '../services/airtable.js';
 import { sendEmail } from '../services/gmail.js';
 import { generateRcrForFundraiser } from './reports.js';
+import { isUpfrontCards } from '../constants/products.js';
 
 const router = Router();
+
+// final_team_profit on an upfront fundraiser is informational only — the team keeps
+// their own card sales and SMASH's only money movement is the invoice. Paying it out
+// would send the school money it isn't owed, so both team-profit paths hard-reject.
+const UPFRONT_TEAM_PROFIT_ERROR = 'Upfront purchase fundraisers have no team profit payout — the team keeps their own card sales. Send the invoice instead.';
+
+async function isUpfrontFundraiser(fundraiserId) {
+  const record = await airtableGet('fundraisers', fundraiserId);
+  const raw = record.fields[FUNDRAISER_FIELDS.product_primary_string];
+  const productPrimaryString = Array.isArray(raw) ? raw[0] || '' : raw || '';
+  return isUpfrontCards(productPrimaryString);
+}
 
 const BULK_REP_CONFIG = {
   dravin: {
@@ -387,6 +400,14 @@ router.post('/send', async (req, res) => {
     if (!amount || amount <= 0) {
       return res.status(400).json({ error: 'Amount must be greater than 0' });
     }
+    if (type === 'team_profit') {
+      if (!fundraiserId) {
+        return res.status(400).json({ error: 'fundraiserId is required for team profit e-checks' });
+      }
+      if (await isUpfrontFundraiser(fundraiserId)) {
+        return res.status(400).json({ error: UPFRONT_TEAM_PROFIT_ERROR });
+      }
+    }
 
     const idempotencyKey = `echeck-${taskId}`;
 
@@ -514,6 +535,12 @@ router.post('/send-physical', async (req, res) => {
 
     if (type !== 'team_profit') {
       return res.status(400).json({ error: 'Paper checks are only supported for Team Profit payments' });
+    }
+    if (!fundraiserId) {
+      return res.status(400).json({ error: 'fundraiserId is required for team profit checks' });
+    }
+    if (await isUpfrontFundraiser(fundraiserId)) {
+      return res.status(400).json({ error: UPFRONT_TEAM_PROFIT_ERROR });
     }
     if (!amount || amount <= 0) {
       return res.status(400).json({ error: 'Amount must be greater than 0' });
