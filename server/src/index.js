@@ -31,7 +31,10 @@ if (process.env.NODE_ENV !== 'production') {
     credentials: true,
   }));
 }
-app.use(express.json());
+// 15mb: the MD payout webhook (/api/automations/md-payout-report) posts a
+// base64-encoded PDF; the default 100kb limit 413s it here before the router
+// is ever reached.
+app.use(express.json({ limit: '15mb' }));
 app.set('trust proxy', 1);
 app.use(session({
   secret: process.env.SESSION_SECRET || process.env.PORTAL_PASSWORD || 'fallback-secret',

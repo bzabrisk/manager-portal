@@ -7,7 +7,7 @@ import { sendEmail } from '../services/gmail.js';
 const router = Router();
 
 // Allow large JSON bodies (base64 PDFs) on this router only
-router.use(express.json({ limit: '10mb' }));
+router.use(express.json({ limit: '15mb' }));
 
 // Shared-secret auth for automation endpoints
 function automationAuth(req, res, next) {
