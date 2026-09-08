@@ -1978,7 +1978,11 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
             const payload = { ...updates };
             if (payload.action_url && payload.action_url.trim()) {
               const url = payload.action_url.trim();
-              payload.action_url = url.startsWith('http://') || url.startsWith('https://') ? url : 'https://' + url;
+              if (!url.startsWith('email:') && !url.startsWith('echeck:') && !url.startsWith('cost:') && !url.startsWith('cookiedough:')) {
+                payload.action_url = url.startsWith('http://') || url.startsWith('https://') ? url : 'https://' + url;
+              } else {
+                payload.action_url = url;
+              }
             }
             await api.tasks.update(taskId, payload);
             setEditingTask(null);

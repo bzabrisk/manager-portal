@@ -7,6 +7,7 @@ import EmailPreviewModal from './EmailPreviewModal';
 import ECheckPreviewModal from './ECheckPreviewModal';
 import BulkECheckModal from './BulkECheckModal';
 import ProductCostModal from './ProductCostModal';
+import CookieDoughSheetModal from './CookieDoughSheetModal';
 import FundraiserDetailModal from './FundraiserDetailModal';
 import { formatAsbType, getAsbColor } from '../utils/asb';
 
@@ -87,6 +88,7 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
   const [showECheck, setShowECheck] = useState(false);
   const [showBulkECheck, setShowBulkECheck] = useState(false);
   const [showCost, setShowCost] = useState(false);
+  const [showCookieDough, setShowCookieDough] = useState(false);
   const [deepLinkFundraiserId, setDeepLinkFundraiserId] = useState(null);
 
   const fundraiserLabel = task.fundraiser
@@ -98,6 +100,7 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
   const isSingleECheckTask = task.action_url && task.action_url.startsWith('echeck:') && !isBulkECheckTask;
   const isECheckTask = isSingleECheckTask || isBulkECheckTask;
   const isCostTask = task.action_url && task.action_url.startsWith('cost:');
+  const isCookieDoughTask = task.action_url && task.action_url.startsWith('cookiedough:');
   const hasActionButton = task.button_words && task.action_url;
 
   const handleCardClick = () => {
@@ -181,7 +184,7 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
               </span>
             ) : (
               <button
-                onClick={(e) => { e.stopPropagation(); if (isEmailTask) { setShowEmail(true); } else if (isBulkECheckTask) { setShowBulkECheck(true); } else if (isSingleECheckTask) { setShowECheck(true); } else if (isCostTask) { setShowCost(true); } else if (isPortalDeepLink(task.action_url)) { setDeepLinkFundraiserId(extractFundraiserIdFromUrl(task.action_url)); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
+                onClick={(e) => { e.stopPropagation(); if (isEmailTask) { setShowEmail(true); } else if (isBulkECheckTask) { setShowBulkECheck(true); } else if (isSingleECheckTask) { setShowECheck(true); } else if (isCostTask) { setShowCost(true); } else if (isCookieDoughTask) { setShowCookieDough(true); } else if (isPortalDeepLink(task.action_url)) { setDeepLinkFundraiserId(extractFundraiserIdFromUrl(task.action_url)); } else { window.open(task.action_url, '_blank', 'noopener,noreferrer'); } }}
                 className="inline-flex items-center text-xs font-bold text-white px-3 py-1.5 max-lg:py-2.5 rounded-lg transition-colors shadow-md hover:shadow-lg"
                 style={{ backgroundColor: '#ff5000' }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e04800'}
@@ -252,6 +255,15 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
         document.body
       )}
 
+      {showCookieDough && createPortal(
+        <CookieDoughSheetModal
+          task={task}
+          onClose={() => setShowCookieDough(false)}
+          onRefresh={onRefresh}
+        />,
+        document.body
+      )}
+
       {deepLinkFundraiserId && createPortal(
         <FundraiserDetailModal
           recordId={deepLinkFundraiserId}
@@ -302,7 +314,7 @@ function EditTaskModal({ task, onClose, onRefresh }) {
       const payload = { ...form };
       if (payload.action_url && payload.action_url.trim()) {
         const url = payload.action_url.trim();
-        if (!url.startsWith('email:') && !url.startsWith('echeck:') && !url.startsWith('cost:')) {
+        if (!url.startsWith('email:') && !url.startsWith('echeck:') && !url.startsWith('cost:') && !url.startsWith('cookiedough:')) {
           payload.action_url = url.startsWith('http://') || url.startsWith('https://') ? url : 'https://' + url;
         }
       }
