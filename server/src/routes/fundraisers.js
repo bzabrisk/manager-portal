@@ -870,6 +870,10 @@ router.get('/:recordId', async (req, res) => {
       end_date: f[FUNDRAISER_FIELDS.end_date] || null,
       asb_boosters: f[FUNDRAISER_FIELDS.asb_boosters] || '',
       md_portal_url: f[FUNDRAISER_FIELDS.md_portal_url] || '',
+      season: (() => {
+        const raw = f[FUNDRAISER_FIELDS.season];
+        return (Array.isArray(raw) ? raw[0] : raw) || '';
+      })(),
       product_primary_string,
       product_secondary_name,
       products,

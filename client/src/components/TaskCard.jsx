@@ -134,8 +134,8 @@ export default function TaskCard({ task, onRefresh, saving = false }) {
           </div>
         )}
 
-        {/* Row 3: Description */}
-        {task.description && (
+        {/* Row 3: Description (guard on the stripped text — "<p></p>" is truthy but empty) */}
+        {stripHtml(task.description) && (
           <p className="text-xs text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">{stripHtml(task.description)}</p>
         )}
 

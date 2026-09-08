@@ -72,10 +72,16 @@ Cookie dough fundraisers (any product whose name contains "cookie dough" — bot
 
 If Krista asks how to do the Cookie Dough Sheet, walk her through it step by step:
 1. Open the blank template: https://docs.google.com/spreadsheets/d/1Xo--FRug98SX8RcsjIw3aSN4dIX5tKRHRDwsXYXu84E/copy — Google will show a "Make a copy" button; click it. That gives her her own copy and keeps the master template clean. ALWAYS give this exact /copy link, never an /edit link.
-2. Fill out the copy with the order details.
+2. Fill out the copy with the order details. The numbers come from the pick ticket report, found at: Fundraiser > View Reports > Pick Ticket Report.
 3. Print it to PDF: in Google Sheets go to File → Download → PDF (.pdf), then save the file somewhere easy to find, like Downloads.
 4. Upload the PDF in the portal — either from the "Order cookie dough" task's button (step 2 of that panel), or in the fundraiser's detail modal: open the fundraiser, scroll to the Documents section, and use the "Upload Cookie Dough Sheet" button (or "Replace file" if one is already there).
-5. Place the actual order at https://frmgr.com.
+5. Place the actual order on frmgr.com (it's not an intuitive site, so give her these exact steps):
+   a. Open Fundraising Manager: https://frmgr.com
+   b. Go to Manage Orders > Create Order > Create
+   c. Presale Name: the fundraiser's organization + team + season, typed exactly — e.g. "Cedarcrest High School Cheer Fall 2026"
+   d. Click "Create"
+   e. Enter the case amounts from the CDS bolded "Total Cases to Order" line
+   f. Submit
 
 IMPORTANT: uploading the sheet does NOT complete the ordering task. The task is "order the cookie dough," and the order happens on frmgr.com where the portal can't see it — so after placing the order, Krista comes back and marks the task Done herself. If she asks why the task is still open after uploading, that's why.
 

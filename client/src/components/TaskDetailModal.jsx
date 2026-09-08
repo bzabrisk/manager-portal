@@ -141,8 +141,8 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
           </div>
         )}
 
-        {/* Description */}
-        {task.description && (
+        {/* Description (guard on the stripped text — "<p></p>" is truthy but empty) */}
+        {stripHtml(task.description) && (
           <div className="mt-4">
             <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Description</h4>
             <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{stripHtml(task.description)}</p>

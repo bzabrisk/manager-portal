@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, ExternalLink, Upload, FileText, AlertTriangle, ShoppingCart } from 'lucide-react';
+import { X, ExternalLink, Upload, FileText, AlertTriangle, ShoppingCart, Copy, Check } from 'lucide-react';
 import { api } from '../api/client';
 import { CDS_TEMPLATE_URL, FRMGR_URL } from '../utils/cookieDough';
 
@@ -20,18 +20,42 @@ export default function CookieDoughSheetModal({ task, onClose, onRefresh }) {
   const [loading, setLoading] = useState(!!fundraiserId);
   const [loadError, setLoadError] = useState('');
   const [sheet, setSheet] = useState(null); // first attachment or null
+  const [detail, setDetail] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [uploaded, setUploaded] = useState(false);
+  const [copied, setCopied] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!fundraiserId) return;
     api.fundraisers.getDetail(fundraiserId)
-      .then(detail => setSheet(detail.cookie_dough_sheet?.[0] || null))
+      .then(d => {
+        setDetail(d);
+        setSheet(d.cookie_dough_sheet?.[0] || null);
+      })
       .catch(err => setLoadError(err.message || 'Failed to load fundraiser'))
       .finally(() => setLoading(false));
   }, [fundraiserId]);
+
+  // frmgr requires the presale name typed exactly, so build it from the real
+  // fundraiser values. Season is a formula that can be blank — drop it rather
+  // than printing an empty tail.
+  // Collapse whitespace too — some Airtable org names carry stray trailing spaces.
+  const buildPresale = (parts) => parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  const presaleName = detail
+    ? buildPresale([detail.organization, detail.team, detail.season])
+    : (task.fundraiser ? buildPresale([task.fundraiser.organization, task.fundraiser.team]) : '');
+
+  const handleCopyPresale = async () => {
+    try {
+      await navigator.clipboard.writeText(presaleName);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard can be unavailable (http, permissions) — the text is still selectable
+    }
+  };
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -78,8 +102,11 @@ export default function CookieDoughSheetModal({ task, onClose, onRefresh }) {
               <StepNumber n={1} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-slate-800 mb-1">Fill out the sheet</p>
-                <p className="text-xs text-slate-500 leading-relaxed mb-3">
+                <p className="text-xs text-slate-500 leading-relaxed mb-1">
                   Open the blank template. Google will ask you to make your own copy — that keeps the master template clean. Fill it out, then print it to PDF with File → Download → PDF.
+                </p>
+                <p className="text-xs text-slate-500 leading-relaxed mb-3">
+                  The pick ticket report is found at: Fundraiser &gt; View Reports &gt; Pick Ticket Report.
                 </p>
                 <a
                   href={CDS_TEMPLATE_URL}
@@ -155,9 +182,40 @@ export default function CookieDoughSheetModal({ task, onClose, onRefresh }) {
             <div className="flex items-start gap-3">
               <StepNumber n={3} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800 mb-1">Place the order</p>
+                <p className="text-sm font-semibold text-slate-800 mb-2">Place the order</p>
+                <ol className="text-xs text-slate-600 leading-relaxed space-y-1.5 list-decimal list-inside mb-2">
+                  <li>Open Fundraising Manager: frmgr.com</li>
+                  <li>Manage Orders &gt; Create Order &gt; Create</li>
+                  <li>
+                    Presale Name:{' '}
+                    {presaleName ? (
+                      <span className="inline-flex items-center gap-1.5 align-middle">
+                        <code className="font-mono text-[11px] font-semibold text-slate-800 bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5">
+                          {presaleName}
+                        </code>
+                        <button
+                          onClick={handleCopyPresale}
+                          title="Copy presale name"
+                          className={`inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded border transition-colors ${
+                            copied
+                              ? 'border-green-200 bg-green-50 text-green-700'
+                              : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                          {copied ? <Check size={11} /> : <Copy size={11} />}
+                          {copied ? 'Copied!' : 'Copy'}
+                        </button>
+                      </span>
+                    ) : (
+                      <span className="italic text-slate-400">organization + team + season</span>
+                    )}
+                  </li>
+                  <li>Click &quot;Create&quot;</li>
+                  <li>Enter the case amounts from the CDS bolded &quot;Total Cases to Order&quot; line</li>
+                  <li>Submit</li>
+                </ol>
                 <p className="text-xs text-slate-500 leading-relaxed mb-3">
-                  Order at frmgr.com. Once the order is actually placed, come back and mark this task Done.
+                  Once the order is actually placed, come back and mark this task Done.
                 </p>
                 <a
                   href={FRMGR_URL}
@@ -166,7 +224,7 @@ export default function CookieDoughSheetModal({ task, onClose, onRefresh }) {
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-white px-3 py-1.5 rounded-lg transition-colors shadow-sm hover:shadow-md bg-[#ff5000] hover:bg-[#e04800]"
                 >
                   <ExternalLink size={13} />
-                  Order at frmgr.com
+                  Open frmgr.com
                 </a>
               </div>
             </div>
