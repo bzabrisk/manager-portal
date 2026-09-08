@@ -84,6 +84,11 @@ export const api = {
     lookupContacts: () => request('/fundraisers/lookup/contacts'),
     lookupAccountingContacts: () => request('/fundraisers/lookup/accounting-contacts'),
     lookupProducts: () => request('/fundraisers/lookup/products'),
+    uploadCookieDoughSheet: (recordId, file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return uploadRequest(`/fundraisers/${recordId}/upload-cookie-dough-sheet`, formData);
+    },
     uploadMdPayoutReport: (recordId, file) => {
       const formData = new FormData();
       formData.append('file', file);

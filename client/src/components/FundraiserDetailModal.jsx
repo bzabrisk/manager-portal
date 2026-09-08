@@ -8,6 +8,7 @@ import TaskDetailModal from './TaskDetailModal';
 import NewTaskModal from './NewTaskModal';
 import { formatAsbType, getAsbColor } from '../utils/asb';
 import { isUpfrontCards } from '../utils/products';
+import { CDS_TEMPLATE_URL } from '../utils/cookieDough';
 
 const AIRTABLE_FUNDRAISER_URL_BASE = 'https://airtable.com/appxDlniu6IPMVIVp/tbl7aH2mtkAGC9jk9';
 
@@ -381,6 +382,11 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   // balance check). Never blocks anything; persists until dismissed or modal closes.
   const [uploadWarnings, setUploadWarnings] = useState([]);
 
+  // Cookie Dough Sheet upload
+  const [uploadingCds, setUploadingCds] = useState(false);
+  const [cdsError, setCdsError] = useState('');
+  const cdsFileInputRef = useRef(null);
+
   // Report generation
   const [generatingFpr, setGeneratingFpr] = useState(false);
   const [generatingRcr, setGeneratingRcr] = useState(false);
@@ -615,6 +621,22 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
     } finally {
       setUploadingMdPayout(false);
       if (mdPayoutFileInputRef.current) mdPayoutFileInputRef.current.value = '';
+    }
+  };
+
+  const handleCdsFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCds(true);
+    setCdsError('');
+    try {
+      await api.fundraisers.uploadCookieDoughSheet(data.id, file);
+      await fetchDetail();
+    } catch (err) {
+      setCdsError(err.message || 'Upload failed.');
+    } finally {
+      setUploadingCds(false);
+      if (cdsFileInputRef.current) cdsFileInputRef.current.value = '';
     }
   };
 
@@ -1685,6 +1707,67 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                   )}
                 </div>
               </div>
+
+              {/* Row 5: Cookie Dough Sheet — only for cookie dough fundraisers */}
+              {isCookieDough && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                  <div>
+                    {data.cookie_dough_sheet && data.cookie_dough_sheet.length > 0 ? (
+                      <div className="border border-slate-200 rounded-lg p-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs text-slate-400 mb-1">Cookie Dough Sheet</p>
+                          <a
+                            href={data.cookie_dough_sheet[0].url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-sm text-[#ff5000] hover:underline min-w-0"
+                          >
+                            <FileText size={14} className="shrink-0" />
+                            <span className="break-all">{data.cookie_dough_sheet[0].filename}</span>
+                          </a>
+                        </div>
+                        <button
+                          onClick={() => cdsFileInputRef.current?.click()}
+                          disabled={uploadingCds}
+                          className="text-xs font-medium px-3 py-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 shrink-0"
+                        >
+                          {uploadingCds ? 'Uploading...' : 'Replace file'}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => cdsFileInputRef.current?.click()}
+                        disabled={uploadingCds}
+                        className="w-full h-full bg-[#ff5000] hover:bg-[#e64600] active:bg-[#cc3f00] text-white font-semibold py-4 px-4 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        <Upload size={18} />
+                        {uploadingCds ? 'Uploading…' : 'Upload Cookie Dough Sheet'}
+                      </button>
+                    )}
+
+                    {cdsError && (
+                      <p className="text-xs text-red-500 mt-2">{cdsError}</p>
+                    )}
+
+                    <a
+                      href={CDS_TEMPLATE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-[#ff5000] hover:underline mt-1.5"
+                    >
+                      Open blank template <ExternalLink size={11} />
+                    </a>
+
+                    <input
+                      ref={cdsFileInputRef}
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      onChange={handleCdsFileChange}
+                    />
+                  </div>
+                </div>
+              )}
             </section>
 
             {/* Section 6: Tasks */}
