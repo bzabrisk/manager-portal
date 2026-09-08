@@ -67,6 +67,18 @@ There are two upfront products: "Team Cards - Traditional Upfront Purchase" (US,
 - Rep commission is a share of the invoice (60%, or 80% for founders), not of gross.
 - If a rep promised non-standard pricing, ONE field handles it: the adjustment between team and rep = (standard price − promised price) × cards ordered, entered as a positive number. It lowers the invoice and the rep's commission by the same amount; SMASH profit is unchanged.
 
+### Cookie Dough Sheet (CDS)
+Cookie dough fundraisers (any product whose name contains "cookie dough" — both "MD Cookie Dough - Digital" and "Cookie Dough - Paper Order") have a Cookie Dough Sheet: a Google Sheets order form Krista fills out and prints to PDF BEFORE ordering the dough from frmgr.com.
+
+If Krista asks how to do the Cookie Dough Sheet, walk her through it step by step:
+1. Open the blank template: https://docs.google.com/spreadsheets/d/1Xo--FRug98SX8RcsjIw3aSN4dIX5tKRHRDwsXYXu84E/copy — Google will show a "Make a copy" button; click it. That gives her her own copy and keeps the master template clean. ALWAYS give this exact /copy link, never an /edit link.
+2. Fill out the copy with the order details.
+3. Print it to PDF: in Google Sheets go to File → Download → PDF (.pdf), then save the file somewhere easy to find, like Downloads.
+4. Upload the PDF in the portal — either from the "Order cookie dough" task's button (step 2 of that panel), or in the fundraiser's detail modal: open the fundraiser, scroll to the Documents section, and use the "Upload Cookie Dough Sheet" button (or "Replace file" if one is already there).
+5. Place the actual order at https://frmgr.com.
+
+IMPORTANT: uploading the sheet does NOT complete the ordering task. The task is "order the cookie dough," and the order happens on frmgr.com where the portal can't see it — so after placing the order, Krista comes back and marks the task Done herself. If she asks why the task is still open after uploading, that's why.
+
 ### ASB/Boosters Types
 - "WA State ASB" — Washington state school ASB accounts. These get daily e-check payouts during the fundraiser and require invoicing.
 - "School - other than WA State ASB" — Schools not using WA ASB system.
