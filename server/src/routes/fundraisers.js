@@ -957,6 +957,7 @@ router.get('/:recordId', async (req, res) => {
       rep_commission_report: extractAttachment(FUNDRAISER_FIELDS.rep_commission_report),
       invoice_attachment: extractAttachment(FUNDRAISER_FIELDS.invoice_attachment),
       md_payout_report: extractAttachment(FUNDRAISER_FIELDS.md_payout_report),
+      cookie_dough_sheet: extractAttachment(FUNDRAISER_FIELDS.cookie_dough_sheet),
       // Notes
       admin_notes: f[FUNDRAISER_FIELDS.admin_notes] || '',
       rep_notes: f[FUNDRAISER_FIELDS.rep_notes] || '',
@@ -1117,6 +1118,37 @@ router.post('/:id/save-md-payout', upload.single('file'), async (req, res) => {
     }
     console.error('Error saving MD Payout:', err);
     return res.status(500).json({ error: err.message || 'Save failed.' });
+  }
+});
+
+// POST /api/fundraisers/:id/upload-cookie-dough-sheet
+// Uploads the printed Cookie Dough Sheet PDF (replace semantics). Deliberately does
+// NOT touch reports, statuses, or tasks — uploading the sheet is step 2 of the
+// ordering task; the order itself happens on frmgr.com outside the portal's view.
+router.post('/:id/upload-cookie-dough-sheet', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided.' });
+    }
+    if (req.file.mimetype !== 'application/pdf') {
+      return res.status(400).json({ error: 'Please upload a PDF. Print your Cookie Dough Sheet from Google Sheets using File → Download → PDF.' });
+    }
+
+    const result = await uploadAttachmentReplacing(
+      req.params.id,
+      FUNDRAISER_FIELDS.cookie_dough_sheet,
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype,
+    );
+
+    return res.json({ success: true, attachment: result });
+  } catch (err) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'File is too large. Max 5 MB.' });
+    }
+    console.error('Error uploading Cookie Dough Sheet:', err);
+    return res.status(500).json({ error: 'Upload failed.' });
   }
 });
 

@@ -88,6 +88,7 @@ const FUNDRAISER_FIELDS = {
   fundraiser_id: 'fldCwB0zIPLnpintS',
   rep_pays_asb_fee: 'fldDKKa5DBBiTBhS1',
   agreement_notes: 'fldjlBySsJUZb7uvc',
+  cookie_dough_sheet: 'fldYjpSp9QOT6pbwE',
   fundraiser_profit_report: 'fldDX1jRdrNc1zepO',
   rep_commission_report: 'fld4hTL0dMQTCnoPG',
   invoice_attachment: 'fldX31hTUnVFuafhN',
