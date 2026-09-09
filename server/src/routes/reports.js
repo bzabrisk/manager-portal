@@ -153,7 +153,7 @@ export async function generateFprForFundraiser(recordId) {
   );
   // Write fingerprint so staleness can be detected on read
   const fprRecord = await airtableGet('fundraisers', recordId);
-  const fprFingerprint = computeReportFingerprint(fprRecord.fields);
+  const fprFingerprint = computeReportFingerprint(fprRecord.fields, 'fpr');
   await airtableUpdate('fundraisers', recordId, {
     [FUNDRAISER_FIELDS.fpr_source_fingerprint]: fprFingerprint,
   });
@@ -177,7 +177,7 @@ export async function generateRcrForFundraiser(recordId) {
   );
   // Write fingerprint so staleness can be detected on read
   const rcrRecord = await airtableGet('fundraisers', recordId);
-  const rcrFingerprint = computeReportFingerprint(rcrRecord.fields);
+  const rcrFingerprint = computeReportFingerprint(rcrRecord.fields, 'rcr');
   await airtableUpdate('fundraisers', recordId, {
     [FUNDRAISER_FIELDS.rcr_source_fingerprint]: rcrFingerprint,
   });

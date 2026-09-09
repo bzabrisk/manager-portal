@@ -424,7 +424,10 @@ async function checkNeedsManualProductSplit(recordId) {
   return (ppManual == null || ppManual === 0) || (spGross == null || spGross === 0);
 }
 
-function computeReportFingerprint(fields) {
+// `report` is 'fpr' or 'rcr'. Inputs shared by both reports are always included;
+// inputs that only print on one report are appended for that report, so editing
+// (say) the rep comment marks the RCR stale without also flagging the FPR.
+function computeReportFingerprint(fields, report) {
   const F = FUNDRAISER_FIELDS;
   const mdPayoutId = (fields[F.md_payout_report] || [])[0]?.id || '';
   const parts = [
@@ -441,6 +444,9 @@ function computeReportFingerprint(fields) {
     fields[F.card_retail_price] ?? '',
     fields[F.fpr_adj_team_to_rep] ?? '',
   ];
+  if (report === 'rcr') {
+    parts.push(fields[F.rcr_comment] ?? '');
+  }
   return parts.join('|');
 }
 

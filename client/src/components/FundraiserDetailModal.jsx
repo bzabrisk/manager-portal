@@ -1332,17 +1332,12 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                                 onChange={e => setEdits(prev => ({...prev, rcr_adj_misc: e.target.value}))}
                                 className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
                             </div>
-                            <input type="text" placeholder="Comment" value={edits.rcr_comment}
-                              onChange={e => setEdits(prev => ({...prev, rcr_comment: e.target.value}))}
-                              maxLength={500}
-                              className="w-40 border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
                           </div>
                         </div>
                       ) : (
                         <div className="flex justify-between">
                           <div>
                             <span className="text-sm text-slate-600">Misc Adjustment</span>
-                            {data.rcr_comment && <p className="text-xs text-slate-400 mt-0.5">{data.rcr_comment}</p>}
                           </div>
                           <span className={`text-sm ${data.rcr_adj_misc ? 'text-slate-700' : 'text-slate-400'}`}>
                             {data.rcr_adj_misc ? formatCurrency(data.rcr_adj_misc) : '\u2014'}
@@ -1869,7 +1864,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
             )}
 
             {/* Section 8: Notes */}
-            {(data.admin_notes || data.rep_notes || data.agreement_notes || editMode) && (
+            {(data.admin_notes || data.rep_notes || data.agreement_notes || data.rcr_comment || editMode) && (
               <section>
                 <SectionHeader>Notes</SectionHeader>
                 <div className="space-y-4">
@@ -1891,6 +1886,28 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                       )
                     )}
                   </div>
+                  {/* Comments for the rep — rcr_comment, printed on the Rep Commission Report.
+                      Distinct from Admin Notes (private) and Rep Notes (the rep↔admin thread). */}
+                  {(editMode || data.rcr_comment) && (
+                    <div>
+                      <p className="text-xs text-slate-400 mb-1">
+                        Comments for the rep
+                        <span className="ml-1 text-slate-300 font-normal">(prints on the Rep Commission Report — the rep will read this)</span>
+                      </p>
+                      {editMode ? (
+                        <textarea
+                          value={edits.rcr_comment}
+                          onChange={e => setEdits(prev => ({ ...prev, rcr_comment: e.target.value }))}
+                          rows={3}
+                          maxLength={500}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]"
+                          placeholder="Optional note to the rep about this commission, e.g. what a misc adjustment is for..."
+                        />
+                      ) : (
+                        <p className="text-sm text-slate-700 whitespace-pre-wrap bg-slate-50 rounded-lg p-3">{data.rcr_comment}</p>
+                      )}
+                    </div>
+                  )}
                   {/* Agreement Notes */}
                   {(editMode || data.agreement_notes) && (
                     <div>

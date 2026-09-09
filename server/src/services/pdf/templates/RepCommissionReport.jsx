@@ -5,7 +5,7 @@ import ReportHeader from '../components/ReportHeader.jsx';
 import MetaBlock from '../components/MetaBlock.jsx';
 import SectionHeader from '../components/SectionHeader.jsx';
 import LineItemRow, { LineItemHeader, SubtotalRow } from '../components/LineItemRow.jsx';
-import AdjustmentRow from '../components/AdjustmentRow.jsx';
+import AdjustmentRow, { AdjustmentComment } from '../components/AdjustmentRow.jsx';
 import FinalAmountBox from '../components/FinalAmountBox.jsx';
 import Footer from '../components/Footer.jsx';
 
@@ -89,7 +89,10 @@ export default function RepCommissionReport({ data }) {
           <AdjustmentRow label="Small fundraiser adj" amount={data.rcr_adj_smallfradj} />
           <AdjustmentRow label="Excess printing adj" amount={data.rcr_adj_excessprint} />
           <AdjustmentRow label={cdBoxesLabel} amount={data.rcr_adj_extra_cd_boxes} />
-          <AdjustmentRow label="Misc adjustment" amount={data.rcr_adj_misc} comment={data.rcr_comment} />
+          <AdjustmentRow label="Misc adjustment" amount={data.rcr_adj_misc} />
+          {/* rcr_comment: manager's note to the rep. Prints whenever non-empty, even
+              when there is no misc adjustment amount. */}
+          <AdjustmentComment text={data.rcr_comment} />
 
           <FinalAmountBox label="FINAL PAYOUT" amount={data.rep_commission} />
 

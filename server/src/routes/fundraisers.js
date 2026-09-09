@@ -926,14 +926,14 @@ router.get('/:recordId', async (req, res) => {
         const hasFile = (f[FUNDRAISER_FIELDS.fundraiser_profit_report] || []).length > 0;
         if (!hasFile) return false;
         const stored = f[FUNDRAISER_FIELDS.fpr_source_fingerprint] || '';
-        const current = computeReportFingerprint(f);
+        const current = computeReportFingerprint(f, 'fpr');
         return stored === '' || stored !== current;
       })(),
       rcrStale: (() => {
         const hasFile = (f[FUNDRAISER_FIELDS.rep_commission_report] || []).length > 0;
         if (!hasFile) return false;
         const stored = f[FUNDRAISER_FIELDS.rcr_source_fingerprint] || '';
-        const current = computeReportFingerprint(f);
+        const current = computeReportFingerprint(f, 'rcr');
         return stored === '' || stored !== current;
       })(),
       // Profit + invoice = gross sanity check (null when balanced or not applicable)

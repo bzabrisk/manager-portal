@@ -36,15 +36,19 @@ const s = StyleSheet.create({
   },
 });
 
-export default function AdjustmentRow({ label, amount, comment }) {
+export default function AdjustmentRow({ label, amount }) {
   if (amount == null || amount === 0 || amount === '') return null;
   return (
-    <View>
-      <View style={s.row}>
-        <Text style={s.label}>{label}</Text>
-        <Text style={s.amount}>{fmt(amount)}</Text>
-      </View>
-      {comment ? <Text style={s.comment}>{comment}</Text> : null}
+    <View style={s.row}>
+      <Text style={s.label}>{label}</Text>
+      <Text style={s.amount}>{fmt(amount)}</Text>
     </View>
   );
+}
+
+// Free-text note printed beneath the adjustment rows. Renders nothing when empty
+// so an empty comment never leaves a blank block on the report.
+export function AdjustmentComment({ text }) {
+  if (!text) return null;
+  return <Text style={s.comment}>{text}</Text>;
 }
