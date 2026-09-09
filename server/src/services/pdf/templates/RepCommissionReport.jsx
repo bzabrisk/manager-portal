@@ -25,10 +25,13 @@ const s = StyleSheet.create({
   // top of the report: a heading-font label with body text beside it.
   comments: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: 16,
+    alignItems: 'flex-start', // label stays level with the first comment line
+    marginTop: 32,
   },
   commentsLabel: {
+    // 9pt label beside 10pt text with 1.4 line height: nudge down so the
+    // label's baseline sits on the comment's first-line baseline.
+    paddingTop: 4,
     fontFamily: FONTS.heading,
     fontWeight: 900,
     fontSize: SIZES.metaLabel,
