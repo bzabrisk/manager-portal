@@ -39,15 +39,3 @@ export default function AdjustmentRow({ label, amount }) {
     </View>
   );
 }
-
-// Free-text note printed beneath the adjustment rows. Renders nothing when empty
-// so an empty comment never leaves a blank block on the report. Reuses the row and
-// label styles above so it is typeset exactly like the adjustment line items.
-export function AdjustmentComment({ text }) {
-  if (!text) return null;
-  return (
-    <View style={s.row}>
-      <Text style={s.label}>{text}</Text>
-    </View>
-  );
-}
