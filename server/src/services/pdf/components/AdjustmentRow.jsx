@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from '@react-pdf/renderer';
-import { COLORS, FONTS, SIZES } from '../styles.js';
+import { COLORS, FONTS } from '../styles.js';
 
 const fmt = (v) => `$${Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -28,15 +28,6 @@ const s = StyleSheet.create({
     flexShrink: 0,
     textAlign: 'right',
   },
-  comment: {
-    fontFamily: FONTS.alt,
-    fontWeight: 700,
-    fontStyle: 'italic',
-    fontSize: SIZES.small,
-    color: COLORS.inkMuted,
-    paddingLeft: 10,
-    marginTop: 1,
-  },
 });
 
 export default function AdjustmentRow({ label, amount }) {
@@ -50,8 +41,13 @@ export default function AdjustmentRow({ label, amount }) {
 }
 
 // Free-text note printed beneath the adjustment rows. Renders nothing when empty
-// so an empty comment never leaves a blank block on the report.
+// so an empty comment never leaves a blank block on the report. Reuses the row and
+// label styles above so it is typeset exactly like the adjustment line items.
 export function AdjustmentComment({ text }) {
   if (!text) return null;
-  return <Text style={s.comment}>{text}</Text>;
+  return (
+    <View style={s.row}>
+      <Text style={s.label}>{text}</Text>
+    </View>
+  );
 }
