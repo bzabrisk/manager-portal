@@ -50,6 +50,10 @@ export default function RepCommissionReport({ data }) {
 
   const subtotal = lineItems.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
 
+  // Same user-entered label the FPR prints for this adjustment, so both reports
+  // describe the transaction identically. Falls back to the generic label.
+  const teamToRepLabel = data.fpr_adj_team_to_rep_label || 'Adjustment between team & rep';
+
   const asbLabel = data.asb_boosters === 'WA State ASB'
     ? 'WA State ASB Fee'
     : 'ASB Fee (charged to rep by default)';
@@ -83,7 +87,7 @@ export default function RepCommissionReport({ data }) {
           ))}
           <SubtotalRow amount={subtotal} />
 
-          <AdjustmentRow label="Adjustment between team & rep" amount={data.rcr_adj_team_to_rep} />
+          <AdjustmentRow label={teamToRepLabel} amount={data.rcr_adj_team_to_rep} />
           <AdjustmentRow label={asbLabel} amount={data.rcr_adj_asbfee} />
           <AdjustmentRow label="50% MD prize shop (if elected by rep)" amount={data.rcr_adj_half_md_prize_fee} />
           <AdjustmentRow label="Small fundraiser adj" amount={data.rcr_adj_smallfradj} />

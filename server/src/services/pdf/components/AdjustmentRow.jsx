@@ -12,6 +12,8 @@ const s = StyleSheet.create({
     paddingLeft: 10,
   },
   label: {
+    flex: 1,
+    paddingRight: 12,
     fontFamily: FONTS.body,
     fontWeight: 400,
     fontSize: 9,
@@ -23,6 +25,7 @@ const s = StyleSheet.create({
     fontSize: 9,
     color: COLORS.inkSoft,
     width: 80,
+    flexShrink: 0,
     textAlign: 'right',
   },
   comment: {

@@ -95,6 +95,10 @@ export default function FundraiserProfitReport({ data }) {
         ?? (data.cards_ordered ? data.pp_invoice_amount / data.cards_ordered : null))
     : null;
 
+  // User-entered description of the team<->rep adjustment (e.g. "Splitting cost of
+  // ice cream party"). Falls back to the generic label so the line is never unlabeled.
+  const teamToRepLabel = data.fpr_adj_team_to_rep_label || 'Adjustment between team & rep';
+
   const profitSubtotal = lineItems.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
   const invoiceSubtotal = lineItems.reduce((sum, i) => sum + (Number(i.invoiceAmount) || 0), 0);
 
@@ -134,7 +138,7 @@ export default function FundraiserProfitReport({ data }) {
               <SubtotalRow amount={profitSubtotal} showQty={showQtyColumn} />
 
               <AdjustmentRow label="50% Prize Share" amount={data.fpr_adj_md_prize_share} />
-              <AdjustmentRow label="Adjustment between team & rep" amount={data.fpr_adj_team_to_rep} />
+              <AdjustmentRow label={teamToRepLabel} amount={data.fpr_adj_team_to_rep} />
               <AdjustmentRow label="ASB Fee" amount={data.fpr_adj_asbfee} />
               {isTradNoRisk && (
                 <AdjustmentRow label="Discount on lost cards" amount={data.fpr_adj_discount_on_lost_cards} />
@@ -175,7 +179,7 @@ export default function FundraiserProfitReport({ data }) {
                     amount={data.fpr_adj_md_prize_share != null ? -data.fpr_adj_md_prize_share : null}
                   />
                   <AdjustmentRow
-                    label="Adjustment between team & rep"
+                    label={teamToRepLabel}
                     amount={data.fpr_adj_team_to_rep != null ? -data.fpr_adj_team_to_rep : null}
                   />
                   <AdjustmentRow

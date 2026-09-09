@@ -443,6 +443,7 @@ function computeReportFingerprint(fields, report) {
     fields[F.upfront_smash_price_per_card] ?? '',
     fields[F.card_retail_price] ?? '',
     fields[F.fpr_adj_team_to_rep] ?? '',
+    fields[F.fpr_adj_team_to_rep_label] ?? '',
   ];
   if (report === 'rcr') {
     parts.push(fields[F.rcr_comment] ?? '');
