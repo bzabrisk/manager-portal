@@ -4,6 +4,62 @@ import { api } from '../api/client';
 import { CDS_TEMPLATE_URL, FRMGR_URL } from '../utils/cookieDough';
 import MarkDoneButton from './MarkDoneButton';
 
+// Numeric field that saves on blur / Enter, like the inline Check # cell on the
+// Active page. Empty is a real value (clears the Airtable field, never writes 0).
+function BlurSaveNumberField({ label, helper, initialValue, onSave, validate, step, prefix, placeholder }) {
+  const toStr = (v) => (v == null ? '' : String(v));
+  const [value, setValue] = useState(toStr(initialValue));
+  const [committed, setCommitted] = useState(toStr(initialValue));
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSave = async () => {
+    const next = value.trim();
+    if (next === committed) return;
+    const problem = next === '' ? '' : validate(next);
+    if (problem) { setError(problem); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await onSave(next === '' ? null : Number(next));
+      setCommitted(next);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error(`Failed to save ${label}:`, err);
+      setError(err.message || 'Save failed — try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-3 pt-3 border-t border-slate-100">
+      <label className="block text-xs font-semibold text-slate-700 mb-0.5">{label}</label>
+      <p className="text-xs text-slate-500 leading-relaxed mb-1.5">{helper}</p>
+      <div className="flex items-center gap-2">
+        {prefix && <span className="text-sm text-slate-400">{prefix}</span>}
+        <input
+          type="number"
+          min="0"
+          step={step}
+          value={value}
+          placeholder={placeholder}
+          onChange={e => { setValue(e.target.value); setError(''); }}
+          onBlur={handleSave}
+          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+          disabled={saving}
+          className={`w-32 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000] disabled:opacity-60 ${error ? 'border-red-400' : 'border-slate-300'}`}
+        />
+        {saving && <span className="text-xs text-slate-400">Saving...</span>}
+        {saved && !saving && <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium"><Check size={12} /> Saved</span>}
+      </div>
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  );
+}
+
 function StepNumber({ n }) {
   return (
     <span className="w-6 h-6 rounded bg-[#ff5000] text-white text-xs font-bold flex items-center justify-center shrink-0">
@@ -47,6 +103,25 @@ export default function CookieDoughSheetModal({ task, onClose, onDone, onRefresh
   // Collapse whitespace too — some Airtable org names carry stray trailing spaces.
   const buildPresale = (parts) => parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
   const mdPortalUrl = detail?.md_portal_url || '';
+
+  // Both numeric fields write straight to the fundraiser record (same fields the
+  // detail modal and the "Enter CD Product Cost" task write), never to the task.
+  const validateBoxes = (v) => {
+    const n = Number(v);
+    if (isNaN(n) || n < 0) return 'Must be 0 or more';
+    if (!Number.isInteger(n)) return 'Whole boxes only';
+    return '';
+  };
+  const validateCost = (v) => {
+    const n = Number(v);
+    if (isNaN(n) || n < 0) return 'Must be 0 or more';
+    return '';
+  };
+  const saveField = (key) => async (val) => {
+    await api.fundraisers.update(fundraiserId, { [key]: val });
+    setDetail(prev => (prev ? { ...prev, [key]: val } : prev));
+    if (onRefresh) onRefresh();
+  };
 
   const presaleName = detail
     ? buildPresale([detail.organization, detail.team, detail.season])
@@ -211,6 +286,15 @@ export default function CookieDoughSheetModal({ task, onClose, onDone, onRefresh
                       className="hidden"
                       onChange={handleFileChange}
                     />
+                    <BlurSaveNumberField
+                      label="Extra boxes ordered"
+                      helper="From the Cookie Dough Sheet. These are billed back to the rep at $7 a box, so this number needs to be right."
+                      initialValue={detail?.extra_cd_boxes_ordered}
+                      onSave={saveField('extra_cd_boxes_ordered')}
+                      validate={validateBoxes}
+                      step="1"
+                      placeholder="0"
+                    />
                   </>
                 )}
               </div>
@@ -266,6 +350,18 @@ export default function CookieDoughSheetModal({ task, onClose, onDone, onRefresh
                   <ExternalLink size={13} />
                   Open frmgr.com
                 </a>
+                {fundraiserId && detail && (
+                  <BlurSaveNumberField
+                    label="Cookie dough cost"
+                    helper="After you submit the order, click 'View Order' on the same page, scroll down to Order entry, and copy the number listed as Retail Cost ($)."
+                    initialValue={detail.cost_product}
+                    onSave={saveField('cost_product')}
+                    validate={validateCost}
+                    step="0.01"
+                    prefix="$"
+                    placeholder="0.00"
+                  />
+                )}
               </div>
             </div>
           </div>

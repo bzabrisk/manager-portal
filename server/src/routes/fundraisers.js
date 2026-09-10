@@ -1063,7 +1063,11 @@ router.patch('/:recordId', async (req, res) => {
     if (updates.rcr_adj_misc !== undefined) fields[FUNDRAISER_FIELDS.rcr_adj_misc] = updates.rcr_adj_misc !== null && updates.rcr_adj_misc !== '' ? Number(updates.rcr_adj_misc) : null;
     if (updates.rcr_comment !== undefined) fields[FUNDRAISER_FIELDS.rcr_comment] = updates.rcr_comment || null;
     if (updates.fpr_adj_team_to_rep_label !== undefined) fields[FUNDRAISER_FIELDS.fpr_adj_team_to_rep_label] = updates.fpr_adj_team_to_rep_label || null;
-    if (updates.extra_cd_boxes_ordered !== undefined) fields[FUNDRAISER_FIELDS.extra_cd_boxes_ordered] = updates.extra_cd_boxes_ordered !== null && updates.extra_cd_boxes_ordered !== '' ? Number(updates.extra_cd_boxes_ordered) : null;
+    if (updates.extra_cd_boxes_ordered !== undefined) {
+      const boxes = updates.extra_cd_boxes_ordered !== null && updates.extra_cd_boxes_ordered !== '' ? Number(updates.extra_cd_boxes_ordered) : null;
+      if (boxes !== null && (!Number.isInteger(boxes) || boxes < 0)) return res.status(400).json({ error: 'extra_cd_boxes_ordered must be a whole number, 0 or more' });
+      fields[FUNDRAISER_FIELDS.extra_cd_boxes_ordered] = boxes;
+    }
     // SMASH Profit editable field
     if (updates.cost_product !== undefined) {
       const cp = updates.cost_product !== null && updates.cost_product !== '' ? Number(updates.cost_product) : null;
