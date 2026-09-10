@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Pencil, Calendar, User, CheckCircle } from 'lucide-react';
 import { StatusChip, getFundraiserColor, formatDate } from './TaskCard';
-import { api } from '../api/client';
 import { formatAsbType, getAsbColor } from '../utils/asb';
 import EmailPreviewModal from './EmailPreviewModal';
 import ECheckPreviewModal from './ECheckPreviewModal';
@@ -10,6 +9,7 @@ import BulkECheckModal from './BulkECheckModal';
 import ProductCostModal from './ProductCostModal';
 import CookieDoughSheetModal from './CookieDoughSheetModal';
 import FundraiserDetailModal from './FundraiserDetailModal';
+import MarkDoneButton from './MarkDoneButton';
 
 function isPortalDeepLink(url) {
   if (!url) return false;
@@ -48,8 +48,6 @@ function deadlineColor(deadline, status) {
 }
 
 export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
-  const [marking, setMarking] = useState(false);
-  const [markError, setMarkError] = useState('');
   const [showEmail, setShowEmail] = useState(false);
   const [showECheck, setShowECheck] = useState(false);
   const [showBulkECheck, setShowBulkECheck] = useState(false);
@@ -57,19 +55,6 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
   const [showCookieDough, setShowCookieDough] = useState(false);
   const [deepLinkFundraiserId, setDeepLinkFundraiserId] = useState(null);
 
-  const handleMarkDone = async () => {
-    setMarking(true);
-    setMarkError('');
-    try {
-      await api.tasks.update(task.id, { status: 'Done' });
-      if (onRefresh) onRefresh();
-      onClose();
-    } catch (err) {
-      console.error('Failed to mark task as done:', err);
-      setMarkError(err.message || 'Failed to mark task as done');
-      setMarking(false);
-    }
-  };
   const isEmailTask = task.action_url && task.action_url.startsWith('email:');
   const isBulkECheckTask = task.action_url && task.action_url.startsWith('echeck:bulk_rep_commission:');
   const isSingleECheckTask = task.action_url && task.action_url.startsWith('echeck:') && !isBulkECheckTask;
@@ -183,29 +168,7 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
 
         {/* Mark as Done / Completed badge */}
         <div className="mt-4">
-          {task.status === 'Done' ? (
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-green-600 bg-green-50 px-3 py-1.5 rounded-lg">
-              ✓ Completed
-            </span>
-          ) : (
-            <button
-              onClick={handleMarkDone}
-              disabled={marking}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-green-500 hover:bg-green-600 disabled:opacity-60 px-4 py-2 rounded-lg transition-colors max-lg:py-2.5"
-            >
-              {marking ? (
-                'Marking...'
-              ) : (
-                <>
-                  <CheckCircle size={16} />
-                  Mark as Done
-                </>
-              )}
-            </button>
-          )}
-          {markError && (
-            <p className="text-sm text-red-500 mt-2">{markError}</p>
-          )}
+          <MarkDoneButton task={task} onRefresh={onRefresh} onDone={onClose} />
         </div>
       </div>
 
@@ -245,6 +208,7 @@ export default function TaskDetailModal({ task, onClose, onEdit, onRefresh }) {
         <CookieDoughSheetModal
           task={task}
           onClose={() => setShowCookieDough(false)}
+          onDone={() => { setShowCookieDough(false); onClose(); }}
           onRefresh={onRefresh}
         />,
         document.body

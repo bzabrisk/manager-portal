@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, ExternalLink, Upload, FileText, AlertTriangle, ShoppingCart, Copy, Check } from 'lucide-react';
 import { api } from '../api/client';
 import { CDS_TEMPLATE_URL, FRMGR_URL } from '../utils/cookieDough';
+import MarkDoneButton from './MarkDoneButton';
 
 function StepNumber({ n }) {
   return (
@@ -11,10 +12,12 @@ function StepNumber({ n }) {
   );
 }
 
-// Panel for the cookiedough:sheet task action. Deliberately never marks the task
-// Done — the task is "order the cookie dough" and the terminal action happens on
-// frmgr.com, outside the portal's view. Krista marks it Done herself.
-export default function CookieDoughSheetModal({ task, onClose, onRefresh }) {
+// Panel for the cookiedough:sheet task action. Uploading the sheet never marks the
+// task Done — the task is "order the cookie dough" and the terminal action happens
+// on frmgr.com, outside the portal's view. The ONLY completion path is the
+// "Mark as Done" button at the bottom, which Krista clicks once the order is placed
+// (marking it Done fires the "+ Task: Enter CD Product Cost" Airtable automation).
+export default function CookieDoughSheetModal({ task, onClose, onDone, onRefresh }) {
   const fundraiserId = (task.fundraiserIds && task.fundraiserIds[0]) || task.fundraiser?.id || null;
 
   const [loading, setLoading] = useState(!!fundraiserId);
@@ -43,6 +46,8 @@ export default function CookieDoughSheetModal({ task, onClose, onRefresh }) {
   // than printing an empty tail.
   // Collapse whitespace too — some Airtable org names carry stray trailing spaces.
   const buildPresale = (parts) => parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  const mdPortalUrl = detail?.md_portal_url || '';
+
   const presaleName = detail
     ? buildPresale([detail.organization, detail.team, detail.season])
     : (task.fundraiser ? buildPresale([task.fundraiser.organization, task.fundraiser.team]) : '');
@@ -96,17 +101,52 @@ export default function CookieDoughSheetModal({ task, onClose, onRefresh }) {
         </div>
 
         <div className="space-y-4">
-          {/* Step 1 — Fill out the sheet */}
+          {/* Step 1 — Get the Pick Ticket Report */}
           <div className="border border-slate-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <StepNumber n={1} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800 mb-1">Fill out the sheet</p>
-                <p className="text-xs text-slate-500 leading-relaxed mb-1">
-                  Open the blank template. Google will ask you to make your own copy — that keeps the master template clean. Fill it out, then print it to PDF with File → Download → PDF.
-                </p>
+                <p className="text-sm font-semibold text-slate-800 mb-1">Get the Pick Ticket Report</p>
                 <p className="text-xs text-slate-500 leading-relaxed mb-3">
-                  The pick ticket report is found at: Fundraiser &gt; View Reports &gt; Pick Ticket Report.
+                  Open this fundraiser in the MoneyDolly portal. On the right side under Reports, click &quot;Pick Ticket Report (PDF)&quot; and download it — those are the numbers you'll type into the Cookie Dough Sheet in the next step.
+                </p>
+                {!fundraiserId ? (
+                  <div className="flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 rounded px-2 py-1.5">
+                    <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+                    This task has no linked fundraiser, so there's no MD portal to open. Edit the task and link its fundraiser first.
+                  </div>
+                ) : loading ? (
+                  <div className="w-5 h-5 border-2 border-smash border-t-transparent rounded-full animate-spin" />
+                ) : loadError ? (
+                  <p className="text-xs text-red-500">{loadError}</p>
+                ) : mdPortalUrl ? (
+                  <a
+                    href={mdPortalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-white px-3 py-1.5 rounded-lg transition-colors shadow-sm hover:shadow-md bg-[#ff5000] hover:bg-[#e04800]"
+                  >
+                    <ExternalLink size={13} />
+                    Open MoneyDolly portal
+                  </a>
+                ) : (
+                  <div className="flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 rounded px-2 py-1.5">
+                    <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+                    The MD Portal URL is missing for this fundraiser. Add it in Airtable (the fundraiser's &quot;MD Portal URL&quot; field) before the report can be pulled — the rest of the steps still work.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Step 2 — Fill out the sheet */}
+          <div className="border border-slate-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <StepNumber n={2} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-800 mb-1">Fill out the sheet</p>
+                <p className="text-xs text-slate-500 leading-relaxed mb-3">
+                  Open the blank template. Google will ask you to make your own copy — that keeps the master template clean. Fill it out from the pick ticket report, then print it to PDF with File → Download → PDF.
                 </p>
                 <a
                   href={CDS_TEMPLATE_URL}
@@ -121,10 +161,10 @@ export default function CookieDoughSheetModal({ task, onClose, onRefresh }) {
             </div>
           </div>
 
-          {/* Step 2 — Upload it here */}
+          {/* Step 3 — Upload it here */}
           <div className="border border-slate-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <StepNumber n={2} />
+              <StepNumber n={3} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-slate-800 mb-1">Upload it here</p>
                 <p className="text-xs text-slate-500 leading-relaxed mb-3">
@@ -177,10 +217,10 @@ export default function CookieDoughSheetModal({ task, onClose, onRefresh }) {
             </div>
           </div>
 
-          {/* Step 3 — Place the order */}
+          {/* Step 4 — Place the order */}
           <div className="border border-slate-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <StepNumber n={3} />
+              <StepNumber n={4} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-slate-800 mb-2">Place the order</p>
                 <ol className="text-xs text-slate-600 leading-relaxed space-y-1.5 list-decimal list-inside mb-2">
@@ -215,7 +255,7 @@ export default function CookieDoughSheetModal({ task, onClose, onRefresh }) {
                   <li>Submit</li>
                 </ol>
                 <p className="text-xs text-slate-500 leading-relaxed mb-3">
-                  Once the order is actually placed, come back and mark this task Done.
+                  Once the order is actually placed, come back and click Mark as Done below.
                 </p>
                 <a
                   href={FRMGR_URL}
@@ -228,6 +268,16 @@ export default function CookieDoughSheetModal({ task, onClose, onRefresh }) {
                 </a>
               </div>
             </div>
+          </div>
+
+          {/* Mark as Done — the ONLY way this task completes. Uploading never does. */}
+          <div className="border-t border-slate-100 pt-4">
+            <p className="text-xs text-slate-500 leading-relaxed mb-3">
+              {task.status === 'Done'
+                ? 'This order task is complete.'
+                : 'Only mark this Done once the order is actually placed at frmgr.com — it automatically creates the next task, "Enter CD Product Cost".'}
+            </p>
+            <MarkDoneButton task={task} onRefresh={onRefresh} onDone={onDone || onClose} />
           </div>
         </div>
       </div>

@@ -72,9 +72,9 @@ Cookie dough fundraisers (any product whose name contains "cookie dough" — bot
 
 If Krista asks how to do the Cookie Dough Sheet, walk her through it step by step:
 1. Open the blank template: https://docs.google.com/spreadsheets/d/1Xo--FRug98SX8RcsjIw3aSN4dIX5tKRHRDwsXYXu84E/copy — Google will show a "Make a copy" button; click it. That gives her her own copy and keeps the master template clean. ALWAYS give this exact /copy link, never an /edit link.
-2. Fill out the copy with the order details. The numbers come from the pick ticket report, found at: Fundraiser > View Reports > Pick Ticket Report.
+2. Fill out the copy with the order details. The numbers come from the pick ticket report: open the fundraiser in the MoneyDolly portal (step 1 of the "Order cookie dough" task panel has an "Open MoneyDolly portal" button), then under Reports on the right click "Pick Ticket Report (PDF)". If that button shows an amber "MD Portal URL is missing" note, the fundraiser's MD Portal URL needs to be added in Airtable first.
 3. Print it to PDF: in Google Sheets go to File → Download → PDF (.pdf), then save the file somewhere easy to find, like Downloads.
-4. Upload the PDF in the portal — either from the "Order cookie dough" task's button (step 2 of that panel), or in the fundraiser's detail modal: open the fundraiser, scroll to the Documents section, and use the "Upload Cookie Dough Sheet" button (or "Replace file" if one is already there).
+4. Upload the PDF in the portal — either from the "Order cookie dough" task's button (step 3 of that panel), or in the fundraiser's detail modal: open the fundraiser, scroll to the Documents section, and use the "Upload Cookie Dough Sheet" button (or "Replace file" if one is already there).
 5. Place the actual order on frmgr.com (it's not an intuitive site, so give her these exact steps):
    a. Open Fundraising Manager: https://frmgr.com
    b. Go to Manage Orders > Create Order > Create
@@ -83,7 +83,7 @@ If Krista asks how to do the Cookie Dough Sheet, walk her through it step by ste
    e. Enter the case amounts from the CDS bolded "Total Cases to Order" line
    f. Submit
 
-IMPORTANT: uploading the sheet does NOT complete the ordering task. The task is "order the cookie dough," and the order happens on frmgr.com where the portal can't see it — so after placing the order, Krista comes back and marks the task Done herself. If she asks why the task is still open after uploading, that's why.
+IMPORTANT: uploading the sheet does NOT complete the ordering task. The task is "order the cookie dough," and the order happens on frmgr.com where the portal can't see it — so after placing the order, Krista comes back and clicks the green "Mark as Done" button at the bottom of the task panel (below step 4). That is the only thing that completes it, and it automatically creates the "Enter CD Product Cost" task. If she asks why the task is still open after uploading, that's why.
 
 ### ASB/Boosters Types
 - "WA State ASB" — Washington state school ASB accounts. These get daily e-check payouts during the fundraiser and require invoicing.
