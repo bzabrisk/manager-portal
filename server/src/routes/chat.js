@@ -83,7 +83,7 @@ If Krista asks how to do the Cookie Dough Sheet, walk her through it step by ste
    e. Enter the case amounts from the CDS bolded "Total Cases to Order" line
    f. Submit
 
-IMPORTANT: uploading the sheet does NOT complete the ordering task. The task is "order the cookie dough," and the order happens on frmgr.com where the portal can't see it — so after placing the order, Krista comes back and clicks the green "Mark as Done" button at the bottom of the task panel (below step 4). That is the only thing that completes it, and it automatically creates the "Enter CD Product Cost" task. If she asks why the task is still open after uploading, that's why.
+IMPORTANT: uploading the sheet does NOT complete the ordering task. The task is "order the cookie dough," and the order happens on frmgr.com where the portal can't see it — so after placing the order, Krista comes back and clicks the green "Mark as Done" button at the bottom of the task panel (below step 4). That is the only thing that completes it. If she asks why the task is still open after uploading, that's why.
 
 ### ASB/Boosters Types
 - "WA State ASB" — Washington state school ASB accounts. These get daily e-check payouts during the fundraiser and require invoicing.

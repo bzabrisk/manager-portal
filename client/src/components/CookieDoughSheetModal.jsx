@@ -71,8 +71,8 @@ function StepNumber({ n }) {
 // Panel for the cookiedough:sheet task action. Uploading the sheet never marks the
 // task Done — the task is "order the cookie dough" and the terminal action happens
 // on frmgr.com, outside the portal's view. The ONLY completion path is the
-// "Mark as Done" button at the bottom, which Krista clicks once the order is placed
-// (marking it Done fires the "+ Task: Enter CD Product Cost" Airtable automation).
+// "Mark as Done" button at the bottom, which Krista clicks once the order is placed.
+// Marking it Done has no downstream automation — the cost is collected in step 4.
 export default function CookieDoughSheetModal({ task, onClose, onDone, onRefresh }) {
   const fundraiserId = (task.fundraiserIds && task.fundraiserIds[0]) || task.fundraiser?.id || null;
 
@@ -105,7 +105,7 @@ export default function CookieDoughSheetModal({ task, onClose, onDone, onRefresh
   const mdPortalUrl = detail?.md_portal_url || '';
 
   // Both numeric fields write straight to the fundraiser record (same fields the
-  // detail modal and the "Enter CD Product Cost" task write), never to the task.
+  // detail modal and the Product Cost modal write), never to the task.
   const validateBoxes = (v) => {
     const n = Number(v);
     if (isNaN(n) || n < 0) return 'Must be 0 or more';
@@ -371,7 +371,7 @@ export default function CookieDoughSheetModal({ task, onClose, onDone, onRefresh
             <p className="text-xs text-slate-500 leading-relaxed mb-3">
               {task.status === 'Done'
                 ? 'This order task is complete.'
-                : 'Only mark this Done once the order is actually placed at frmgr.com — it automatically creates the next task, "Enter CD Product Cost".'}
+                : 'Only mark this Done once the order is actually placed at frmgr.com'}
             </p>
             <MarkDoneButton task={task} onRefresh={onRefresh} onDone={onDone || onClose} />
           </div>
