@@ -4,9 +4,10 @@ import { api } from '../api/client';
 import { CDS_TEMPLATE_URL, FRMGR_URL } from '../utils/cookieDough';
 import MarkDoneButton from './MarkDoneButton';
 
-// Numeric field that saves on blur / Enter, like the inline Check # cell on the
-// Active page. Empty is a real value (clears the Airtable field, never writes 0).
-function BlurSaveNumberField({ label, helper, initialValue, onSave, validate, step, prefix, placeholder }) {
+// Field that saves on blur / Enter, like the inline Check # cell on the Active
+// page. Empty is a real value (clears the field, never writes 0 or ""). `type` is
+// "number" (default) or "url"; `normalize` can tidy the value before validation.
+function BlurSaveField({ label, helper, initialValue, onSave, validate, normalize, type = 'number', step, prefix, placeholder, wide }) {
   const toStr = (v) => (v == null ? '' : String(v));
   const [value, setValue] = useState(toStr(initialValue));
   const [committed, setCommitted] = useState(toStr(initialValue));
@@ -15,14 +16,16 @@ function BlurSaveNumberField({ label, helper, initialValue, onSave, validate, st
   const [error, setError] = useState('');
 
   const handleSave = async () => {
-    const next = value.trim();
-    if (next === committed) return;
+    let next = value.trim();
+    if (next !== '' && normalize) next = normalize(next);
+    if (next === committed) { setValue(next); return; }
     const problem = next === '' ? '' : validate(next);
     if (problem) { setError(problem); return; }
     setSaving(true);
     setError('');
     try {
-      await onSave(next === '' ? null : Number(next));
+      await onSave(next === '' ? null : (type === 'number' ? Number(next) : next));
+      setValue(next);
       setCommitted(next);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -41,16 +44,16 @@ function BlurSaveNumberField({ label, helper, initialValue, onSave, validate, st
       <div className="flex items-center gap-2">
         {prefix && <span className="text-sm text-slate-400">{prefix}</span>}
         <input
-          type="number"
-          min="0"
-          step={step}
+          type={type}
+          min={type === 'number' ? '0' : undefined}
+          step={type === 'number' ? step : undefined}
           value={value}
           placeholder={placeholder}
           onChange={e => { setValue(e.target.value); setError(''); }}
           onBlur={handleSave}
           onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
           disabled={saving}
-          className={`w-32 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000] disabled:opacity-60 ${error ? 'border-red-400' : 'border-slate-300'}`}
+          className={`${wide ? 'flex-1 min-w-0' : 'w-32'} border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000] disabled:opacity-60 ${error ? 'border-red-400' : 'border-slate-300'}`}
         />
         {saving && <span className="text-xs text-slate-400">Saving...</span>}
         {saved && !saving && <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium"><Check size={12} /> Saved</span>}
@@ -116,6 +119,18 @@ export default function CookieDoughSheetModal({ task, onClose, onDone, onRefresh
     const n = Number(v);
     if (isNaN(n) || n < 0) return 'Must be 0 or more';
     return '';
+  };
+  // MD Portal URL: accept a pasted link with or without the scheme, reject anything
+  // that is not a plausible http(s) URL so garbage never lands in the record.
+  const normalizeUrl = (v) => (/^https?:\/\//i.test(v) ? v : `https://${v}`);
+  const validateUrl = (v) => {
+    try {
+      const u = new URL(v);
+      if (!/^https?:$/.test(u.protocol) || !u.hostname.includes('.')) throw new Error();
+      return '';
+    } catch {
+      return 'That does not look like a web link. Paste the full address from your browser, e.g. https://leader.moneydolly.com/...';
+    }
   };
   const saveField = (key) => async (val) => {
     await api.fundraisers.update(fundraiserId, { [key]: val });
@@ -205,10 +220,17 @@ export default function CookieDoughSheetModal({ task, onClose, onDone, onRefresh
                     Open MoneyDolly portal
                   </a>
                 ) : (
-                  <div className="flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 rounded px-2 py-1.5">
-                    <AlertTriangle size={13} className="shrink-0 mt-0.5" />
-                    The MD Portal URL is missing for this fundraiser. Add it in Airtable (the fundraiser's &quot;MD Portal URL&quot; field) before the report can be pulled — the rest of the steps still work.
-                  </div>
+                  <BlurSaveField
+                    type="url"
+                    wide
+                    label="MD Portal URL (missing — paste it here)"
+                    helper="This fundraiser doesn't have its MoneyDolly link yet. Open the fundraiser in MoneyDolly, copy the address from your browser's address bar, and paste it here. Without it, the MD payout report can't file itself to this fundraiser."
+                    initialValue=""
+                    onSave={saveField('md_portal_url')}
+                    validate={validateUrl}
+                    normalize={normalizeUrl}
+                    placeholder="https://leader.moneydolly.com/organization/.../campaign/..."
+                  />
                 )}
               </div>
             </div>
@@ -286,7 +308,7 @@ export default function CookieDoughSheetModal({ task, onClose, onDone, onRefresh
                       className="hidden"
                       onChange={handleFileChange}
                     />
-                    <BlurSaveNumberField
+                    <BlurSaveField
                       label="Extra boxes ordered"
                       helper="From the Cookie Dough Sheet. These are billed back to the rep at $7 a box, so this number needs to be right."
                       initialValue={detail?.extra_cd_boxes_ordered}
@@ -351,7 +373,7 @@ export default function CookieDoughSheetModal({ task, onClose, onDone, onRefresh
                   Open frmgr.com
                 </a>
                 {fundraiserId && detail && (
-                  <BlurSaveNumberField
+                  <BlurSaveField
                     label="Cookie dough cost"
                     helper="After you submit the order, click 'View Order' on the same page, scroll down to Order entry, and copy the number listed as Retail Cost ($)."
                     initialValue={detail.cost_product}

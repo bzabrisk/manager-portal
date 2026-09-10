@@ -1027,7 +1027,15 @@ router.patch('/:recordId', async (req, res) => {
     // Text fields
     if (updates.organization !== undefined) fields[FUNDRAISER_FIELDS.organization] = updates.organization;
     if (updates.team !== undefined) fields[FUNDRAISER_FIELDS.team] = updates.team;
-    if (updates.md_portal_url !== undefined) fields[FUNDRAISER_FIELDS.md_portal_url] = updates.md_portal_url;
+    if (updates.md_portal_url !== undefined) {
+      const url = updates.md_portal_url ? String(updates.md_portal_url).trim() : '';
+      if (url) {
+        let ok = false;
+        try { const u = new URL(url); ok = /^https?:$/.test(u.protocol) && u.hostname.includes('.'); } catch { ok = false; }
+        if (!ok) return res.status(400).json({ error: 'md_portal_url must be a full http(s) web address' });
+      }
+      fields[FUNDRAISER_FIELDS.md_portal_url] = url || null;
+    }
     // Date fields
     if (updates.kickoff_date !== undefined) fields[FUNDRAISER_FIELDS.kickoff_date] = updates.kickoff_date || null;
     if (updates.end_date !== undefined) fields[FUNDRAISER_FIELDS.end_date] = updates.end_date || null;
