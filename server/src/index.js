@@ -22,6 +22,19 @@ import automationsRoutes from './routes/automations.js';
 import { authMiddleware } from './middleware/auth.js';
 import { checkFailedPayouts } from './services/payoutHealth.js';
 
+// Fail closed: the portal must not start without its auth configuration.
+// A missing PORTAL_PASSWORD used to make an empty login body authenticate,
+// and a missing SESSION_SECRET used to fall back to the password or a
+// hardcoded string. Now either omission is a startup error.
+const REQUIRED_AUTH_ENV = ['PORTAL_PASSWORD', 'SESSION_SECRET'];
+for (const name of REQUIRED_AUTH_ENV) {
+  const value = process.env[name];
+  if (typeof value !== 'string' || value.trim() === '') {
+    console.error(`[startup] Required environment variable ${name} is missing or empty. Refusing to start.`);
+    process.exit(1);
+  }
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -37,7 +50,7 @@ if (process.env.NODE_ENV !== 'production') {
 app.use(express.json({ limit: '15mb' }));
 app.set('trust proxy', 1);
 app.use(session({
-  secret: process.env.SESSION_SECRET || process.env.PORTAL_PASSWORD || 'fallback-secret',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
