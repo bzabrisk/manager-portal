@@ -7,7 +7,8 @@
     "dev:client": "cd client && npm run dev",
     "install:all": "cd server && npm install && cd ../client && npm install",
     "build": "cd client && npm install && npm run build",
-    "start": "cd server && npm start"
+    "start": "cd server && npm start",
+    "hash-password": "npm --prefix server run hash-password --"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
