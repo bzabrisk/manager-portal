@@ -25,6 +25,7 @@ router.post('/login', loginIpLimiter, loginGlobalLimiter, async (req, res) => {
   }
   if (matches) {
     req.session.authenticated = true;
+    req.session.issuedAt = Date.now();
     res.json({ success: true });
     // Alerting is best-effort and must never delay or fail the login.
     loginAudit.recordSuccess(req.ip).catch(() => {});
@@ -43,9 +44,11 @@ router.get('/check', (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.json({ success: true });
-  });
+  // Stateless cookie session: there is nothing to destroy server-side.
+  // Setting the session to null makes cookie-session clear the cookie.
+  // The only way to revoke ALL sessions is to rotate SESSION_SECRET.
+  req.session = null;
+  res.json({ success: true });
 });
 
 export default router;

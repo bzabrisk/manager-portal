@@ -7,7 +7,7 @@ import { dirname, resolve, join } from 'path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname, '../../.env') });
 import express from 'express';
-import session from 'express-session';
+import cookieSession from 'cookie-session';
 import cors from 'cors';
 import authRoutes from './routes/auth.js';
 import taskRoutes from './routes/tasks.js';
@@ -53,17 +53,30 @@ app.use(express.json({ limit: '15mb' }));
 // it makes req.ip the real client address (so the rate limiters key on the
 // right thing) and lets `secure` cookies work. Nothing else reads req.ip.
 app.set('trust proxy', 1);
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000,
-    sameSite: 'lax',
-  },
+// Stateless signed-cookie session (cookie-session). The whole session lives in
+// the cookie, signed with SESSION_SECRET, so it survives Railway deploys and
+// restarts. Payload is tiny: { authenticated, issuedAt, touchedAt }. No secrets
+// are stored in it. Rotating SESSION_SECRET in Railway invalidates every
+// session everywhere at once — that is the emergency revoke (see SECURITY.md).
+const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+app.use(cookieSession({
+  name: 'portal_session',
+  keys: [process.env.SESSION_SECRET],
+  maxAge: SESSION_MAX_AGE_MS,
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  signed: true,
 }));
+// Rolling expiry: cookie-session only re-sends the cookie when its contents
+// change, so bump a minute-granularity timestamp on each authenticated request.
+// Every request then pushes the 30-day expiry forward from "now".
+app.use((req, res, next) => {
+  if (req.session && req.session.authenticated) {
+    req.session.touchedAt = Math.floor(Date.now() / 60000);
+  }
+  next();
+});
 
 app.use('/api/auth', authRoutes);
 // Generous ceiling on everything else under /api (the login route has its own

@@ -52,6 +52,19 @@ Railway restarts the server — every laptop, phone, and browser tab is logged o
 including anyone who should not be there. There is no other "log everyone out"
 button; this is it.
 
+## How logins and sessions work
+
+- A login lasts **30 days from the last time the portal was used**. As long as
+  Krista keeps using it, she stays logged in through deploys and restarts. A
+  device that stops being used is logged out a month later.
+- The session is stored entirely in a signed browser cookie. The server keeps no
+  list of who is logged in, which is why "Log out" only removes the cookie from
+  that one browser. To force **every** device out, rotate `SESSION_SECRET` as
+  described above.
+- Every login is logged on the server, and an email goes to the alert recipients
+  on a new login (at most one every 12 hours, or immediately if it comes from an
+  address not seen in the last 30 days) and after five failed attempts in a row.
+
 ## Things that should never happen
 
 - Never put the real password in a file in this repository, in a chat message, or
