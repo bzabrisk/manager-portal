@@ -15,6 +15,7 @@ import {
 import { renderFpr, renderRcr, renderAgreement } from '../services/pdf/render.js';
 import { getTierNotes } from '../constants/tieredProducts.js';
 import { isUpfrontCards } from '../constants/products.js';
+import { sendServerError } from '../utils/httpError.js';
 
 const router = Router();
 
@@ -195,8 +196,7 @@ router.post('/fpr/:fundraiserId', async (req, res) => {
     const { attachment, balanceWarning } = await generateFprForFundraiser(req.params.fundraiserId);
     res.json({ success: true, attachment, balanceWarning: balanceWarning || undefined });
   } catch (err) {
-    console.error('Error generating FPR:', err);
-    res.status(500).json({ error: err.message || 'Failed to generate FPR.' });
+    sendServerError(res, err, { context: 'Error generating FPR', fallback: 'Failed to generate FPR.' });
   }
 });
 
@@ -211,8 +211,7 @@ router.post('/rcr/:fundraiserId', async (req, res) => {
     const result = await generateRcrForFundraiser(req.params.fundraiserId);
     res.json({ success: true, attachment: result });
   } catch (err) {
-    console.error('Error generating RCR:', err);
-    res.status(500).json({ error: err.message || 'Failed to generate RCR.' });
+    sendServerError(res, err, { context: 'Error generating RCR', fallback: 'Failed to generate RCR.' });
   }
 });
 
@@ -324,8 +323,7 @@ router.post('/agreement/:fundraiserId', async (req, res) => {
     const result = await generateAgreementForFundraiser(req.params.fundraiserId);
     res.json({ success: true, attachment: result });
   } catch (err) {
-    console.error('Error generating Fundraiser Agreement:', err);
-    res.status(500).json({ error: err.message || 'Failed to generate Fundraiser Agreement.' });
+    sendServerError(res, err, { context: 'Error generating Fundraiser Agreement', fallback: 'Failed to generate Fundraiser Agreement.' });
   }
 });
 

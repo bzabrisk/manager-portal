@@ -10,6 +10,7 @@ import {
   REP_FIELDS,
 } from '../services/airtable.js';
 import { sendEmail } from '../services/gmail.js';
+import { sendServerError } from '../utils/httpError.js';
 
 const router = Router();
 
@@ -179,8 +180,7 @@ router.get('/preview/:taskId', async (req, res) => {
       signature: KRISTA_SIGNATURE,
     });
   } catch (err) {
-    console.error('Email preview error:', err);
-    res.status(500).json({ error: err.message || 'Failed to generate email preview' });
+    sendServerError(res, err, { context: 'Email preview error', fallback: 'Failed to generate email preview' });
   }
 });
 
@@ -236,8 +236,7 @@ router.post('/send', async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error('Email send error:', err);
-    res.status(500).json({ error: err.message || 'Failed to send email' });
+    sendServerError(res, err, { context: 'Email send error', fallback: 'Failed to send email' });
   }
 });
 

@@ -34,11 +34,11 @@ function formatAmount(raw) {
 }
 
 // Check today's (Pacific) daily payouts for failures and email an alert if any are
-// found. Pass { force: true } (test hook only) to bypass the weekend skip, the
-// 6-hour throttle, and the already-alerted dedupe.
-export async function checkFailedPayouts({ force = false } = {}) {
+// found. Skips weekends, throttles to one email per 6 hours, and never re-alerts
+// on a payout it has already emailed about.
+export async function checkFailedPayouts() {
   const day = pacificWeekday();
-  if (!force && (day === 'Saturday' || day === 'Sunday')) {
+  if (day === 'Saturday' || day === 'Sunday') {
     return { skipped: 'weekend' };
   }
 
@@ -65,13 +65,13 @@ export async function checkFailedPayouts({ force = false } = {}) {
     return { failedToday: 0, emailed: false };
   }
 
-  const fresh = force ? failedToday : failedToday.filter(r => !alertedPayoutIds.has(r.id));
+  const fresh = failedToday.filter(r => !alertedPayoutIds.has(r.id));
   if (fresh.length === 0) {
     return { failedToday: failedToday.length, emailed: false, reason: 'already_alerted' };
   }
 
   const now = Date.now();
-  if (!force && now - lastNotifiedAt < SIX_HOURS_MS) {
+  if (now - lastNotifiedAt < SIX_HOURS_MS) {
     return { failedToday: failedToday.length, emailed: false, reason: 'throttled' };
   }
   lastNotifiedAt = now;

@@ -22,6 +22,7 @@ import {
 } from '../services/airtable.js';
 import { computeFprBalanceWarning } from './reports.js';
 import { isUpfrontCards } from '../constants/products.js';
+import { sendServerError } from '../utils/httpError.js';
 
 const router = Router();
 const upload = multer({
@@ -1108,8 +1109,7 @@ router.post('/:id/extract-md-payout', upload.single('file'), async (req, res) =>
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(413).json({ error: 'File is too large. Max 5 MB.' });
     }
-    console.error('Error extracting MD Payout:', err);
-    return res.status(500).json({ error: err.message || 'Extraction failed.' });
+    return sendServerError(res, err, { context: 'Error extracting MD Payout', fallback: 'Extraction failed.' });
   }
 });
 
@@ -1132,8 +1132,7 @@ router.post('/:id/save-md-payout', upload.single('file'), async (req, res) => {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(413).json({ error: 'File is too large. Max 5 MB.' });
     }
-    console.error('Error saving MD Payout:', err);
-    return res.status(500).json({ error: err.message || 'Save failed.' });
+    return sendServerError(res, err, { context: 'Error saving MD Payout', fallback: 'Save failed.' });
   }
 });
 

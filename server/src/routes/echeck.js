@@ -17,6 +17,7 @@ import {
 import { sendEmail } from '../services/gmail.js';
 import { generateRcrForFundraiser } from './reports.js';
 import { isUpfrontCards } from '../constants/products.js';
+import { sendServerError, CheckbookError } from '../utils/httpError.js';
 
 const router = Router();
 
@@ -106,8 +107,7 @@ router.get('/bulk-preview/:repKey', async (req, res) => {
       fundraisers,
     });
   } catch (err) {
-    console.error('Bulk e-check preview error:', err);
-    res.status(500).json({ error: err.message || 'Failed to load bulk e-check preview' });
+    sendServerError(res, err, { context: 'Bulk e-check preview error', fallback: 'Failed to load bulk e-check preview' });
   }
 });
 
@@ -235,8 +235,7 @@ router.get('/preview/:taskId', async (req, res) => {
 
     res.json(previewData);
   } catch (err) {
-    console.error('E-check preview error:', err);
-    res.status(500).json({ error: err.message || 'Failed to generate e-check preview' });
+    sendServerError(res, err, { context: 'E-check preview error', fallback: 'Failed to generate e-check preview' });
   }
 });
 
@@ -332,7 +331,7 @@ router.post('/bulk-send', async (req, res) => {
       } catch (payoutErr) {
         console.error('Warning: Failed to record bulk failed send:', payoutErr.message);
       }
-      throw new Error(errBody.message || errBody.error || `Checkbook API error: ${response.status}`);
+      throw new CheckbookError(errBody.message || errBody.error || `Checkbook API error: ${response.status}`, response.status);
     }
 
     const data = await response.json();
@@ -384,8 +383,7 @@ router.post('/bulk-send', async (req, res) => {
       fundraiserCount: fundraiserIds.length,
     });
   } catch (err) {
-    console.error('Bulk e-check send error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Failed to send bulk e-check' });
+    sendServerError(res, err, { context: 'Bulk e-check send error', fallback: 'Failed to send bulk e-check', passThroughCheckbook: true, extra: { success: false } });
   }
 });
 
@@ -443,7 +441,7 @@ router.post('/send', async (req, res) => {
         console.error('Warning: Failed to create fundraiser_payouts record for failed send:', payoutErr.message);
       }
 
-      throw new Error(errBody.message || errBody.error || `Checkbook API error: ${response.status}`);
+      throw new CheckbookError(errBody.message || errBody.error || `Checkbook API error: ${response.status}`, response.status);
     }
 
     const data = await response.json();
@@ -517,8 +515,7 @@ router.post('/send', async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    console.error('E-check send error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Failed to send e-check' });
+    sendServerError(res, err, { context: 'E-check send error', fallback: 'Failed to send e-check', passThroughCheckbook: true, extra: { success: false } });
   }
 });
 
@@ -685,7 +682,7 @@ router.post('/send-physical', async (req, res) => {
         console.error('Warning: Failed to create fundraiser_payouts record for failed physical send:', payoutErr.message);
       }
 
-      throw new Error(errBody.message || errBody.error || `Checkbook API error: ${response.status}`);
+      throw new CheckbookError(errBody.message || errBody.error || `Checkbook API error: ${response.status}`, response.status);
     }
 
     const data = await response.json();
@@ -727,8 +724,7 @@ router.post('/send-physical', async (req, res) => {
       attachmentIncluded,
     });
   } catch (err) {
-    console.error('Physical check send error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Failed to send paper check' });
+    sendServerError(res, err, { context: 'Physical check send error', fallback: 'Failed to send paper check', passThroughCheckbook: true, extra: { success: false } });
   }
 });
 
@@ -771,8 +767,7 @@ router.post('/send-report-email', async (req, res) => {
     console.log(`Report email sent to ${recipientEmail}`);
     res.json({ success: true });
   } catch (err) {
-    console.error('Report email send error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Failed to send report email' });
+    sendServerError(res, err, { context: 'Report email send error', fallback: 'Failed to send report email', extra: { success: false } });
   }
 });
 
@@ -863,8 +858,7 @@ router.post('/zero-commission', async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error('Zero-commission error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Failed to process zero commission' });
+    sendServerError(res, err, { context: 'Zero-commission error', fallback: 'Failed to process zero commission', extra: { success: false } });
   }
 });
 

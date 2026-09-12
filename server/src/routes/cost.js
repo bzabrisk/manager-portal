@@ -5,6 +5,7 @@ import {
   airtableGet,
   airtableUpdate,
 } from '../services/airtable.js';
+import { sendServerError } from '../utils/httpError.js';
 
 const router = Router();
 
@@ -40,8 +41,7 @@ router.get('/preview/:taskId', async (req, res) => {
       fundraiserId: fundraiserIds[0],
     });
   } catch (err) {
-    console.error('Cost preview error:', err);
-    res.status(500).json({ error: err.message || 'Failed to load cost preview' });
+    sendServerError(res, err, { context: 'Cost preview error', fallback: 'Failed to load cost preview' });
   }
 });
 
@@ -78,8 +78,7 @@ router.post('/save', async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error('Cost save error:', err);
-    res.status(500).json({ error: err.message || 'Failed to save product cost' });
+    sendServerError(res, err, { context: 'Cost save error', fallback: 'Failed to save product cost' });
   }
 });
 

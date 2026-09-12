@@ -9,6 +9,7 @@ dotenv.config({ path: resolve(__dirname, '../../.env') });
 import express from 'express';
 import cookieSession from 'cookie-session';
 import cors from 'cors';
+import helmet from 'helmet';
 import authRoutes from './routes/auth.js';
 import taskRoutes from './routes/tasks.js';
 import fundraiserRoutes from './routes/fundraisers.js';
@@ -38,21 +39,58 @@ for (const name of REQUIRED_AUTH_ENV) {
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
-if (process.env.NODE_ENV !== 'production') {
+// Railway terminates TLS and forwards through exactly one proxy hop. Trusting
+// it makes req.ip the real client address (so the rate limiters key on the
+// right thing), makes req.secure reflect X-Forwarded-Proto (for the HTTPS
+// redirect), and lets `secure` cookies work. Nothing else reads req.ip.
+app.set('trust proxy', 1);
+
+// Security headers. CSP is tuned to what the built React app actually needs:
+//   - scripts: only our own bundle (Vite emits no inline scripts)
+//   - styles: our bundle + inline, because React `style={{}}` props are inline
+//   - images: ourselves, data:/blob: URLs, the SMASH logo on Squarespace used
+//     in email previews, and Airtable attachment thumbnails
+//   - no frames, no plugins, no embedding this app anywhere else
+// upgrade-insecure-requests is left off: HSTS + the redirect below cover it,
+// and it would break plain-HTTP local runs.
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https://images.squarespace-cdn.com', 'https://*.airtableusercontent.com', 'https://dl.airtable.com'],
+      fontSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      upgradeInsecureRequests: null,
+    },
+  },
+  hsts: { maxAge: 365 * 24 * 60 * 60, includeSubDomains: true },
+}));
+
+// In production, refuse plain HTTP: redirect browsers, and 308 everything else
+// so a misconfigured caller (e.g. a webhook) is not silently served.
+if (IS_PRODUCTION) {
+  app.use((req, res, next) => {
+    if (req.secure) return next();
+    const target = `https://${req.headers.host}${req.originalUrl}`;
+    return res.redirect(req.method === 'GET' || req.method === 'HEAD' ? 301 : 308, target);
+  });
+}
+
+if (!IS_PRODUCTION) {
   app.use(cors({
     origin: 'http://localhost:5173',
     credentials: true,
   }));
 }
-// 15mb: the MD payout webhook (/api/automations/md-payout-report) posts a
-// base64-encoded PDF; the default 100kb limit 413s it here before the router
-// is ever reached.
-app.use(express.json({ limit: '15mb' }));
-// Railway terminates TLS and forwards through exactly one proxy hop. Trusting
-// it makes req.ip the real client address (so the rate limiters key on the
-// right thing) and lets `secure` cookies work. Nothing else reads req.ip.
-app.set('trust proxy', 1);
 // Stateless signed-cookie session (cookie-session). The whole session lives in
 // the cookie, signed with SESSION_SECRET, so it survives Railway deploys and
 // restarts. Payload is tiny: { authenticated, issuedAt, touchedAt }. No secrets
@@ -78,7 +116,16 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/api/auth', authRoutes);
+// The login route is unauthenticated, so it gets its own tiny body limit and
+// is mounted BEFORE the 15mb global parser below (a body already parsed here
+// is not parsed again).
+app.use('/api/auth', express.json({ limit: '10kb' }), authRoutes);
+
+// 15mb: the MD payout webhook (/api/automations/md-payout-report) posts a
+// base64-encoded PDF; the default 100kb limit 413s it here before the router
+// is ever reached.
+app.use(express.json({ limit: '15mb' }));
+
 // Generous ceiling on everything else under /api (the login route has its own
 // strict limiters inside authRoutes).
 app.use('/api', apiLimiter);
@@ -93,7 +140,7 @@ app.use('/api/cost', authMiddleware, costRoutes);
 app.use('/api/reports', authMiddleware, reportsRoutes);
 
 // Serve React frontend in production
-if (process.env.NODE_ENV === 'production') {
+if (IS_PRODUCTION) {
   const clientDist = resolve(__dirname, '../../client/dist');
   app.use(express.static(clientDist));
 
