@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import { loginIpLimiter, loginGlobalLimiter } from '../middleware/rateLimit.js';
+import { loginAudit } from '../services/loginAudit.js';
 
 const router = Router();
 
@@ -11,6 +12,7 @@ router.post('/login', loginIpLimiter, loginGlobalLimiter, async (req, res) => {
   // Reject missing / empty / non-string passwords before any comparison so a
   // malformed body can never match a misconfigured or unset server value.
   if (typeof password !== 'string' || password.length === 0) {
+    loginAudit.recordRejected(req.ip);
     return res.status(400).json({ error: 'Password is required' });
   }
   // PORTAL_PASSWORD_HASH is a bcrypt hash (see scripts/hash-password.mjs).
@@ -24,8 +26,11 @@ router.post('/login', loginIpLimiter, loginGlobalLimiter, async (req, res) => {
   if (matches) {
     req.session.authenticated = true;
     res.json({ success: true });
+    // Alerting is best-effort and must never delay or fail the login.
+    loginAudit.recordSuccess(req.ip).catch(() => {});
   } else {
     res.status(401).json({ error: 'Incorrect password' });
+    loginAudit.recordFailure(req.ip).catch(() => {});
   }
 });
 

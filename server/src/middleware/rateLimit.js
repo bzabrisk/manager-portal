@@ -7,6 +7,7 @@
 // app.set('trust proxy', 1) — Railway sits behind one proxy hop.
 
 import { rateLimit } from 'express-rate-limit';
+import { loginAudit } from '../services/loginAudit.js';
 
 export const LOGIN_LOCKOUT_MESSAGE = 'Too many attempts. Try again in 15 minutes.';
 
@@ -14,7 +15,7 @@ const FIFTEEN_MINUTES = 15 * 60 * 1000;
 const ONE_HOUR = 60 * 60 * 1000;
 
 function lockoutHandler(req, res) {
-  console.warn(`[auth] ${new Date().toISOString()} login rate-limited ip=${req.ip}`);
+  loginAudit.recordRateLimited(req.ip);
   res.status(429).json({ error: LOGIN_LOCKOUT_MESSAGE, code: 'RATE_LIMITED' });
 }
 
