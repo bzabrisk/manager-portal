@@ -20,6 +20,7 @@ import costRoutes from './routes/cost.js';
 import reportsRoutes from './routes/reports.js';
 import automationsRoutes from './routes/automations.js';
 import { authMiddleware } from './middleware/auth.js';
+import { apiLimiter } from './middleware/rateLimit.js';
 import { checkFailedPayouts } from './services/payoutHealth.js';
 
 // Fail closed: the portal must not start without its auth configuration.
@@ -48,6 +49,9 @@ if (process.env.NODE_ENV !== 'production') {
 // base64-encoded PDF; the default 100kb limit 413s it here before the router
 // is ever reached.
 app.use(express.json({ limit: '15mb' }));
+// Railway terminates TLS and forwards through exactly one proxy hop. Trusting
+// it makes req.ip the real client address (so the rate limiters key on the
+// right thing) and lets `secure` cookies work. Nothing else reads req.ip.
 app.set('trust proxy', 1);
 app.use(session({
   secret: process.env.SESSION_SECRET,
@@ -62,6 +66,9 @@ app.use(session({
 }));
 
 app.use('/api/auth', authRoutes);
+// Generous ceiling on everything else under /api (the login route has its own
+// strict limiters inside authRoutes).
+app.use('/api', apiLimiter);
 app.use('/api/automations', automationsRoutes);  // No session auth — uses shared secret
 app.use('/api/tasks', authMiddleware, taskRoutes);
 app.use('/api/fundraisers', authMiddleware, fundraiserRoutes);

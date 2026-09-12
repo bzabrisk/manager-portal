@@ -1,21 +1,30 @@
 import { useState } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, ShieldAlert } from 'lucide-react';
 import { api } from '../api/client';
 
 export default function AuthGate({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  // A 429 means the server has locked the login for a while. Show it
+  // differently from "Incorrect password" so it's clear retyping won't help.
+  const [lockedOut, setLockedOut] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setLockedOut(false);
     try {
       await api.auth.login(password);
       onLogin();
     } catch (err) {
-      setError('Incorrect password');
+      if (err.status === 429) {
+        setLockedOut(true);
+        setError(err.message || 'Too many attempts. Try again in 15 minutes.');
+      } else {
+        setError('Incorrect password');
+      }
     } finally {
       setLoading(false);
     }
@@ -40,7 +49,13 @@ export default function AuthGate({ onLogin }) {
               autoFocus
             />
           </div>
-          {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+          {error && !lockedOut && <p className="text-red-500 text-sm mb-3">{error}</p>}
+          {error && lockedOut && (
+            <div className="flex items-start gap-2 mb-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2">
+              <ShieldAlert className="text-amber-400 shrink-0 mt-0.5" size={16} />
+              <p className="text-amber-300 text-sm">{error}</p>
+            </div>
+          )}
           <button
             type="submit"
             disabled={loading || !password}

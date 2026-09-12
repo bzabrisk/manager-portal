@@ -1,9 +1,12 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
+import { loginIpLimiter, loginGlobalLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
-router.post('/login', async (req, res) => {
+// Order matters: the per-IP limiter runs first so a single bad actor is cut
+// off before they eat into the shared global budget.
+router.post('/login', loginIpLimiter, loginGlobalLimiter, async (req, res) => {
   const password = req.body?.password;
   // Reject missing / empty / non-string passwords before any comparison so a
   // malformed body can never match a misconfigured or unset server value.
