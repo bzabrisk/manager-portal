@@ -81,6 +81,10 @@ export default function RepCommissionReport({ data }) {
   // describe the transaction identically. Falls back to the generic label.
   const teamToRepLabel = data.fpr_adj_team_to_rep_label || 'Adjustment between team & rep';
 
+  // User-entered description of the rep<->SMASH misc adjustment. Falls back to the
+  // generic label so the line is never unlabeled.
+  const miscLabel = data.rcr_adj_misc_label || 'Misc adjustment';
+
   const asbLabel = data.asb_boosters === 'WA State ASB'
     ? 'WA State ASB Fee'
     : 'ASB Fee (charged to rep by default)';
@@ -120,7 +124,10 @@ export default function RepCommissionReport({ data }) {
           <AdjustmentRow label="Small fundraiser adj" amount={data.rcr_adj_smallfradj} />
           <AdjustmentRow label="Excess printing adj" amount={data.rcr_adj_excessprint} />
           <AdjustmentRow label={cdBoxesLabel} amount={data.rcr_adj_extra_cd_boxes} />
-          <AdjustmentRow label="Misc adjustment" amount={data.rcr_adj_misc} />
+          <AdjustmentRow label={miscLabel} amount={data.rcr_adj_misc} />
+          {/* Airtable floors commission at $0: when the subtotal goes negative this
+              positive line brings it back to zero. Blank (and hidden) otherwise. */}
+          <AdjustmentRow label="Minimum commission adjustment" amount={data.rcr_adj_min_commission} />
 
           <FinalAmountBox label="FINAL PAYOUT" amount={data.rep_commission} />
 

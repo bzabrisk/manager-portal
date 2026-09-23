@@ -788,25 +788,24 @@ router.post('/zero-commission', async (req, res) => {
     }
     const fundraiserId = fundraiserIds[0];
 
-    // Read current rep_commission and rcr_adj_misc
+    // Read current rep_commission. Airtable's minimum-commission adjustment already
+    // floors rep_commission at $0, so this flow never writes an adjustment itself —
+    // it only sends the $0 report and closes out the task.
     const fundraiserRecord = await airtableGet('fundraisers', fundraiserId);
     const fr = fundraiserRecord.fields;
-    const currentRepCommission = fr[FUNDRAISER_FIELDS.rep_commission] || 0;
-    const currentMisc = fr[FUNDRAISER_FIELDS.rcr_adj_misc] || 0;
+    const currentRepCommission = Number(fr[FUNDRAISER_FIELDS.rep_commission] || 0);
     const organization = fr[FUNDRAISER_FIELDS.organization] || '';
     const team = fr[FUNDRAISER_FIELDS.team] || '';
 
-    if (currentRepCommission > 0) {
+    if (currentRepCommission > 0.005) {
       return res.status(400).json({ error: 'Rep commission is positive — use the normal e-check flow' });
     }
+    // Only allowed when rep_commission is exactly $0 (within float rounding).
+    if (Math.abs(currentRepCommission) >= 0.005) {
+      return res.status(400).json({ error: 'Rep commission is not $0 — check the fundraiser in Airtable before sending' });
+    }
 
-    // Zero out: set rcr_adj_misc so rep_commission becomes $0
-    const newMisc = currentMisc - currentRepCommission;
-    await airtableUpdate('fundraisers', fundraiserId, {
-      [FUNDRAISER_FIELDS.rcr_adj_misc]: newMisc,
-    });
-
-    // Regenerate the RCR so the PDF reflects the adjustment
+    // Regenerate the RCR so the PDF reflects the current numbers
     await generateRcrForFundraiser(fundraiserId);
 
     // Re-fetch to get the fresh rep_commission_report attachment

@@ -90,6 +90,8 @@ export async function fetchFundraiserDataForReports(recordId) {
     fpr_adj_md_prize_share: f[F.fpr_adj_md_prize_share] ?? null,
     fpr_adj_team_to_rep: f[F.fpr_adj_team_to_rep] ?? null,
     fpr_adj_team_to_rep_label: f[F.fpr_adj_team_to_rep_label] || '',
+    fpr_adj_team_misc: f[F.fpr_adj_team_misc] ?? null,
+    fpr_adj_team_misc_label: f[F.fpr_adj_team_misc_label] || '',
     fpr_adj_asbfee: f[F.fpr_adj_asbfee] ?? null,
     fpr_adj_discount_on_lost_cards: f[F.fpr_adj_discount_on_lost_cards] ?? null,
     fpr_comments: resolveLookup(f[F.fpr_comments]) || '',
@@ -101,6 +103,8 @@ export async function fetchFundraiserDataForReports(recordId) {
     rcr_adj_excessprint: f[F.rcr_adj_excessprint] ?? null,
     rcr_adj_extra_cd_boxes: f[F.rcr_adj_extra_cd_boxes] ?? null,
     rcr_adj_misc: f[F.rcr_adj_misc] ?? null,
+    rcr_adj_misc_label: f[F.rcr_adj_misc_label] || '',
+    rcr_adj_min_commission: f[F.rcr_adj_min_commission] ?? null,
     rcr_comment: f[F.rcr_comment] || '',
     extra_cd_boxes_ordered: f[F.extra_cd_boxes_ordered] ?? null,
     // Linked-record presence flags

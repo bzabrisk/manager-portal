@@ -67,6 +67,9 @@ There are two upfront products: "Team Cards - Traditional Upfront Purchase" (US,
 - Rep commission is a share of the invoice (60%, or 80% for founders), not of gross.
 - If a rep promised non-standard pricing, ONE field handles it: the adjustment between team and rep = (standard price − promised price) × cards ordered, entered as a positive number. It lowers the invoice and the rep's commission by the same amount; SMASH profit is unchanged.
 
+### Adjustment Lines
+Three manual adjustment lines exist on a fundraiser, one per pair of parties. Each has a dollar amount and a short label Krista types: team ↔ rep is fpr_adj_team_to_rep (positive = team gives rep); team ↔ SMASH is fpr_adj_team_misc (positive = team gets more, which raises team profit and lowers the invoice — SMASH absorbs it); rep ↔ SMASH is rcr_adj_misc (positive = extra commission, negative = deduction). Rep commission can never go below $0: if the adjustments push it negative, Airtable adds a "minimum commission adjustment" (rcr_adj_min_commission) that lifts it back to exactly $0, and that line prints on the rep's commission report. Krista edits these lines in the portal's fundraiser detail modal, not through you.
+
 ### Cookie Dough Sheet (CDS)
 Cookie dough fundraisers (any product whose name contains "cookie dough" — both "MD Cookie Dough - Digital" and "Cookie Dough - Paper Order") have a Cookie Dough Sheet: a Google Sheets order form Krista fills out and prints to PDF BEFORE ordering the dough from frmgr.com.
 
@@ -767,7 +770,7 @@ async function getFundraiserDetails(input) {
     gross_sales_md: f[FUNDRAISER_FIELDS.gross_sales_md] || null,
     final_team_profit: f[FUNDRAISER_FIELDS.final_team_profit] || null,
     final_invoice_amount: f[FUNDRAISER_FIELDS.final_invoice_amount] || null,
-    rep_commission: f[FUNDRAISER_FIELDS.rep_commission] || null,
+    rep_commission: f[FUNDRAISER_FIELDS.rep_commission] ?? null, // $0 is a real value (commission floor)
     smash_profit: f[FUNDRAISER_FIELDS.smash_profit] || null,
     md_payout: f[FUNDRAISER_FIELDS.md_payout] || null,
     md_payout_received: f[FUNDRAISER_FIELDS.md_payout_received] || false,

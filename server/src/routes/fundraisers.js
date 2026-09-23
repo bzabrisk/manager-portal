@@ -897,7 +897,8 @@ router.get('/:recordId', async (req, res) => {
       gross_sales_md: f[FUNDRAISER_FIELDS.gross_sales_md] || null,
       final_team_profit: f[FUNDRAISER_FIELDS.final_team_profit] || null,
       final_invoice_amount: f[FUNDRAISER_FIELDS.final_invoice_amount] || null,
-      rep_commission: f[FUNDRAISER_FIELDS.rep_commission] || null,
+      // ?? not ||: $0 is a real value now that Airtable floors commission at zero
+      rep_commission: f[FUNDRAISER_FIELDS.rep_commission] ?? null,
       smash_profit: f[FUNDRAISER_FIELDS.smash_profit] || null,
       md_payout: f[FUNDRAISER_FIELDS.md_payout] || null,
       // Rep Commission breakdown
@@ -909,6 +910,9 @@ router.get('/:recordId', async (req, res) => {
       rcr_adj_excessprint: f[FUNDRAISER_FIELDS.rcr_adj_excessprint] ?? null,
       rcr_adj_extra_cd_boxes: f[FUNDRAISER_FIELDS.rcr_adj_extra_cd_boxes] ?? null,
       rcr_adj_misc: f[FUNDRAISER_FIELDS.rcr_adj_misc] ?? null,
+      rcr_adj_misc_label: f[FUNDRAISER_FIELDS.rcr_adj_misc_label] || '',
+      rcr_commission_subtotal: f[FUNDRAISER_FIELDS.rcr_commission_subtotal] ?? null,
+      rcr_adj_min_commission: f[FUNDRAISER_FIELDS.rcr_adj_min_commission] ?? null,
       rcr_comment: f[FUNDRAISER_FIELDS.rcr_comment] || '',
       extra_cd_boxes_ordered: f[FUNDRAISER_FIELDS.extra_cd_boxes_ordered] ?? null,
       // Team Profit breakdown
@@ -916,6 +920,8 @@ router.get('/:recordId', async (req, res) => {
       fpr_adj_md_prize_share: f[FUNDRAISER_FIELDS.fpr_adj_md_prize_share] ?? null,
       fpr_adj_team_to_rep: f[FUNDRAISER_FIELDS.fpr_adj_team_to_rep] ?? null,
       fpr_adj_team_to_rep_label: f[FUNDRAISER_FIELDS.fpr_adj_team_to_rep_label] || '',
+      fpr_adj_team_misc: f[FUNDRAISER_FIELDS.fpr_adj_team_misc] ?? null,
+      fpr_adj_team_misc_label: f[FUNDRAISER_FIELDS.fpr_adj_team_misc_label] || '',
       fpr_adj_asbfee: f[FUNDRAISER_FIELDS.fpr_adj_asbfee] ?? null,
       fpr_adj_discount_on_lost_cards: f[FUNDRAISER_FIELDS.fpr_adj_discount_on_lost_cards] ?? null,
       // SMASH Profit breakdown
@@ -1069,7 +1075,17 @@ router.patch('/:recordId', async (req, res) => {
     // Direct FPR-side write, used by upfront fundraisers where positive = discount
     // (lowers invoice and rep commission). The rcr_adj_team_to_rep mapping above negates.
     if (updates.fpr_adj_team_to_rep !== undefined) fields[FUNDRAISER_FIELDS.fpr_adj_team_to_rep] = updates.fpr_adj_team_to_rep !== null && updates.fpr_adj_team_to_rep !== '' ? Number(updates.fpr_adj_team_to_rep) : null;
-    if (updates.rcr_adj_misc !== undefined) fields[FUNDRAISER_FIELDS.rcr_adj_misc] = updates.rcr_adj_misc !== null && updates.rcr_adj_misc !== '' ? Number(updates.rcr_adj_misc) : null;
+    // Misc adjustment amounts: blank or 0 both clear the field (null) so Airtable
+    // doesn't carry meaningless zeros. Labels: blank clears.
+    const miscAmount = (v) => {
+      if (v === null || v === '' || v === undefined) return null;
+      const n = Number(v);
+      return Number.isFinite(n) && n !== 0 ? n : null;
+    };
+    if (updates.rcr_adj_misc !== undefined) fields[FUNDRAISER_FIELDS.rcr_adj_misc] = miscAmount(updates.rcr_adj_misc);
+    if (updates.rcr_adj_misc_label !== undefined) fields[FUNDRAISER_FIELDS.rcr_adj_misc_label] = updates.rcr_adj_misc_label || null;
+    if (updates.fpr_adj_team_misc !== undefined) fields[FUNDRAISER_FIELDS.fpr_adj_team_misc] = miscAmount(updates.fpr_adj_team_misc);
+    if (updates.fpr_adj_team_misc_label !== undefined) fields[FUNDRAISER_FIELDS.fpr_adj_team_misc_label] = updates.fpr_adj_team_misc_label || null;
     if (updates.rcr_comment !== undefined) fields[FUNDRAISER_FIELDS.rcr_comment] = updates.rcr_comment || null;
     if (updates.fpr_adj_team_to_rep_label !== undefined) fields[FUNDRAISER_FIELDS.fpr_adj_team_to_rep_label] = updates.fpr_adj_team_to_rep_label || null;
     if (updates.extra_cd_boxes_ordered !== undefined) {

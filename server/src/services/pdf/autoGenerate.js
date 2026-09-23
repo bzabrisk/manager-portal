@@ -17,7 +17,8 @@ export async function scheduleAutoGenerate(recordId) {
 
     const grossReady = !!fields[FUNDRAISER_FIELDS.gross_sales_md];
     const profitReady = !!fields[FUNDRAISER_FIELDS.final_team_profit];
-    const repReady = !!fields[FUNDRAISER_FIELDS.rep_commission];
+    // != null, not truthy: a $0 commission (Airtable's floor) is still "ready"
+    const repReady = fields[FUNDRAISER_FIELDS.rep_commission] != null;
 
     const fprStillEmpty = !(fields[FUNDRAISER_FIELDS.fundraiser_profit_report] || []).length;
     const rcrStillEmpty = !(fields[FUNDRAISER_FIELDS.rep_commission_report] || []).length;

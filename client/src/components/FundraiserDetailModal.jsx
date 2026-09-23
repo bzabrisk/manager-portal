@@ -427,7 +427,11 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       fpr_adj_team_to_rep: result.fpr_adj_team_to_rep ?? '',
       fpr_adj_team_to_rep_label: result.fpr_adj_team_to_rep_label || '',
       rcr_adj_misc: result.rcr_adj_misc ?? '',
+      rcr_adj_misc_label: result.rcr_adj_misc_label || '',
       rcr_comment: result.rcr_comment || '',
+      // Team Profit breakdown editable fields
+      fpr_adj_team_misc: result.fpr_adj_team_misc ?? '',
+      fpr_adj_team_misc_label: result.fpr_adj_team_misc_label || '',
       extra_cd_boxes_ordered: result.extra_cd_boxes_ordered ?? '',
       cost_product: result.cost_product ?? '',
       // Accounting-contact paper-check fields (live on the accounting_contact record)
@@ -489,6 +493,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       edits.fpr_adj_team_to_rep !== (data.fpr_adj_team_to_rep ?? ''),
       edits.fpr_adj_team_to_rep_label !== (data.fpr_adj_team_to_rep_label || ''),
       edits.rcr_adj_misc !== (data.rcr_adj_misc ?? ''),
+      edits.rcr_adj_misc_label !== (data.rcr_adj_misc_label || ''),
+      edits.fpr_adj_team_misc !== (data.fpr_adj_team_misc ?? ''),
+      edits.fpr_adj_team_misc_label !== (data.fpr_adj_team_misc_label || ''),
       edits.rcr_comment !== (data.rcr_comment || ''),
       edits.extra_cd_boxes_ordered !== (data.extra_cd_boxes_ordered ?? ''),
       edits.cost_product !== (data.cost_product ?? ''),
@@ -551,6 +558,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       if (edits.fpr_adj_team_to_rep !== (data.fpr_adj_team_to_rep ?? '')) payload.fpr_adj_team_to_rep = edits.fpr_adj_team_to_rep;
       if (edits.fpr_adj_team_to_rep_label !== (data.fpr_adj_team_to_rep_label || '')) payload.fpr_adj_team_to_rep_label = edits.fpr_adj_team_to_rep_label;
       if (edits.rcr_adj_misc !== (data.rcr_adj_misc ?? '')) payload.rcr_adj_misc = edits.rcr_adj_misc;
+      if (edits.rcr_adj_misc_label !== (data.rcr_adj_misc_label || '')) payload.rcr_adj_misc_label = edits.rcr_adj_misc_label;
+      if (edits.fpr_adj_team_misc !== (data.fpr_adj_team_misc ?? '')) payload.fpr_adj_team_misc = edits.fpr_adj_team_misc;
+      if (edits.fpr_adj_team_misc_label !== (data.fpr_adj_team_misc_label || '')) payload.fpr_adj_team_misc_label = edits.fpr_adj_team_misc_label;
       if (edits.rcr_comment !== (data.rcr_comment || '')) payload.rcr_comment = edits.rcr_comment;
       if (edits.extra_cd_boxes_ordered !== (data.extra_cd_boxes_ordered ?? '')) payload.extra_cd_boxes_ordered = edits.extra_cd_boxes_ordered;
       if (edits.cost_product !== (data.cost_product ?? '')) payload.cost_product = edits.cost_product;
@@ -712,6 +722,20 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const isCookieDough = data.product_primary_string?.toLowerCase().includes('cookie dough');
   const cdBoxesInvalid = edits.extra_cd_boxes_ordered !== '' && (isNaN(edits.extra_cd_boxes_ordered) || Number(edits.extra_cd_boxes_ordered) < 0 || !Number.isInteger(Number(edits.extra_cd_boxes_ordered)));
   const costProductInvalid = edits.cost_product !== '' && (isNaN(edits.cost_product) || Number(edits.cost_product) < 0);
+  // A misc adjustment with a nonzero amount needs a label — but only enforce it on a
+  // line the user touched in this edit session. Old records with unlabeled amounts
+  // must still be able to save unrelated edits (e.g. admin notes).
+  const miscLabelMissing = (amountKey, labelKey) => {
+    const baseAmount = data[amountKey] ?? '';
+    const baseLabel = data[labelKey] || '';
+    const touched = edits[amountKey] !== baseAmount || edits[labelKey] !== baseLabel;
+    if (!touched || edits[amountKey] === '') return false;
+    const amt = Number(edits[amountKey]);
+    return Number.isFinite(amt) && amt !== 0 && !String(edits[labelKey] || '').trim();
+  };
+  const rcrMiscLabelMissing = miscLabelMissing('rcr_adj_misc', 'rcr_adj_misc_label');
+  const teamMiscLabelMissing = miscLabelMissing('fpr_adj_team_misc', 'fpr_adj_team_misc_label');
+  const MISC_LABEL_MSG = 'Add a short description for this adjustment.';
 
   // Financials
   const financials = [
@@ -744,7 +768,8 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const isMdFundraiser = (data.product_primary_string || '').toLowerCase().includes('md')
     || data.md_payout_report?.length > 0
     || data.include_md_donations;
-  const isReportDataReady = !!(data.gross_sales_md && data.final_team_profit && data.rep_commission);
+  // rep_commission can legitimately be $0 (Airtable floors it), so check presence, not truthiness
+  const isReportDataReady = !!(data.gross_sales_md && data.final_team_profit && data.rep_commission != null);
   const fprStale = data.fprStale;
   const rcrStale = data.rcrStale;
   const hasSecondary = data.has_secondary;
@@ -1319,25 +1344,34 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                       </>
                     )}
 
-                    {/* Misc Adjustment */}
+                    {/* Misc Adjustment (rep <-> SMASH) */}
                     <div className="py-1.5">
                       {editMode ? (
                         <div className="flex justify-between items-start gap-3 max-lg:flex-wrap">
-                          <span className="text-sm text-slate-600 pt-1 shrink-0">Misc Adjustment</span>
-                          <div className="flex items-start gap-2">
-                            <div className="flex items-center gap-1 w-28">
-                              <span className="text-sm text-slate-400">$</span>
-                              <input type="number" step="0.01" placeholder="+/−" value={edits.rcr_adj_misc}
-                                title="Positive = extra commission, negative = deduction"
-                                onChange={e => setEdits(prev => ({...prev, rcr_adj_misc: e.target.value}))}
-                                className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                          <div>
+                            <span className="text-sm text-slate-600">Misc Adjustment</span>
+                            <p className="text-xs text-slate-400 mt-0.5">Positive = extra commission &middot; Negative = deduction</p>
+                          </div>
+                          <div>
+                            <div className="flex items-start gap-2">
+                              <div className="flex items-center gap-1 w-28">
+                                <span className="text-sm text-slate-400">$</span>
+                                <input type="number" step="0.01" placeholder="+/−" value={edits.rcr_adj_misc}
+                                  onChange={e => setEdits(prev => ({...prev, rcr_adj_misc: e.target.value}))}
+                                  className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                              </div>
+                              <input type="text" placeholder="Label" value={edits.rcr_adj_misc_label}
+                                onChange={e => setEdits(prev => ({...prev, rcr_adj_misc_label: e.target.value}))}
+                                className={`w-40 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000] ${rcrMiscLabelMissing ? 'border-red-400' : 'border-slate-300'}`} />
                             </div>
+                            {rcrMiscLabelMissing && <p className="text-xs text-red-500 mt-1 text-right">{MISC_LABEL_MSG}</p>}
                           </div>
                         </div>
                       ) : (
                         <div className="flex justify-between">
                           <div>
                             <span className="text-sm text-slate-600">Misc Adjustment</span>
+                            {data.rcr_adj_misc_label && <p className="text-xs text-slate-400 mt-0.5">{data.rcr_adj_misc_label}</p>}
                           </div>
                           <span className={`text-sm ${data.rcr_adj_misc ? 'text-slate-700' : 'text-slate-400'}`}>
                             {data.rcr_adj_misc ? formatCurrency(data.rcr_adj_misc) : '\u2014'}
@@ -1345,6 +1379,19 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                         </div>
                       )}
                     </div>
+
+                    {/* Minimum commission adjustment — Airtable formula that lifts a negative
+                        subtotal back to $0. Read-only; only shown when it has a value so the
+                        rows above always sum to the Final Rep Commission below. */}
+                    {data.rcr_adj_min_commission != null && data.rcr_adj_min_commission !== 0 && (
+                      <div className="flex justify-between items-start py-1.5">
+                        <div>
+                          <span className="text-sm text-slate-600">Minimum commission adjustment</span>
+                          <p className="text-xs text-slate-400 mt-0.5">Commission can't go below $0.</p>
+                        </div>
+                        <span className="text-sm text-slate-700">{formatCurrency(data.rcr_adj_min_commission)}</span>
+                      </div>
+                    )}
 
                     {/* Final Rep Commission */}
                     <div className="flex justify-between py-2 border-t border-slate-200 mt-1">
@@ -1404,6 +1451,42 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                       <span className={`text-sm ${data.fpr_adj_team_to_rep ? 'text-slate-700' : 'text-slate-400'}`}>
                         {data.fpr_adj_team_to_rep ? formatCurrency(data.fpr_adj_team_to_rep) : '\u2014'}
                       </span>
+                    </div>
+
+                    {/* Misc Adjustment (team <-> SMASH) */}
+                    <div className="py-1.5">
+                      {editMode ? (
+                        <div className="flex justify-between items-start gap-3 max-lg:flex-wrap">
+                          <div>
+                            <span className="text-sm text-slate-600">Misc Adjustment</span>
+                            <p className="text-xs text-slate-400 mt-0.5">Positive = team gets more (lowers the invoice). SMASH absorbs it.</p>
+                          </div>
+                          <div>
+                            <div className="flex items-start gap-2">
+                              <div className="flex items-center gap-1 w-28">
+                                <span className="text-sm text-slate-400">$</span>
+                                <input type="number" step="0.01" placeholder="+/−" value={edits.fpr_adj_team_misc}
+                                  onChange={e => setEdits(prev => ({...prev, fpr_adj_team_misc: e.target.value}))}
+                                  className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000]" />
+                              </div>
+                              <input type="text" placeholder="Label" value={edits.fpr_adj_team_misc_label}
+                                onChange={e => setEdits(prev => ({...prev, fpr_adj_team_misc_label: e.target.value}))}
+                                className={`w-40 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000] ${teamMiscLabelMissing ? 'border-red-400' : 'border-slate-300'}`} />
+                            </div>
+                            {teamMiscLabelMissing && <p className="text-xs text-red-500 mt-1 text-right">{MISC_LABEL_MSG}</p>}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex justify-between">
+                          <div>
+                            <span className="text-sm text-slate-600">Misc Adjustment</span>
+                            {data.fpr_adj_team_misc_label && <p className="text-xs text-slate-400 mt-0.5">{data.fpr_adj_team_misc_label}</p>}
+                          </div>
+                          <span className={`text-sm ${data.fpr_adj_team_misc ? 'text-slate-700' : 'text-slate-400'}`}>
+                            {data.fpr_adj_team_misc ? formatCurrency(data.fpr_adj_team_misc) : '\u2014'}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* ASB Fee */}
@@ -1951,9 +2034,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
               </button>
               <button
                 onClick={handleSave}
-                disabled={!hasChanges || saving || cdBoxesInvalid || costProductInvalid}
+                disabled={!hasChanges || saving || cdBoxesInvalid || costProductInvalid || rcrMiscLabelMissing || teamMiscLabelMissing}
                 className={`px-4 py-2 text-sm text-white rounded-lg transition-colors max-lg:py-2.5 ${
-                  hasChanges && !cdBoxesInvalid && !costProductInvalid ? 'bg-[#ff5000] hover:bg-[#e04800]' : 'bg-slate-300 cursor-not-allowed'
+                  hasChanges && !cdBoxesInvalid && !costProductInvalid && !rcrMiscLabelMissing && !teamMiscLabelMissing ? 'bg-[#ff5000] hover:bg-[#e04800]' : 'bg-slate-300 cursor-not-allowed'
                 }`}
               >
                 {saving ? 'Saving...' : 'Save'}

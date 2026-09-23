@@ -265,7 +265,7 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
         if (onRefresh) onRefresh();
       }, 1500);
     } catch (err) {
-      setZeroError(err.message || 'Failed to zero out commission');
+      setZeroError(err.message || 'Failed to send $0 report');
       setZeroSending(false);
     }
   };
@@ -492,10 +492,10 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Mail size={16} className="text-blue-600" />
-                  <p className="text-sm font-semibold text-blue-800">Zero out &amp; send report</p>
+                  <p className="text-sm font-semibold text-blue-800">Send $0 report</p>
                 </div>
                 <p className="text-sm text-blue-700">
-                  This will adjust the misc line to bring the commission to $0, regenerate the commission report, email it to {preview.recipientName}, and mark the rep as paid.
+                  Commission is $0 for this fundraiser, so no e-check goes out. This will regenerate the commission report, email it to {preview.recipientName}, mark the rep as paid, and mark the task done.
                 </p>
               </div>
             )}
@@ -601,7 +601,7 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
                   onMouseLeave={e => { if (!e.currentTarget.disabled) e.currentTarget.style.backgroundColor = '#ff5000'; }}
                 >
                   <Send size={14} />
-                  {zeroSending ? 'Processing...' : 'Zero out & send report to rep'}
+                  {zeroSending ? 'Sending...' : 'Send $0 report to rep'}
                 </button>
               ) : (
                 <button

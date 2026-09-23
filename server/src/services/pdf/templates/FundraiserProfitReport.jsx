@@ -98,6 +98,9 @@ export default function FundraiserProfitReport({ data }) {
   // User-entered description of the team<->rep adjustment (e.g. "Splitting cost of
   // ice cream party"). Falls back to the generic label so the line is never unlabeled.
   const teamToRepLabel = data.fpr_adj_team_to_rep_label || 'Adjustment between team & rep';
+  // Team<->SMASH misc adjustment. Positive = team gets more: added to team profit,
+  // subtracted from the invoice (SMASH absorbs it). Same fallback pattern as above.
+  const teamMiscLabel = data.fpr_adj_team_misc_label || 'Adjustment';
 
   const profitSubtotal = lineItems.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
   const invoiceSubtotal = lineItems.reduce((sum, i) => sum + (Number(i.invoiceAmount) || 0), 0);
@@ -139,6 +142,7 @@ export default function FundraiserProfitReport({ data }) {
 
               <AdjustmentRow label="50% Prize Share" amount={data.fpr_adj_md_prize_share} />
               <AdjustmentRow label={teamToRepLabel} amount={data.fpr_adj_team_to_rep} />
+              <AdjustmentRow label={teamMiscLabel} amount={data.fpr_adj_team_misc} />
               <AdjustmentRow label="ASB Fee" amount={data.fpr_adj_asbfee} />
               {isTradNoRisk && (
                 <AdjustmentRow label="Discount on lost cards" amount={data.fpr_adj_discount_on_lost_cards} />
@@ -168,10 +172,16 @@ export default function FundraiserProfitReport({ data }) {
                   single labeled discount line so the school sees why the invoice
                   differs from cards × price. */}
               {isTradUpfront ? (
-                <AdjustmentRow
-                  label={data.fpr_adj_team_to_rep_label || 'Discount'}
-                  amount={data.fpr_adj_team_to_rep ? -data.fpr_adj_team_to_rep : null}
-                />
+                <>
+                  <AdjustmentRow
+                    label={data.fpr_adj_team_to_rep_label || 'Discount'}
+                    amount={data.fpr_adj_team_to_rep ? -data.fpr_adj_team_to_rep : null}
+                  />
+                  <AdjustmentRow
+                    label={teamMiscLabel}
+                    amount={data.fpr_adj_team_misc != null ? -data.fpr_adj_team_misc : null}
+                  />
+                </>
               ) : (
                 <>
                   <AdjustmentRow
@@ -181,6 +191,10 @@ export default function FundraiserProfitReport({ data }) {
                   <AdjustmentRow
                     label={teamToRepLabel}
                     amount={data.fpr_adj_team_to_rep != null ? -data.fpr_adj_team_to_rep : null}
+                  />
+                  <AdjustmentRow
+                    label={teamMiscLabel}
+                    amount={data.fpr_adj_team_misc != null ? -data.fpr_adj_team_misc : null}
                   />
                   <AdjustmentRow
                     label="ASB Fee"

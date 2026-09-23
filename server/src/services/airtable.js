@@ -106,6 +106,12 @@ const FUNDRAISER_FIELDS = {
   rcr_adj_excessprint: 'fld7B8JddfcjhJs3A',
   rcr_adj_extra_cd_boxes: 'fldEQfYpJBlx84etr',
   rcr_adj_misc: 'fld0iQuhUQDk5L5IY',
+  rcr_adj_misc_label: 'fldD8OiuAdjZja6Sq',
+  // Read-only formulas: commission after all adjustments (may be negative), and the
+  // positive amount that lifts a negative subtotal back to $0 (blank otherwise).
+  // rep_commission = rcr_commission_subtotal + rcr_adj_min_commission, never below $0.
+  rcr_commission_subtotal: 'fld5BhVUG7Yd4PvT6',
+  rcr_adj_min_commission: 'fldRk5zGPx6S1Ish0',
   rcr_comment: 'fld3vDtAwws1m9EUq',
   extra_cd_boxes_ordered: 'fldobBrd984o4OLhe',
   // Team Profit breakdown
@@ -113,6 +119,10 @@ const FUNDRAISER_FIELDS = {
   fpr_adj_md_prize_share: 'fld9o19YSMa8cX39M',
   fpr_adj_team_to_rep: 'fldZBFkZCxhmxwNOj',
   fpr_adj_team_to_rep_label: 'fld1jNPQUhrowvwK8',
+  // Team <-> SMASH misc adjustment. Positive = team gets more; Airtable adds it to
+  // team profit and subtracts it from the invoice. SMASH absorbs it.
+  fpr_adj_team_misc: 'fldQg4pDf7h94NZPZ',
+  fpr_adj_team_misc_label: 'fldw1sM02ULlDzJzj',
   fpr_adj_asbfee: 'fldiUPom1EC2MkI7j',
   fpr_adj_discount_on_lost_cards: 'fldUTmqmr2bJKiFdF',
   cost_product: 'fldkYOO4LKa0dpDUV',
@@ -444,6 +454,12 @@ function computeReportFingerprint(fields, report) {
     fields[F.card_retail_price] ?? '',
     fields[F.fpr_adj_team_to_rep] ?? '',
     fields[F.fpr_adj_team_to_rep_label] ?? '',
+    // Adjustment lines that print on the reports
+    fields[F.fpr_adj_team_misc] ?? '',
+    fields[F.fpr_adj_team_misc_label] ?? '',
+    fields[F.rcr_adj_misc] ?? '',
+    fields[F.rcr_adj_misc_label] ?? '',
+    fields[F.rcr_adj_min_commission] ?? '',
   ];
   if (report === 'rcr') {
     parts.push(fields[F.rcr_comment] ?? '');
