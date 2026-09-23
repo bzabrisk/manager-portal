@@ -768,8 +768,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const isMdFundraiser = (data.product_primary_string || '').toLowerCase().includes('md')
     || data.md_payout_report?.length > 0
     || data.include_md_donations;
-  // rep_commission can legitimately be $0 (Airtable floors it), so check presence, not truthiness
-  const isReportDataReady = !!(data.gross_sales_md && data.final_team_profit && data.rep_commission != null);
+  // Profit and commission can legitimately be $0 (fees ate the profit; Airtable floors
+  // commission), so check presence, not truthiness. Gross stays truthy: $0 gross = no sales.
+  const isReportDataReady = !!(data.gross_sales_md && data.final_team_profit != null && data.rep_commission != null);
   const fprStale = data.fprStale;
   const rcrStale = data.rcrStale;
   const hasSecondary = data.has_secondary;

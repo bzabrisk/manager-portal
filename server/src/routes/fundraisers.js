@@ -386,7 +386,7 @@ async function getActiveFundraisers() {
       team: f[FUNDRAISER_FIELDS.team] || '',
       kickoff_date: f[FUNDRAISER_FIELDS.kickoff_date] || null,
       end_date: f[FUNDRAISER_FIELDS.end_date] || null,
-      gross_sales_md: f[FUNDRAISER_FIELDS.gross_sales_md] || null,
+      gross_sales_md: f[FUNDRAISER_FIELDS.gross_sales_md] ?? null,
       rep_name,
       rep_photo,
       asb_boosters: f[FUNDRAISER_FIELDS.asb_boosters] || '',
@@ -569,8 +569,8 @@ async function getEndedFundraisers() {
       team: f[FUNDRAISER_FIELDS.team] || '',
       status: f[FUNDRAISER_FIELDS.status_rendered] || '',
       end_date: f[FUNDRAISER_FIELDS.end_date] || null,
-      gross_sales_md: f[FUNDRAISER_FIELDS.gross_sales_md] || null,
-      md_payout: f[FUNDRAISER_FIELDS.md_payout] || null,
+      gross_sales_md: f[FUNDRAISER_FIELDS.gross_sales_md] ?? null,
+      md_payout: f[FUNDRAISER_FIELDS.md_payout] ?? null,
       rep_ids: repLinked,
       rep_name,
       rep_photo,
@@ -834,8 +834,8 @@ router.get('/:recordId', async (req, res) => {
         id: r.id,
         payout_id: dp[DAILY_PAYOUT_FIELDS.payout_id] || '',
         run_date: dp[DAILY_PAYOUT_FIELDS.run_date] || null,
-        gross_sales_today: dp[DAILY_PAYOUT_FIELDS.gross_sales_today] || null,
-        payout_amount: dp[DAILY_PAYOUT_FIELDS.payout_amount] || null,
+        gross_sales_today: dp[DAILY_PAYOUT_FIELDS.gross_sales_today] ?? null,
+        payout_amount: dp[DAILY_PAYOUT_FIELDS.payout_amount] ?? null,
         status: dp[DAILY_PAYOUT_FIELDS.status] || '',
         reference_number: dp[DAILY_PAYOUT_FIELDS.reference_number] || '',
         error_message: dp[DAILY_PAYOUT_FIELDS.error_message] || '',
@@ -861,6 +861,11 @@ router.get('/:recordId', async (req, res) => {
       }));
     };
 
+    // Closed Out / Cancelled: the attached reports are the historical documents that
+    // were sent, so the "may be out of date" warning is suppressed (see fprStale/rcrStale).
+    const currentStatus = f[FUNDRAISER_FIELDS.status_rendered] || '';
+    const reportsAreHistorical = currentStatus === 'Closed Out' || currentStatus === 'Cancelled';
+
     // 12. Build response
     res.json({
       id: record.id,
@@ -878,10 +883,10 @@ router.get('/:recordId', async (req, res) => {
       product_primary_string,
       product_secondary_name,
       products,
-      team_size: f[FUNDRAISER_FIELDS.team_size] || null,
-      cards_ordered: f[FUNDRAISER_FIELDS.cards_ordered] || null,
-      cards_sold: f[FUNDRAISER_FIELDS.cards_sold] || null,
-      cards_lost: f[FUNDRAISER_FIELDS.cards_lost] || null,
+      team_size: f[FUNDRAISER_FIELDS.team_size] ?? null,
+      cards_ordered: f[FUNDRAISER_FIELDS.cards_ordered] ?? null,
+      cards_sold: f[FUNDRAISER_FIELDS.cards_sold] ?? null,
+      cards_lost: f[FUNDRAISER_FIELDS.cards_lost] ?? null,
       card_retail_price: f[FUNDRAISER_FIELDS.card_retail_price] ?? null,
       upfront_smash_price_per_card: f[FUNDRAISER_FIELDS.upfront_smash_price_per_card] ?? null,
       rep,
@@ -893,14 +898,14 @@ router.get('/:recordId', async (req, res) => {
       pp_gross_automd: f[FUNDRAISER_FIELDS.pp_gross_automd] ?? null,
       sp_gross: f[FUNDRAISER_FIELDS.sp_gross] ?? null,
       has_secondary: (f[FUNDRAISER_FIELDS.product_secondary] || []).length > 0,
-      // Financials
-      gross_sales_md: f[FUNDRAISER_FIELDS.gross_sales_md] || null,
-      final_team_profit: f[FUNDRAISER_FIELDS.final_team_profit] || null,
-      final_invoice_amount: f[FUNDRAISER_FIELDS.final_invoice_amount] || null,
-      // ?? not ||: $0 is a real value now that Airtable floors commission at zero
+      // Financials — ?? not ||: a real $0 (e.g. profit eaten by fees, floored commission)
+      // must reach the client as 0, not disappear as null.
+      gross_sales_md: f[FUNDRAISER_FIELDS.gross_sales_md] ?? null,
+      final_team_profit: f[FUNDRAISER_FIELDS.final_team_profit] ?? null,
+      final_invoice_amount: f[FUNDRAISER_FIELDS.final_invoice_amount] ?? null,
       rep_commission: f[FUNDRAISER_FIELDS.rep_commission] ?? null,
-      smash_profit: f[FUNDRAISER_FIELDS.smash_profit] || null,
-      md_payout: f[FUNDRAISER_FIELDS.md_payout] || null,
+      smash_profit: f[FUNDRAISER_FIELDS.smash_profit] ?? null,
+      md_payout: f[FUNDRAISER_FIELDS.md_payout] ?? null,
       // Rep Commission breakdown
       rep_comm_before_adj: f[FUNDRAISER_FIELDS.rep_comm_before_adj] ?? null,
       rcr_adj_team_to_rep: f[FUNDRAISER_FIELDS.rcr_adj_team_to_rep] ?? null,
@@ -928,8 +933,12 @@ router.get('/:recordId', async (req, res) => {
       gross_sales_calc: f[FUNDRAISER_FIELDS.gross_sales_calc] ?? null,
       md_cut: f[FUNDRAISER_FIELDS.md_cut] ?? null,
       cost_product: f[FUNDRAISER_FIELDS.cost_product] ?? null,
-      // Report staleness (computed by comparing stored fingerprint to current)
+      // Report staleness (computed by comparing stored fingerprint to current).
+      // Never flagged on Closed Out / Cancelled fundraisers: those PDFs are the
+      // historical documents that were actually sent, and regenerating would
+      // replace the originals.
       fprStale: (() => {
+        if (reportsAreHistorical) return false;
         const hasFile = (f[FUNDRAISER_FIELDS.fundraiser_profit_report] || []).length > 0;
         if (!hasFile) return false;
         const stored = f[FUNDRAISER_FIELDS.fpr_source_fingerprint] || '';
@@ -937,6 +946,7 @@ router.get('/:recordId', async (req, res) => {
         return stored === '' || stored !== current;
       })(),
       rcrStale: (() => {
+        if (reportsAreHistorical) return false;
         const hasFile = (f[FUNDRAISER_FIELDS.rep_commission_report] || []).length > 0;
         if (!hasFile) return false;
         const stored = f[FUNDRAISER_FIELDS.rcr_source_fingerprint] || '';
@@ -984,7 +994,7 @@ router.get('/:recordId', async (req, res) => {
       // Additional editable fields
       manual_status_override: f[FUNDRAISER_FIELDS.manual_status_override] || null,
       include_md_donations: f[FUNDRAISER_FIELDS.include_md_donations] || false,
-      cards_sold_manual: f[FUNDRAISER_FIELDS.cards_sold_manual] || null,
+      cards_sold_manual: f[FUNDRAISER_FIELDS.cards_sold_manual] ?? null,
     });
   } catch (err) {
     console.error('Error fetching fundraiser detail:', err.message);
