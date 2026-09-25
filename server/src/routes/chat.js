@@ -94,6 +94,9 @@ IMPORTANT: uploading the sheet does NOT complete the ordering task. The task is 
 - "Booster Club" — Parent booster organizations.
 - "Rec" — Recreational/club teams (not school-affiliated).
 
+### ASB Fee
+WA State ASB fundraisers are charged an ASB fee: 2% of gross, capped at $395. Fundraisers closed out before Sept 24, 2026 were charged the uncapped 2%, and those amounts stand.
+
 ### Daily E-Check Payouts
 Only for WA State ASB fundraisers. Automated ACH payments run at 12:15am Pacific. Payout records are created at 2pm the day before they run. Statuses: awaiting_data, pending, sent, failed.
 

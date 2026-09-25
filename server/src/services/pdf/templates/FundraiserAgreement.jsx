@@ -432,7 +432,7 @@ export default function FundraiserAgreement({ data }) {
           <Text style={s.listItem}>4. Manage funds as agreed in the previous section.</Text>
           <Text style={s.listItem}>5. (Specific Terms for Discount Card Products Only) Acknowledgement that "best efforts" includes refraining from initiating any competing fundraisers within one month prior to the fundraiser kickoff date without prior approval from SMASH. At the close of the fundraiser, the Organization will return all unsold or unused physical products to SMASH. SMASH retains the right to engage in fundraising activities with other organizations using the same products or partnerships.</Text>
           <Text style={s.listItem}>
-            {'6. ASB Fee (ASB Compliant Only): Pay 2% of gross fundraiser revenue to cover costs of daily sweeps and rushed financing. Fee will not be deducted from proceeds; SMASH will invoice the district upon fundraiser completion.'}
+            {'6. ASB Fee (ASB Compliant Only): Pay 2% of gross sales, not to exceed $395, to cover costs of daily sweeps and rushed financing. Fee will not be deducted from proceeds; SMASH will invoice the district upon fundraiser completion.'}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 1 }}>
             <Text style={[s.listItem, { marginBottom: 0 }]}>{'Check this box '}</Text>
