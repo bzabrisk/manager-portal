@@ -451,7 +451,7 @@ Three PDFs are generated server-side with `@react-pdf/renderer` (`server/src/ser
 - **Template:** `server/src/services/pdf/templates/FundraiserAgreement.jsx` (a full one-page contract). **Filename:** `FA - [org] [team] - [season].pdf`. **Stored in:** `fld3EdTDzU7YDRK4T` (the *unsigned* slot; the signed copy lives in `fldDZerdCLGXpBO11` and is upload-only via Airtable).
 - **Triggers:** the "Generate" button in the detail modal (`POST /api/reports/agreement/:fundraiserId`) or "Generate Now" inside the Email Preview modal. Never auto-generated.
 - **Data:** start/end dates, product table with each product's profit % (pulled from the products table field `fldgThkrxMzkurPK7`, with an asterisk for tiered products), fund-management checkbox auto-ticked by type (Digital / Traditional / WA State ASB Compliant — logic at the top of the template), the ASB-fee clause with a checkbox that is ticked when the fundraiser's `rep_pays_asb_fee` checkbox (`fldDKKa5DBBiTBhS1`) is set ("if representative is waiving this fee" — note this field is **not editable in the portal**, only in Airtable), an Additional Notes box (tiered-pricing note auto-filled for card products + any manual Agreement Notes — `buildAgreementNotes` in `reports.js`), Krista's pre-printed script signature ("Krista McGaughy, Business Manager") dated with the generation date, a blank signature line for the organization, and a records table (org/group/rep/SMASH record #/contacts).
-- The full contract text (SMASH's obligations, the organization's obligations including the 2% ASB fee and discount-card exclusivity terms, and the termination/reimbursement clause) is hard-coded in the template — changing any wording requires a code change.
+- The full contract text (SMASH's obligations, the organization's obligations including the ASB fee of 2%, capped at $395, and discount-card exclusivity terms, and the termination/reimbursement clause) is hard-coded in the template — changing any wording requires a code change.
 
 ### MD Payout Report (inbound, not generated)
 
@@ -543,7 +543,7 @@ The **core financial formulas live in Airtable**, not in this code — final_tea
 
 ### Hard-coded dollar amounts, percentages, and rates
 
-- **2% ASB fee** on gross fundraiser revenue for ASB-compliant fundraisers, invoiced to the district at close, waivable by the rep via the `rep_pays_asb_fee` checkbox (`FundraiserAgreement.jsx`, clause 6).
+- **2% ASB fee, capped at $395,** on gross fundraiser revenue for ASB-compliant fundraisers, invoiced to the district at close, waivable by the rep via the `rep_pays_asb_fee` checkbox (`FundraiserAgreement.jsx`, clause 6). The cap applies to fundraisers with `kickoff_date` on or after 2026-01-01 (everything not closed out as of Sept 24, 2026); the six Fall 2025 fundraisers closed out before then keep the uncapped 2% they were charged. The fee is calculated in Airtable, not the portal.
 - **Cancellation reimbursement** (discount-card products): **$20 per merchant signed + 25% of printing/designing/shipping costs** (`FundraiserAgreement.jsx`, termination clause 2).
 - **Extra cookie dough boxes billed to the rep at $7 per box** (label "(N × $7)" in `RepCommissionReport.jsx`; the multiplication itself is an Airtable formula fed by the extra_cd_boxes_ordered count Krista enters).
 - **Traditional Upfront CAD card cost tiers** (FPR footnote): 1000 ct = $8 CAD/card, 1500 ct = $7 CAD/card, 2000+ ct = $6 CAD/card; payment in USD only.
