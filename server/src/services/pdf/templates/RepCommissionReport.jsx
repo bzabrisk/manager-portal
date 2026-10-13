@@ -93,6 +93,12 @@ export default function RepCommissionReport({ data }) {
     ? `Extra cookie dough boxes ordered at cost (${data.extra_cd_boxes_ordered} \u00d7 $7)`
     : 'Extra cookie dough boxes';
 
+  // Credit for boxes the rep pulled from their own inventory to fill this order.
+  // They already paid $7 for each as an extra on an earlier fundraiser.
+  const cdInventoryLabel = data.cd_boxes_from_rep_inventory
+    ? `Credit: cookie dough boxes supplied from your inventory (${data.cd_boxes_from_rep_inventory} \u00d7 $7)`
+    : 'Credit: cookie dough boxes supplied from your inventory';
+
   return (
     <Document>
       <Page size="LETTER" style={s.page}>
@@ -124,6 +130,7 @@ export default function RepCommissionReport({ data }) {
           <AdjustmentRow label="Small fundraiser adj" amount={data.rcr_adj_smallfradj} />
           <AdjustmentRow label="Excess printing adj" amount={data.rcr_adj_excessprint} />
           <AdjustmentRow label={cdBoxesLabel} amount={data.rcr_adj_extra_cd_boxes} />
+          <AdjustmentRow label={cdInventoryLabel} amount={data.rcr_adj_cd_inventory_credit} />
           <AdjustmentRow label={miscLabel} amount={data.rcr_adj_misc} />
           {/* Airtable floors commission at $0: when the subtotal goes negative this
               positive line brings it back to zero. Blank (and hidden) otherwise. */}

@@ -105,6 +105,9 @@ const FUNDRAISER_FIELDS = {
   rcr_adj_smallfradj: 'fldJV8EyeWqDPMRaH',
   rcr_adj_excessprint: 'fld7B8JddfcjhJs3A',
   rcr_adj_extra_cd_boxes: 'fldEQfYpJBlx84etr',
+  // +$7 per box the rep supplied from their own inventory (cd_boxes_from_rep_inventory x 7).
+  // Mirror image of rcr_adj_extra_cd_boxes; both print on the RCR.
+  rcr_adj_cd_inventory_credit: 'fldLaGfbQ59Z39Kl8',
   rcr_adj_misc: 'fld0iQuhUQDk5L5IY',
   rcr_adj_misc_label: 'fldD8OiuAdjZja6Sq',
   // Read-only formulas: commission after all adjustments (may be negative), and the
@@ -114,6 +117,7 @@ const FUNDRAISER_FIELDS = {
   rcr_adj_min_commission: 'fldRk5zGPx6S1Ish0',
   rcr_comment: 'fld3vDtAwws1m9EUq',
   extra_cd_boxes_ordered: 'fldobBrd984o4OLhe',
+  cd_boxes_from_rep_inventory: 'fldMmv4GtjbfRf77R',
   // Team Profit breakdown
   team_profit_before_adj: 'fldElrfu61nJ9zrUs',
   fpr_adj_md_prize_share: 'fld9o19YSMa8cX39M',
@@ -460,6 +464,10 @@ function computeReportFingerprint(fields, report) {
     fields[F.rcr_adj_misc] ?? '',
     fields[F.rcr_adj_misc_label] ?? '',
     fields[F.rcr_adj_min_commission] ?? '',
+    // Cookie dough box counts print in the RCR line labels, so a count change must
+    // flag the report stale even in the rare case the dollar total is unchanged.
+    fields[F.extra_cd_boxes_ordered] ?? '',
+    fields[F.cd_boxes_from_rep_inventory] ?? '',
   ];
   if (report === 'rcr') {
     parts.push(fields[F.rcr_comment] ?? '');

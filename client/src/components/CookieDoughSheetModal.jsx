@@ -317,6 +317,15 @@ export default function CookieDoughSheetModal({ task, onClose, onDone, onRefresh
                       step="1"
                       placeholder="0"
                     />
+                    <BlurSaveField
+                      label="Boxes supplied from rep's inventory"
+                      helper={'From the "Adjustment from Inventory" row on the sheet, entered as a positive number. The rep already paid $7 for each of these as an extra on an earlier fundraiser, so each one is credited back at $7 on this Rep Commission Report.'}
+                      initialValue={detail?.cd_boxes_from_rep_inventory}
+                      onSave={saveField('cd_boxes_from_rep_inventory')}
+                      validate={validateBoxes}
+                      step="1"
+                      placeholder="0"
+                    />
                   </>
                 )}
               </div>

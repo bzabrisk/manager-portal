@@ -433,6 +433,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       fpr_adj_team_misc: result.fpr_adj_team_misc ?? '',
       fpr_adj_team_misc_label: result.fpr_adj_team_misc_label || '',
       extra_cd_boxes_ordered: result.extra_cd_boxes_ordered ?? '',
+      cd_boxes_from_rep_inventory: result.cd_boxes_from_rep_inventory ?? '',
       cost_product: result.cost_product ?? '',
       // Accounting-contact paper-check fields (live on the accounting_contact record)
       ac_prefers_paper_check: result.accounting_contact?.prefers_paper_check || false,
@@ -498,6 +499,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       edits.fpr_adj_team_misc_label !== (data.fpr_adj_team_misc_label || ''),
       edits.rcr_comment !== (data.rcr_comment || ''),
       edits.extra_cd_boxes_ordered !== (data.extra_cd_boxes_ordered ?? ''),
+      edits.cd_boxes_from_rep_inventory !== (data.cd_boxes_from_rep_inventory ?? ''),
       edits.cost_product !== (data.cost_product ?? ''),
       edits.ac_prefers_paper_check !== (data.accounting_contact?.prefers_paper_check || false),
       edits.ac_check_addr_line1 !== (data.accounting_contact?.check_addr_line1 || ''),
@@ -563,6 +565,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       if (edits.fpr_adj_team_misc_label !== (data.fpr_adj_team_misc_label || '')) payload.fpr_adj_team_misc_label = edits.fpr_adj_team_misc_label;
       if (edits.rcr_comment !== (data.rcr_comment || '')) payload.rcr_comment = edits.rcr_comment;
       if (edits.extra_cd_boxes_ordered !== (data.extra_cd_boxes_ordered ?? '')) payload.extra_cd_boxes_ordered = edits.extra_cd_boxes_ordered;
+      if (edits.cd_boxes_from_rep_inventory !== (data.cd_boxes_from_rep_inventory ?? '')) payload.cd_boxes_from_rep_inventory = edits.cd_boxes_from_rep_inventory;
       if (edits.cost_product !== (data.cost_product ?? '')) payload.cost_product = edits.cost_product;
 
       // Accounting-contact paper-check fields save to the accounting_contact record, not the fundraiser
@@ -720,7 +723,10 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
     || isUpfrontCards(data.product_primary_string);
   const showDailyPayouts = data.asb_boosters === 'WA State ASB';
   const isCookieDough = data.product_primary_string?.toLowerCase().includes('cookie dough');
-  const cdBoxesInvalid = edits.extra_cd_boxes_ordered !== '' && (isNaN(edits.extra_cd_boxes_ordered) || Number(edits.extra_cd_boxes_ordered) < 0 || !Number.isInteger(Number(edits.extra_cd_boxes_ordered)));
+  const wholeBoxInvalid = (v) => v !== '' && (isNaN(v) || Number(v) < 0 || !Number.isInteger(Number(v)));
+  const cdBoxesInvalid = wholeBoxInvalid(edits.extra_cd_boxes_ordered) || wholeBoxInvalid(edits.cd_boxes_from_rep_inventory);
+  const cdExtraInvalid = wholeBoxInvalid(edits.extra_cd_boxes_ordered);
+  const cdInventoryInvalid = wholeBoxInvalid(edits.cd_boxes_from_rep_inventory);
   const costProductInvalid = edits.cost_product !== '' && (isNaN(edits.cost_product) || Number(edits.cost_product) < 0);
   // A misc adjustment with a nonzero amount needs a label — but only enforce it on a
   // line the user touched in this edit session. Old records with unlabeled amounts
@@ -1327,8 +1333,8 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                             <div className="w-20">
                               <input type="number" min="0" step="1" value={edits.extra_cd_boxes_ordered}
                                 onChange={e => setEdits(prev => ({...prev, extra_cd_boxes_ordered: e.target.value}))}
-                                className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000] ${cdBoxesInvalid ? 'border-red-400' : 'border-slate-300'}`} />
-                              {cdBoxesInvalid && <p className="text-xs text-red-500 mt-0.5">Must be 0 or more</p>}
+                                className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000] ${cdExtraInvalid ? 'border-red-400' : 'border-slate-300'}`} />
+                              {cdExtraInvalid && <p className="text-xs text-red-500 mt-0.5">Must be 0 or more</p>}
                             </div>
                           ) : (
                             <span className={`text-sm ${data.extra_cd_boxes_ordered ? 'text-slate-700' : 'text-slate-400'}`}>
@@ -1340,6 +1346,27 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                           <span className="text-sm text-slate-600">Extra cookie dough boxes (&times;$7)</span>
                           <span className={`text-sm ${data.rcr_adj_extra_cd_boxes ? 'text-slate-700' : 'text-slate-400'}`}>
                             {data.rcr_adj_extra_cd_boxes ? formatCurrency(data.rcr_adj_extra_cd_boxes) : '\u2014'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center py-1.5">
+                          <span className="text-sm text-slate-600">Boxes from rep&apos;s inventory</span>
+                          {editMode ? (
+                            <div className="w-20">
+                              <input type="number" min="0" step="1" value={edits.cd_boxes_from_rep_inventory}
+                                onChange={e => setEdits(prev => ({...prev, cd_boxes_from_rep_inventory: e.target.value}))}
+                                className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000] ${cdInventoryInvalid ? 'border-red-400' : 'border-slate-300'}`} />
+                              {cdInventoryInvalid && <p className="text-xs text-red-500 mt-0.5">Must be 0 or more</p>}
+                            </div>
+                          ) : (
+                            <span className={`text-sm ${data.cd_boxes_from_rep_inventory ? 'text-slate-700' : 'text-slate-400'}`}>
+                              {data.cd_boxes_from_rep_inventory ?? '\u2014'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex justify-between py-1.5">
+                          <span className="text-sm text-slate-600">Inventory box credit (&times;$7)</span>
+                          <span className={`text-sm ${data.rcr_adj_cd_inventory_credit ? 'text-slate-700' : 'text-slate-400'}`}>
+                            {data.rcr_adj_cd_inventory_credit ? formatCurrency(data.rcr_adj_cd_inventory_credit) : '\u2014'}
                           </span>
                         </div>
                       </>

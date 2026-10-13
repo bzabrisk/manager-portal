@@ -914,12 +914,14 @@ router.get('/:recordId', async (req, res) => {
       rcr_adj_smallfradj: f[FUNDRAISER_FIELDS.rcr_adj_smallfradj] ?? null,
       rcr_adj_excessprint: f[FUNDRAISER_FIELDS.rcr_adj_excessprint] ?? null,
       rcr_adj_extra_cd_boxes: f[FUNDRAISER_FIELDS.rcr_adj_extra_cd_boxes] ?? null,
+      rcr_adj_cd_inventory_credit: f[FUNDRAISER_FIELDS.rcr_adj_cd_inventory_credit] ?? null,
       rcr_adj_misc: f[FUNDRAISER_FIELDS.rcr_adj_misc] ?? null,
       rcr_adj_misc_label: f[FUNDRAISER_FIELDS.rcr_adj_misc_label] || '',
       rcr_commission_subtotal: f[FUNDRAISER_FIELDS.rcr_commission_subtotal] ?? null,
       rcr_adj_min_commission: f[FUNDRAISER_FIELDS.rcr_adj_min_commission] ?? null,
       rcr_comment: f[FUNDRAISER_FIELDS.rcr_comment] || '',
       extra_cd_boxes_ordered: f[FUNDRAISER_FIELDS.extra_cd_boxes_ordered] ?? null,
+      cd_boxes_from_rep_inventory: f[FUNDRAISER_FIELDS.cd_boxes_from_rep_inventory] ?? null,
       // Team Profit breakdown
       team_profit_before_adj: f[FUNDRAISER_FIELDS.team_profit_before_adj] ?? null,
       fpr_adj_md_prize_share: f[FUNDRAISER_FIELDS.fpr_adj_md_prize_share] ?? null,
@@ -1102,6 +1104,11 @@ router.patch('/:recordId', async (req, res) => {
       const boxes = updates.extra_cd_boxes_ordered !== null && updates.extra_cd_boxes_ordered !== '' ? Number(updates.extra_cd_boxes_ordered) : null;
       if (boxes !== null && (!Number.isInteger(boxes) || boxes < 0)) return res.status(400).json({ error: 'extra_cd_boxes_ordered must be a whole number, 0 or more' });
       fields[FUNDRAISER_FIELDS.extra_cd_boxes_ordered] = boxes;
+    }
+    if (updates.cd_boxes_from_rep_inventory !== undefined) {
+      const inv = updates.cd_boxes_from_rep_inventory !== null && updates.cd_boxes_from_rep_inventory !== '' ? Number(updates.cd_boxes_from_rep_inventory) : null;
+      if (inv !== null && (!Number.isInteger(inv) || inv < 0)) return res.status(400).json({ error: 'cd_boxes_from_rep_inventory must be a whole number, 0 or more' });
+      fields[FUNDRAISER_FIELDS.cd_boxes_from_rep_inventory] = inv;
     }
     // SMASH Profit editable field
     if (updates.cost_product !== undefined) {

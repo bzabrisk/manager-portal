@@ -102,11 +102,13 @@ export async function fetchFundraiserDataForReports(recordId) {
     rcr_adj_smallfradj: f[F.rcr_adj_smallfradj] ?? null,
     rcr_adj_excessprint: f[F.rcr_adj_excessprint] ?? null,
     rcr_adj_extra_cd_boxes: f[F.rcr_adj_extra_cd_boxes] ?? null,
+    rcr_adj_cd_inventory_credit: f[F.rcr_adj_cd_inventory_credit] ?? null,
     rcr_adj_misc: f[F.rcr_adj_misc] ?? null,
     rcr_adj_misc_label: f[F.rcr_adj_misc_label] || '',
     rcr_adj_min_commission: f[F.rcr_adj_min_commission] ?? null,
     rcr_comment: f[F.rcr_comment] || '',
     extra_cd_boxes_ordered: f[F.extra_cd_boxes_ordered] ?? null,
+    cd_boxes_from_rep_inventory: f[F.cd_boxes_from_rep_inventory] ?? null,
     // Linked-record presence flags
     has_secondary: ((f[F.product_secondary] || []).length > 0),
     has_tp_donations: ((f[F.tp_mddonations] || []).length > 0),
