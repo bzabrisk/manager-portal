@@ -62,6 +62,17 @@ function formatCurrency(val) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
 }
 
+// ASB fee cap as whole dollars when round ($325), cents otherwise. Mirrors the server's formatCap.
+function formatCap(val) {
+  const n = Number(val);
+  if (!Number.isFinite(n)) return '';
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: 'USD',
+    minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
+    maximumFractionDigits: Number.isInteger(n) ? 0 : 2,
+  }).format(n);
+}
+
 function SectionHeader({ children }) {
   return (
     <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 pb-1 border-b border-slate-100">
@@ -432,6 +443,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       // Team Profit breakdown editable fields
       fpr_adj_team_misc: result.fpr_adj_team_misc ?? '',
       fpr_adj_team_misc_label: result.fpr_adj_team_misc_label || '',
+      // ASB fee override: `??` so a saved $0 (waived) shows as 0, not as an empty input
+      asb_fee_override: result.asb_fee_override ?? '',
+      asb_fee_override_label: result.asb_fee_override_label || '',
       extra_cd_boxes_ordered: result.extra_cd_boxes_ordered ?? '',
       cd_boxes_from_rep_inventory: result.cd_boxes_from_rep_inventory ?? '',
       cost_product: result.cost_product ?? '',
@@ -497,6 +511,8 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       edits.rcr_adj_misc_label !== (data.rcr_adj_misc_label || ''),
       edits.fpr_adj_team_misc !== (data.fpr_adj_team_misc ?? ''),
       edits.fpr_adj_team_misc_label !== (data.fpr_adj_team_misc_label || ''),
+      edits.asb_fee_override !== (data.asb_fee_override ?? ''),
+      edits.asb_fee_override_label !== (data.asb_fee_override_label || ''),
       edits.rcr_comment !== (data.rcr_comment || ''),
       edits.extra_cd_boxes_ordered !== (data.extra_cd_boxes_ordered ?? ''),
       edits.cd_boxes_from_rep_inventory !== (data.cd_boxes_from_rep_inventory ?? ''),
@@ -563,6 +579,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
       if (edits.rcr_adj_misc_label !== (data.rcr_adj_misc_label || '')) payload.rcr_adj_misc_label = edits.rcr_adj_misc_label;
       if (edits.fpr_adj_team_misc !== (data.fpr_adj_team_misc ?? '')) payload.fpr_adj_team_misc = edits.fpr_adj_team_misc;
       if (edits.fpr_adj_team_misc_label !== (data.fpr_adj_team_misc_label || '')) payload.fpr_adj_team_misc_label = edits.fpr_adj_team_misc_label;
+      // ASB fee override: '' clears (server writes null to both fields); 0 is sent as 0 (waived)
+      if (edits.asb_fee_override !== (data.asb_fee_override ?? '')) payload.asb_fee_override = edits.asb_fee_override;
+      if (edits.asb_fee_override_label !== (data.asb_fee_override_label || '')) payload.asb_fee_override_label = edits.asb_fee_override_label;
       if (edits.rcr_comment !== (data.rcr_comment || '')) payload.rcr_comment = edits.rcr_comment;
       if (edits.extra_cd_boxes_ordered !== (data.extra_cd_boxes_ordered ?? '')) payload.extra_cd_boxes_ordered = edits.extra_cd_boxes_ordered;
       if (edits.cd_boxes_from_rep_inventory !== (data.cd_boxes_from_rep_inventory ?? '')) payload.cd_boxes_from_rep_inventory = edits.cd_boxes_from_rep_inventory;
@@ -742,6 +761,99 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
   const rcrMiscLabelMissing = miscLabelMissing('rcr_adj_misc', 'rcr_adj_misc_label');
   const teamMiscLabelMissing = miscLabelMissing('fpr_adj_team_misc', 'fpr_adj_team_misc_label');
   const MISC_LABEL_MSG = 'Add a short description for this adjustment.';
+
+  // ASB fee override (WA State ASB only). The fee itself is an Airtable formula; the
+  // portal edits only the override + its description. Rules: lower than the default
+  // only, $0 allowed (= waived, which is NOT blank), description required, locked once
+  // the fundraiser is Closed Out or Cancelled. Explicit null checks throughout — never
+  // `||` — so 0 survives (same bug class as the Sept 23 sweep).
+  const isAsb = data.asb_boosters === 'WA State ASB';
+  const asbFeeLocked = data.status === 'Closed Out' || data.status === 'Cancelled';
+  const asbAmtRaw = edits.asb_fee_override;
+  const asbAmt = asbAmtRaw === '' || asbAmtRaw === null || asbAmtRaw === undefined ? null : Number(asbAmtRaw);
+  const asbTouched = asbAmtRaw !== (data.asb_fee_override ?? '') || edits.asb_fee_override_label !== (data.asb_fee_override_label || '');
+  const asbAmountInvalid = asbAmt !== null && (!Number.isFinite(asbAmt) || asbAmt < 0);
+  const asbTooHigh = asbAmt !== null && !asbAmountInvalid && data.asb_fee_default != null && asbAmt > Number(data.asb_fee_default) + 0.005;
+  const asbLabelMissing = asbTouched && asbAmt !== null && !asbAmountInvalid && !String(edits.asb_fee_override_label || '').trim();
+  const asbFeeInvalid = asbAmountInvalid || asbTooHigh || asbLabelMissing;
+  const asbErrorMsg = asbAmountInvalid ? 'The ASB fee must be $0 or more.'
+    : asbTooHigh ? `The ASB fee can't be higher than the standard amount (${formatCurrency(data.asb_fee_default)}).`
+    : asbLabelMissing ? 'Add a short description for this ASB fee.'
+    : null;
+
+  // One renderer for the ASB fee row in both breakdowns. `active` marks the side that
+  // actually carries the fee (team pays -> Team Profit; rep pays -> Rep Commission);
+  // only the active row gets the editor. The other row stays a read-only mirror.
+  const renderAsbFeeLine = ({ label, amount, active }) => {
+    const showEditor = editMode && isAsb && active && !asbFeeLocked;
+    const showLockHint = editMode && isAsb && active && asbFeeLocked;
+    const hasOverride = isAsb && data.asb_fee_override != null;
+    if (!showEditor) {
+      return (
+        <div className="flex justify-between items-start py-1.5">
+          <div>
+            <span className="text-sm text-slate-600">{label}</span>
+            {hasOverride && amount != null && (
+              <p className="text-xs text-slate-400 mt-0.5">
+                {data.asb_fee_override_label || 'Manual ASB fee'}{data.asb_fee_override === 0 ? ' (waived)' : ''}
+              </p>
+            )}
+            {showLockHint && (
+              <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+                <Lock size={11} /> Locked &mdash; fundraiser is {data.status}.
+              </p>
+            )}
+          </div>
+          <span className={`text-sm ${amount != null ? 'text-slate-700' : 'text-slate-400'}`}>
+            {amount != null ? formatCurrency(amount) : '\u2014'}
+          </span>
+        </div>
+      );
+    }
+    const dirty = edits.asb_fee_override !== '' || edits.asb_fee_override_label !== '';
+    return (
+      <div className="py-1.5">
+        <div className="flex justify-between items-start gap-3 max-lg:flex-wrap">
+          <div>
+            <span className="text-sm text-slate-600">{label}</span>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Default: {formatCurrency(data.asb_fee_default) ?? '\u2014'} (2%{data.asb_fee_cap != null ? `, max ${formatCap(data.asb_fee_cap)}` : ''})
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">Lower only &middot; $0 = waived</p>
+          </div>
+          <div className="max-w-[17.5rem]">
+            {edits.check_invoice_sent && (
+              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-300 rounded px-2 py-1 mb-1.5 flex items-start gap-1.5">
+                <AlertTriangle size={12} className="text-amber-600 shrink-0 mt-0.5" />
+                The invoice has already been sent. Changing this fee changes what the school owes.
+              </p>
+            )}
+            <div className="flex items-start gap-2">
+              <div className="flex items-center gap-1 w-28">
+                <span className="text-sm text-slate-400">$</span>
+                <input type="number" step="0.01" min="0" placeholder="Default" value={edits.asb_fee_override}
+                  onChange={e => setEdits(prev => ({...prev, asb_fee_override: e.target.value}))}
+                  className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000] ${asbAmountInvalid || asbTooHigh ? 'border-red-400' : 'border-slate-300'}`} />
+              </div>
+              <input type="text" placeholder="Description" value={edits.asb_fee_override_label}
+                onChange={e => setEdits(prev => ({...prev, asb_fee_override_label: e.target.value}))}
+                className={`w-40 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff5000] ${asbLabelMissing ? 'border-red-400' : 'border-slate-300'}`} />
+            </div>
+            {asbErrorMsg && <p className="text-xs text-red-500 mt-1 text-right">{asbErrorMsg}</p>}
+            {dirty && (
+              <p className="text-xs mt-1 text-right">
+                <button type="button"
+                  onClick={() => setEdits(prev => ({...prev, asb_fee_override: '', asb_fee_override_label: ''}))}
+                  className="text-[#ff5000] hover:underline">
+                  Reset to default
+                </button>
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Financials
   const financials = [
@@ -1292,13 +1404,8 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                       )}
                     </div>
 
-                    {/* WA State ASB Fee */}
-                    <div className="flex justify-between py-1.5">
-                      <span className="text-sm text-slate-600">WA State ASB Fee</span>
-                      <span className={`text-sm ${data.rcr_adj_asbfee ? 'text-slate-700' : 'text-slate-400'}`}>
-                        {data.rcr_adj_asbfee ? formatCurrency(data.rcr_adj_asbfee) : '\u2014'}
-                      </span>
-                    </div>
+                    {/* WA State ASB Fee — editable here when the rep pays it (rep_pays_asb_fee) */}
+                    {renderAsbFeeLine({ label: 'WA State ASB Fee', amount: data.rcr_adj_asbfee, active: !!data.rep_pays_asb_fee })}
 
                     {/* 50% MD Prize Shop Fee */}
                     <div className="flex justify-between py-1.5">
@@ -1488,6 +1595,7 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                           <div>
                             <span className="text-sm text-slate-600">Misc Adjustment</span>
                             <p className="text-xs text-slate-400 mt-0.5">Positive = team gets more (lowers the invoice). SMASH absorbs it.</p>
+                            {isAsb && <p className="text-xs text-slate-400 mt-0.5">For ASB fee changes, edit the ASB fee line instead.</p>}
                           </div>
                           <div>
                             <div className="flex items-start gap-2">
@@ -1517,13 +1625,8 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
                       )}
                     </div>
 
-                    {/* ASB Fee */}
-                    <div className="flex justify-between py-1.5">
-                      <span className="text-sm text-slate-600">ASB Fee</span>
-                      <span className={`text-sm ${data.fpr_adj_asbfee ? 'text-slate-700' : 'text-slate-400'}`}>
-                        {data.fpr_adj_asbfee ? formatCurrency(data.fpr_adj_asbfee) : '\u2014'}
-                      </span>
-                    </div>
+                    {/* ASB Fee — editable here when the team pays it (the default) */}
+                    {renderAsbFeeLine({ label: 'ASB Fee', amount: data.fpr_adj_asbfee, active: !data.rep_pays_asb_fee })}
 
                     {/* Final Team Profit */}
                     <div className="flex justify-between py-2 border-t border-slate-200 mt-1">
@@ -2062,9 +2165,9 @@ export default function FundraiserDetailModal({ recordId, onClose, onRefresh }) 
               </button>
               <button
                 onClick={handleSave}
-                disabled={!hasChanges || saving || cdBoxesInvalid || costProductInvalid || rcrMiscLabelMissing || teamMiscLabelMissing}
+                disabled={!hasChanges || saving || cdBoxesInvalid || costProductInvalid || rcrMiscLabelMissing || teamMiscLabelMissing || asbFeeInvalid}
                 className={`px-4 py-2 text-sm text-white rounded-lg transition-colors max-lg:py-2.5 ${
-                  hasChanges && !cdBoxesInvalid && !costProductInvalid && !rcrMiscLabelMissing && !teamMiscLabelMissing ? 'bg-[#ff5000] hover:bg-[#e04800]' : 'bg-slate-300 cursor-not-allowed'
+                  hasChanges && !cdBoxesInvalid && !costProductInvalid && !rcrMiscLabelMissing && !teamMiscLabelMissing && !asbFeeInvalid ? 'bg-[#ff5000] hover:bg-[#e04800]' : 'bg-slate-300 cursor-not-allowed'
                 }`}
               >
                 {saving ? 'Saving...' : 'Save'}

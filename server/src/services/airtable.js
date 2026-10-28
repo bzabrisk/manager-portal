@@ -129,6 +129,13 @@ const FUNDRAISER_FIELDS = {
   fpr_adj_team_misc_label: 'fldw1sM02ULlDzJzj',
   fpr_adj_asbfee: 'fldiUPom1EC2MkI7j',
   fpr_adj_discount_on_lost_cards: 'fldUTmqmr2bJKiFdF',
+  // WA State ASB fee (2% of gross, capped). All of the fee math lives in Airtable:
+  // the portal only reads these, except for the override + label which Krista edits.
+  asb_fee_cap: 'fldEbX3DFoGK1XYtz',            // formula: locked cap if finalized, else current cap
+  asb_fee_cap_locked: 'fldbilrjdniqiQRcG',     // currency: written by an Airtable automation. NEVER write from the portal.
+  asb_fee_default: 'fldaRLpdlu1S85r8V',        // formula: fee before override, positive dollars
+  asb_fee_override: 'fldF9Of8Ppb6pbGF4',       // currency: manual fee, positive. Blank = default; $0 = waived (not blank!)
+  asb_fee_override_label: 'fldAX0a69bWUp8Qw4', // text: required description when an override is set
   cost_product: 'fldkYOO4LKa0dpDUV',
   // SMASH Profit breakdown
   gross_sales_calc: 'fldmj5wdfPK52CK13',
@@ -468,6 +475,10 @@ function computeReportFingerprint(fields, report) {
     // flag the report stale even in the rare case the dollar total is unchanged.
     fields[F.extra_cd_boxes_ordered] ?? '',
     fields[F.cd_boxes_from_rep_inventory] ?? '',
+    // ASB fee override + the default it replaces: a changed fee or label must flag both reports
+    fields[F.asb_fee_override] ?? '',
+    fields[F.asb_fee_override_label] ?? '',
+    fields[F.asb_fee_default] ?? '',
   ];
   if (report === 'rcr') {
     parts.push(fields[F.rcr_comment] ?? '');

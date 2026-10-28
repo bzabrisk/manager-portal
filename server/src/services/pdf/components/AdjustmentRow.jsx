@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet } from '@react-pdf/renderer';
 import { COLORS, FONTS } from '../styles.js';
 
-const fmt = (v) => `$${Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// `|| 0` folds -0 into 0 so a negated zero never prints as "$-0.00".
+const fmt = (v) => `$${(Number(v) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const s = StyleSheet.create({
   row: {
@@ -30,8 +31,11 @@ const s = StyleSheet.create({
   },
 });
 
-export default function AdjustmentRow({ label, amount }) {
-  if (amount == null || amount === 0 || amount === '') return null;
+// Zero rows are hidden by default (an adjustment of $0 is noise). `showZero` keeps
+// a $0 row visible — used for a waived ASB fee, where the $0.00 is the point.
+export default function AdjustmentRow({ label, amount, showZero = false }) {
+  if (amount == null || amount === '') return null;
+  if (Number(amount) === 0 && !showZero) return null;
   return (
     <View style={s.row}>
       <Text style={s.label}>{label}</Text>

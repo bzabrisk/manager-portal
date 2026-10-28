@@ -931,6 +931,13 @@ router.get('/:recordId', async (req, res) => {
       fpr_adj_team_misc_label: f[FUNDRAISER_FIELDS.fpr_adj_team_misc_label] || '',
       fpr_adj_asbfee: f[FUNDRAISER_FIELDS.fpr_adj_asbfee] ?? null,
       fpr_adj_discount_on_lost_cards: f[FUNDRAISER_FIELDS.fpr_adj_discount_on_lost_cards] ?? null,
+      // ASB fee (WA State ASB only). Read-only cap/default from Airtable; override is
+      // editable. `??` everywhere: an override of $0 means "waived" and must survive.
+      asb_fee_cap: f[FUNDRAISER_FIELDS.asb_fee_cap] ?? null,
+      asb_fee_default: f[FUNDRAISER_FIELDS.asb_fee_default] ?? null,
+      asb_fee_override: f[FUNDRAISER_FIELDS.asb_fee_override] ?? null,
+      asb_fee_override_label: f[FUNDRAISER_FIELDS.asb_fee_override_label] || '',
+      rep_pays_asb_fee: f[FUNDRAISER_FIELDS.rep_pays_asb_fee] || false,
       // SMASH Profit breakdown
       gross_sales_calc: f[FUNDRAISER_FIELDS.gross_sales_calc] ?? null,
       md_cut: f[FUNDRAISER_FIELDS.md_cut] ?? null,
@@ -1109,6 +1116,50 @@ router.patch('/:recordId', async (req, res) => {
       const inv = updates.cd_boxes_from_rep_inventory !== null && updates.cd_boxes_from_rep_inventory !== '' ? Number(updates.cd_boxes_from_rep_inventory) : null;
       if (inv !== null && (!Number.isInteger(inv) || inv < 0)) return res.status(400).json({ error: 'cd_boxes_from_rep_inventory must be a whole number, 0 or more' });
       fields[FUNDRAISER_FIELDS.cd_boxes_from_rep_inventory] = inv;
+    }
+    // ASB fee override (WA State ASB only). Lower-only, $0 = waived, blank = default.
+    // Validated against the live record so the client can't bypass the rules.
+    if (updates.asb_fee_override !== undefined || updates.asb_fee_override_label !== undefined) {
+      const existing = await airtableGet('fundraisers', recordId);
+      const ef = existing.fields || {};
+      const status = ef[FUNDRAISER_FIELDS.status_rendered] || '';
+      if (status === 'Closed Out' || status === 'Cancelled') {
+        return res.status(400).json({ error: `The ASB fee is locked once a fundraiser is ${status}.` });
+      }
+      if ((ef[FUNDRAISER_FIELDS.asb_boosters] || '') !== 'WA State ASB') {
+        return res.status(400).json({ error: 'Only WA State ASB fundraisers have an ASB fee.' });
+      }
+      // Amount: null/'' clears the override (back to default). 0 is a real value (waived).
+      let amount;
+      if (updates.asb_fee_override === undefined) {
+        amount = ef[FUNDRAISER_FIELDS.asb_fee_override] ?? null;
+      } else if (updates.asb_fee_override === null || updates.asb_fee_override === '') {
+        amount = null;
+      } else {
+        amount = Number(updates.asb_fee_override);
+        if (!Number.isFinite(amount) || amount < 0) {
+          return res.status(400).json({ error: 'The ASB fee must be $0 or more.' });
+        }
+        const standard = ef[FUNDRAISER_FIELDS.asb_fee_default];
+        if (standard != null && amount > Number(standard) + 0.005) {
+          const fmt = Number(standard).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+          return res.status(400).json({ error: `The ASB fee can't be higher than the standard amount (${fmt}).` });
+        }
+        amount = Math.round(amount * 100) / 100;
+      }
+      // Label: required whenever an override (including $0) is in place; cleared with it.
+      const rawLabel = updates.asb_fee_override_label !== undefined
+        ? updates.asb_fee_override_label
+        : ef[FUNDRAISER_FIELDS.asb_fee_override_label];
+      const label = String(rawLabel ?? '').trim();
+      if (amount === null) {
+        fields[FUNDRAISER_FIELDS.asb_fee_override] = null;
+        fields[FUNDRAISER_FIELDS.asb_fee_override_label] = null;
+      } else {
+        if (!label) return res.status(400).json({ error: 'Add a short description for this ASB fee.' });
+        fields[FUNDRAISER_FIELDS.asb_fee_override] = amount;
+        fields[FUNDRAISER_FIELDS.asb_fee_override_label] = label;
+      }
     }
     // SMASH Profit editable field
     if (updates.cost_product !== undefined) {

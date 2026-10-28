@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { COLORS, FONTS, SIZES, PAGE } from '../styles.js';
 import Footer from '../components/Footer.jsx';
+import { formatCap } from '../asbFeeLabel.js';
 import { isTiered } from '../../../constants/tieredProducts.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -432,7 +433,8 @@ export default function FundraiserAgreement({ data }) {
           <Text style={s.listItem}>4. Manage funds as agreed in the previous section.</Text>
           <Text style={s.listItem}>5. (Specific Terms for Discount Card Products Only) Acknowledgement that "best efforts" includes refraining from initiating any competing fundraisers within one month prior to the fundraiser kickoff date without prior approval from SMASH. At the close of the fundraiser, the Organization will return all unsold or unused physical products to SMASH. SMASH retains the right to engage in fundraising activities with other organizations using the same products or partnerships.</Text>
           <Text style={s.listItem}>
-            {'6. ASB Fee (ASB Compliant Only): Pay 2% of gross sales, not to exceed $395, to cover costs of daily sweeps and rushed financing. Fee will not be deducted from proceeds; SMASH will invoice the district upon fundraiser completion.'}
+            {/* Cap comes from Airtable (asb_fee_cap), locked per fundraiser once finalized. Never hard-code it. */}
+            {`6. ASB Fee (ASB Compliant Only): Pay 2% of gross sales${data.asb_fee_cap != null ? `, not to exceed ${formatCap(data.asb_fee_cap)},` : ''} to cover costs of daily sweeps and rushed financing. Fee will not be deducted from proceeds; SMASH will invoice the district upon fundraiser completion.`}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 1 }}>
             <Text style={[s.listItem, { marginBottom: 0 }]}>{'Check this box '}</Text>

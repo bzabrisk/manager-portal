@@ -95,6 +95,13 @@ export async function fetchFundraiserDataForReports(recordId) {
     fpr_adj_asbfee: f[F.fpr_adj_asbfee] ?? null,
     fpr_adj_discount_on_lost_cards: f[F.fpr_adj_discount_on_lost_cards] ?? null,
     fpr_comments: resolveLookup(f[F.fpr_comments]) || '',
+    // ASB fee context for the row label (the amount itself still comes from the
+    // fee fields above). `??` so a $0 override (waived) reaches the template as 0.
+    asb_fee_cap: f[F.asb_fee_cap] ?? null,
+    asb_fee_default: f[F.asb_fee_default] ?? null,
+    asb_fee_override: f[F.asb_fee_override] ?? null,
+    asb_fee_override_label: f[F.asb_fee_override_label] || '',
+    rep_pays_asb_fee: f[F.rep_pays_asb_fee] || false,
     // RCR adjustments
     rcr_adj_team_to_rep: f[F.rcr_adj_team_to_rep] ?? null,
     rcr_adj_asbfee: f[F.rcr_adj_asbfee] ?? null,
@@ -291,6 +298,8 @@ export async function fetchFundraiserDataForAgreement(recordId) {
     end_date: f[F.end_date] || '',
     asb_boosters: f[F.asb_boosters] || '',
     rep_pays_asb_fee: f[F.rep_pays_asb_fee] || false,
+    // Cap printed in the ASB fee clause — locked per fundraiser once finalized
+    asb_fee_cap: f[F.asb_fee_cap] ?? null,
     fundraiser_id: f[F.fundraiser_id] || '',
     product_primary_string: productPrimaryString,
     rep_name: repName,

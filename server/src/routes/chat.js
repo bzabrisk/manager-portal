@@ -95,7 +95,7 @@ IMPORTANT: uploading the sheet does NOT complete the ordering task. The task is 
 - "Rec" — Recreational/club teams (not school-affiliated).
 
 ### ASB Fee
-WA State ASB fundraisers are charged an ASB fee: 2% of gross, capped at $395. Fundraisers closed out before Sept 24, 2026 were charged the uncapped 2%, and those amounts stand.
+WA State ASB fundraisers are charged an ASB fee: 2% of gross, capped. The cap is $325 for fundraisers finalized on or after Oct 28, 2026 ($395 before that, uncapped for 2025 kickoffs). Each fundraiser's cap is locked when its invoice is sent or it closes. Krista can set a lower fee case by case in the portal (asb_fee_override, with a description); $0 means waived. You can read these fields on a fundraiser (asb_fee_cap, asb_fee_default, asb_fee_override, asb_fee_override_label) but you cannot change them — point Krista to the ASB fee line in the Fundraiser Detail modal.
 
 ### Daily E-Check Payouts
 Only for WA State ASB fundraisers. Automated ACH payments run at 12:15am Pacific. Payout records are created at 2pm the day before they run. Statuses: awaiting_data, pending, sent, failed.
@@ -780,6 +780,13 @@ async function getFundraiserDetails(input) {
     check_invoice_sent: f[FUNDRAISER_FIELDS.check_invoice_sent] || false,
     rep_paid: f[FUNDRAISER_FIELDS.rep_paid] || false,
     invoice_payment_received: f[FUNDRAISER_FIELDS.invoice_payment_received] || false,
+    // ASB fee (read-only for Cash — update_fundraiser deliberately cannot write these).
+    // `??` keeps a $0 override (waived) distinct from "no override".
+    asb_fee_cap: f[FUNDRAISER_FIELDS.asb_fee_cap] ?? null,
+    asb_fee_default: f[FUNDRAISER_FIELDS.asb_fee_default] ?? null,
+    asb_fee_override: f[FUNDRAISER_FIELDS.asb_fee_override] ?? null,
+    asb_fee_override_label: f[FUNDRAISER_FIELDS.asb_fee_override_label] || '',
+    rep_pays_asb_fee: f[FUNDRAISER_FIELDS.rep_pays_asb_fee] || false,
     admin_notes: f[FUNDRAISER_FIELDS.admin_notes] || '',
     rep_notes: f[FUNDRAISER_FIELDS.rep_notes] || '',
     tasks,

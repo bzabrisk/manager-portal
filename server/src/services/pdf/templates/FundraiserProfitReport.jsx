@@ -6,6 +6,7 @@ import MetaBlock from '../components/MetaBlock.jsx';
 import SectionHeader from '../components/SectionHeader.jsx';
 import LineItemRow, { LineItemHeader, SubtotalRow, InvoiceHeader } from '../components/LineItemRow.jsx';
 import AdjustmentRow from '../components/AdjustmentRow.jsx';
+import { buildAsbFeeLabel, asbFeeWaived } from '../asbFeeLabel.js';
 import FinalAmountBox from '../components/FinalAmountBox.jsx';
 import Footer from '../components/Footer.jsx';
 import { isUpfrontCards } from '../../../constants/products.js';
@@ -101,6 +102,10 @@ export default function FundraiserProfitReport({ data }) {
   // Team<->SMASH misc adjustment. Positive = team gets more: added to team profit,
   // subtracted from the invoice (SMASH absorbs it). Same fallback pattern as above.
   const teamMiscLabel = data.fpr_adj_team_misc_label || 'Adjustment';
+  // ASB fee row: describes the override or the 2%/cap it came from. Only WA State
+  // ASB fundraisers carry a fee, so others keep the plain label (and the row hides).
+  const asbLabel = data.asb_boosters === 'WA State ASB' ? buildAsbFeeLabel('ASB Fee', data) : 'ASB Fee';
+  const asbShowZero = asbFeeWaived(data);
 
   const profitSubtotal = lineItems.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
   const invoiceSubtotal = lineItems.reduce((sum, i) => sum + (Number(i.invoiceAmount) || 0), 0);
@@ -143,7 +148,7 @@ export default function FundraiserProfitReport({ data }) {
               <AdjustmentRow label="50% Prize Share" amount={data.fpr_adj_md_prize_share} />
               <AdjustmentRow label={teamToRepLabel} amount={data.fpr_adj_team_to_rep} />
               <AdjustmentRow label={teamMiscLabel} amount={data.fpr_adj_team_misc} />
-              <AdjustmentRow label="ASB Fee" amount={data.fpr_adj_asbfee} />
+              <AdjustmentRow label={asbLabel} amount={data.fpr_adj_asbfee} showZero={asbShowZero} />
               {isTradNoRisk && (
                 <AdjustmentRow label="Discount on lost cards" amount={data.fpr_adj_discount_on_lost_cards} />
               )}
@@ -197,8 +202,9 @@ export default function FundraiserProfitReport({ data }) {
                     amount={data.fpr_adj_team_misc != null ? -data.fpr_adj_team_misc : null}
                   />
                   <AdjustmentRow
-                    label="ASB Fee"
+                    label={asbLabel}
                     amount={data.fpr_adj_asbfee != null ? -data.fpr_adj_asbfee : null}
+                    showZero={asbShowZero}
                   />
                   {isTradNoRisk && (
                     <AdjustmentRow

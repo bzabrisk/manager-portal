@@ -6,6 +6,7 @@ import MetaBlock from '../components/MetaBlock.jsx';
 import SectionHeader from '../components/SectionHeader.jsx';
 import LineItemRow, { LineItemHeader, SubtotalRow } from '../components/LineItemRow.jsx';
 import AdjustmentRow from '../components/AdjustmentRow.jsx';
+import { buildAsbFeeLabel, asbFeeWaived } from '../asbFeeLabel.js';
 import FinalAmountBox from '../components/FinalAmountBox.jsx';
 import Footer from '../components/Footer.jsx';
 
@@ -85,9 +86,12 @@ export default function RepCommissionReport({ data }) {
   // generic label so the line is never unlabeled.
   const miscLabel = data.rcr_adj_misc_label || 'Misc adjustment';
 
+  // WA State ASB: base wording plus the override description or the 2%/cap note.
+  // Non-ASB keeps its existing label unchanged.
   const asbLabel = data.asb_boosters === 'WA State ASB'
-    ? 'WA State ASB Fee'
+    ? buildAsbFeeLabel('WA State ASB Fee', data)
     : 'ASB Fee (charged to rep by default)';
+  const asbShowZero = asbFeeWaived(data);
 
   const cdBoxesLabel = data.extra_cd_boxes_ordered
     ? `Extra cookie dough boxes ordered at cost (${data.extra_cd_boxes_ordered} \u00d7 $7)`
@@ -125,7 +129,7 @@ export default function RepCommissionReport({ data }) {
           <SubtotalRow amount={subtotal} />
 
           <AdjustmentRow label={teamToRepLabel} amount={data.rcr_adj_team_to_rep} />
-          <AdjustmentRow label={asbLabel} amount={data.rcr_adj_asbfee} />
+          <AdjustmentRow label={asbLabel} amount={data.rcr_adj_asbfee} showZero={asbShowZero} />
           <AdjustmentRow label="50% MD prize shop (if elected by rep)" amount={data.rcr_adj_half_md_prize_fee} />
           <AdjustmentRow label="Small fundraiser adj" amount={data.rcr_adj_smallfradj} />
           <AdjustmentRow label="Excess printing adj" amount={data.rcr_adj_excessprint} />
