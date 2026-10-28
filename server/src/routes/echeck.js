@@ -16,7 +16,7 @@ import {
 } from '../services/airtable.js';
 import { sendEmail } from '../services/gmail.js';
 import { generateRcrForFundraiser } from './reports.js';
-import { isUpfrontCards } from '../constants/products.js';
+import { isUpfrontCards, isNoRiskCards } from '../constants/products.js';
 import { sendServerError, CheckbookError } from '../utils/httpError.js';
 
 const router = Router();
@@ -25,12 +25,23 @@ const router = Router();
 // their own card sales and SMASH's only money movement is the invoice. Paying it out
 // would send the school money it isn't owed, so both team-profit paths hard-reject.
 const UPFRONT_TEAM_PROFIT_ERROR = 'Upfront purchase fundraisers have no team profit payout — the team keeps their own card sales. Send the invoice instead.';
+// Same for Traditional No-Risk: the team holds all the card money and SMASH invoices
+// them for everything except their profit, so there is never a team-profit check.
+// The Airtable automation already skips the task; this is the second layer in case
+// the payment flow is reached another way (old task, manual task, edited action_url).
+const NO_RISK_TEAM_PROFIT_ERROR = 'Traditional No-Risk fundraisers have no team profit payout — the team already holds the card money. Send the invoice instead.';
 
-async function isUpfrontFundraiser(fundraiserId) {
+// Returns the rejection message when this fundraiser's product has no team-profit
+// payout, or null when a team-profit payment is allowed. Reads the live record so a
+// tampered request body can't bypass it. Must run BEFORE any Checkbook call and
+// BEFORE any Airtable write — Checkbook payments cannot be undone.
+async function teamProfitBlockedReason(fundraiserId) {
   const record = await airtableGet('fundraisers', fundraiserId);
   const raw = record.fields[FUNDRAISER_FIELDS.product_primary_string];
   const productPrimaryString = Array.isArray(raw) ? raw[0] || '' : raw || '';
-  return isUpfrontCards(productPrimaryString);
+  if (isUpfrontCards(productPrimaryString)) return UPFRONT_TEAM_PROFIT_ERROR;
+  if (isNoRiskCards(productPrimaryString)) return NO_RISK_TEAM_PROFIT_ERROR;
+  return null;
 }
 
 const BULK_REP_CONFIG = {
@@ -402,8 +413,9 @@ router.post('/send', async (req, res) => {
       if (!fundraiserId) {
         return res.status(400).json({ error: 'fundraiserId is required for team profit e-checks' });
       }
-      if (await isUpfrontFundraiser(fundraiserId)) {
-        return res.status(400).json({ error: UPFRONT_TEAM_PROFIT_ERROR });
+      const blockedReason = await teamProfitBlockedReason(fundraiserId);
+      if (blockedReason) {
+        return res.status(400).json({ error: blockedReason });
       }
     }
 
@@ -536,8 +548,9 @@ router.post('/send-physical', async (req, res) => {
     if (!fundraiserId) {
       return res.status(400).json({ error: 'fundraiserId is required for team profit checks' });
     }
-    if (await isUpfrontFundraiser(fundraiserId)) {
-      return res.status(400).json({ error: UPFRONT_TEAM_PROFIT_ERROR });
+    const blockedReason = await teamProfitBlockedReason(fundraiserId);
+    if (blockedReason) {
+      return res.status(400).json({ error: blockedReason });
     }
     if (!amount || amount <= 0) {
       return res.status(400).json({ error: 'Amount must be greater than 0' });

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { DollarSign, Send, X, AlertTriangle, Paperclip, Mail, CheckCircle, SkipForward, ArrowLeft } from 'lucide-react';
 import { api } from '../api/client';
-import { isUpfrontCards } from '../utils/products';
+import { isUpfrontCards, isNoRiskCards } from '../utils/products';
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -165,9 +165,16 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
   }, [task.id]);
 
   const isTeamProfit = preview?.type === 'team_profit';
-  // Upfront purchase fundraisers keep their own card sales — there is no team profit
-  // payout, so the wizard never shows a payment form for them.
+  // Upfront purchase fundraisers keep their own card sales, and Traditional No-Risk
+  // teams already hold the card money — neither has a team profit payout, so the
+  // wizard never shows a payment form (digital or paper) for them. The server
+  // enforces the same rule; this just keeps the Send button out of reach.
   const isUpfrontBlocked = isTeamProfit && isUpfrontCards(preview?.productName);
+  const isNoRiskBlocked = isTeamProfit && isNoRiskCards(preview?.productName);
+  const isBlocked = isUpfrontBlocked || isNoRiskBlocked;
+  const blockedMessage = isUpfrontBlocked
+    ? 'Upfront purchase fundraisers have no team profit payout — the team keeps their own card sales. Send the invoice instead.'
+    : 'Traditional No-Risk fundraisers have no team profit payout — the team already holds the card money. Send the invoice instead.';
 
   const prepareStep2 = (p, isPaper = false) => {
     setEmailSubject(`Your Team Profit Report — ${p.organization} ${p.team}`);
@@ -344,13 +351,13 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
           <div className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{error}</div>
         )}
 
-        {/* Upfront purchase — no team profit payout, ever */}
-        {!loading && !error && preview && isUpfrontBlocked && (
+        {/* Upfront purchase / Traditional No-Risk — no team profit payout, ever */}
+        {!loading && !error && preview && isBlocked && (
           <>
             <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 flex items-start gap-2.5">
               <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
               <p className="text-sm text-amber-900 leading-relaxed">
-                Upfront purchase fundraisers have no team profit payout — the team keeps their own card sales. Send the invoice instead.
+                {blockedMessage}
               </p>
             </div>
             <div className="flex justify-end pt-2 mt-4">
@@ -365,7 +372,7 @@ export default function ECheckPreviewModal({ task, onClose, onRefresh }) {
         )}
 
         {/* STEP 1 */}
-        {!loading && !error && preview && !isUpfrontBlocked && step === 1 && (
+        {!loading && !error && preview && !isBlocked && step === 1 && (
           <>
           <div className="space-y-4 max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto">
             {/* Recipient */}
